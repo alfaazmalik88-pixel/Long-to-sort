@@ -1,0 +1,6 @@
+{
+  "name": "ClipGenius",
+  "description": "Convert long-form videos into engaging short-form viral clips with AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
