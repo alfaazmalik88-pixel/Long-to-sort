@@ -50,9 +50,15 @@ export const renderVideoClip = async (
       const pollInterval = setInterval(async () => {
         try {
           const statusRes = await fetch(`/api/render/status/${actualJobId}`);
+          const text = await statusRes.text();
           if (!statusRes.ok) throw new Error("Failed to fetch job status");
           
-          const job = await statusRes.json();
+          let job;
+          try {
+             job = JSON.parse(text);
+          } catch (e) {
+             throw new Error("Invalid JSON from status endpoint");
+          }
 
           if (job.status === 'completed') {
             clearInterval(pollInterval);

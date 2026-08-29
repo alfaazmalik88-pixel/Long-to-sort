@@ -217,6 +217,19 @@ async function startServer() {
     }
   });
 
+  
+  const renderQueue = [];
+  let activeRenders = 0;
+  const MAX_CONCURRENT_RENDERS = 1;
+
+  function processNextRender() {
+    if (activeRenders < MAX_CONCURRENT_RENDERS && renderQueue.length > 0) {
+      activeRenders++;
+      const nextJob = renderQueue.shift();
+      if (nextJob) nextJob();
+    }
+  }
+
   const renderJobs = new Map();
 
   // Route to handle chunk uploads
@@ -230,7 +243,7 @@ async function startServer() {
       fs.renameSync(chunkPath, targetPath); fs.appendFileSync('upload_logs.txt', new Date().toISOString() + " Renamed chunk " + chunkIndex + "\n");
       res.json({ success: true });
     } catch (e) {
-      console.error(\"Chunk upload failed:\", e); fs.appendFileSync('upload_logs.txt', new Date().toISOString() + \" ERROR: \" + (e.stack || e.message) + \"\\n\");
+      console.error("Chunk upload failed:", e); fs.appendFileSync('upload_logs.txt', new Date().toISOString() + " ERROR: " + (e.stack || e.message) + "\n");
       res.status(500).json({ error: "Chunk upload failed" });
     }
   });
@@ -369,6 +382,10 @@ async function startServer() {
           job.status = "completed";
           job.url = `/uploads/${outputFileName}`;
         }
+        activeRenders--;
+        processNextRender();
+        if (false) {
+        }
         if (videoPath && fs.existsSync(videoPath)) {
           // fs.unlinkSync(videoPath); // Do not delete so we can render multiple parts
         }
@@ -381,6 +398,10 @@ async function startServer() {
           job.status = "failed";
           job.error = err.message + '\n' + stderr;
         }
+        activeRenders--;
+        processNextRender();
+        if (false) {
+        }
         if (videoPath && fs.existsSync(videoPath)) {
           // fs.unlinkSync(videoPath); // Do not delete so we can render multiple parts
         }
@@ -388,7 +409,11 @@ async function startServer() {
           fs.unlinkSync(outputPath);
         }
       })
-      .save(outputPath);
+      ;
+      renderQueue.push(() => {
+        command.save(outputPath);
+      });
+      processNextRender();
       
     } catch (error: any) {
       console.error("Error starting render job:", error);

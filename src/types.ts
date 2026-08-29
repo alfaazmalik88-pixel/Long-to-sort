@@ -13,6 +13,7 @@ export interface VideoState {
   videoId?: string;
   uploadProgress?: number;
   uploadSpeed?: number; // in MB/s
+  isPaused?: boolean;
   url: string | null;
   file: File | null;
   status: 'idle' | 'uploading' | 'analyzing' | 'ready' | 'error';

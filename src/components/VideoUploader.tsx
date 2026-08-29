@@ -10,10 +10,13 @@ interface VideoUploaderProps {
   onCancel?: () => void;
   uploadProgress?: number;
   uploadSpeed?: number;
+  isPaused?: boolean;
+  onTogglePause?: () => void;
   onOpenPolicy?: (type: 'privacy' | 'terms') => void;
 }
 
-export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status, onOpenPolicy, uploadProgress = 0, uploadSpeed = 0, errorMessage, onCancel }) => {
+import { Pause, Play } from 'lucide-react';
+export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status, onOpenPolicy, uploadProgress = 0, uploadSpeed = 0, errorMessage, isPaused, onTogglePause, onCancel }) => {
   const [url, setUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const processUpload = (uploadUrl: string | null, file: File | null) => {
@@ -88,18 +91,24 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status,
             disabled={isProcessing}
           />
           <div className="absolute inset-y-2 right-2">
-            <button
-              type="submit"
-              disabled={!url || isProcessing}
-              className="h-full px-6 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors flex items-center gap-2"
-            >
-              {(isProcessing || isError) ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
+            {isProcessing ? (
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); onCancel?.(); }}
+                className="h-full px-6 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-xl font-medium transition-colors flex items-center gap-2 pointer-events-auto"
+              >
+                Cancel
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!url}
+                className="h-full px-6 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+              >
                 <LinkIcon className="w-4 h-4" />
-              )}
-              Load
-            </button>
+                Load
+              </button>
+            )}
           </div>
         </form>
 
@@ -155,12 +164,22 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status,
                             strokeDashoffset={40 * 2 * Math.PI - (uploadProgress / 100) * (40 * 2 * Math.PI)}
                             className="text-indigo-500 transition-all duration-300" />
                   </svg>
-                  <span className="absolute text-lg font-bold text-zinc-100">{Math.round(uploadProgress)}%</span>
+                  <span className="absolute text-lg font-bold text-zinc-100">{uploadProgress.toFixed(1)}%</span>
                 </div>
                 {uploadSpeed > 0 && (
                   <div className="mt-2 text-indigo-400 font-medium text-sm bg-indigo-500/10 px-3 py-1 rounded-full">
                     Speed: {uploadSpeed.toFixed(1)} Mbps
                   </div>
+                )}
+                {status === 'uploading' && onTogglePause && (
+                   <button 
+    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onTogglePause(); }} 
+    className="mt-4 flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-full transition-colors relative z-10 pointer-events-auto cursor-pointer"
+>
+                     {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                     {isPaused ? "Resume" : "Pause"}
+                   </button>
+                
                 )}
                 </div>
               ) : (
@@ -169,15 +188,16 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status,
                   <div className="w-20 h-20 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin absolute inset-0"></div>
                 </div>
               )}
-              <div className="space-y-2 text-center">
+              <div className="space-y-2 text-center flex flex-col items-center">
                 <h3 className="text-xl font-medium text-zinc-200">
                   {status === 'uploading' ? 'Uploading Video...' : 'AI Analyzing Content...'}
                 </h3>
-                <p className="text-zinc-500 text-sm max-w-sm mx-auto">
+                <p className="text-zinc-500 text-sm max-w-sm mx-auto mb-4">
                   {status === 'uploading' 
                     ? 'Please keep this tab open while we upload your video securely.'
                     : 'Our Gemini AI is analyzing the transcript and visuals for high-retention moments.'}
                 </p>
+                
               </div>
             </div>
 

@@ -44,6 +44,8 @@ import { PolicyView } from './components/PolicyView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'upload' | 'clips' | 'editor' | 'export'>('upload');
+  const isPausedRef = React.useRef(false);
+  const currentXhrRef = React.useRef<XMLHttpRequest | null>(null);
   const [policyView, setPolicyView] = useState<'privacy' | 'terms' | null>(null);
 
   
@@ -121,6 +123,14 @@ export default function App() {
     }
   }, [globalClipDuration, videoTotalDuration]);
 
+  const togglePause = () => {
+    isPausedRef.current = !isPausedRef.current;
+    if (isPausedRef.current && currentXhrRef.current) {
+      currentXhrRef.current.abort();
+    }
+    setVideoState(prev => ({ ...prev, isPaused: isPausedRef.current }));
+  };
+
   const handleAnalyze = async (url: string | null, file: File | null) => {
     let videoUrl = url;
     let videoId = undefined;
@@ -184,54 +194,108 @@ export default function App() {
           return; // Skip the rest of the file upload logic
         }
 
-        const CHUNK_SIZE = 512 * 1024; // 512KB chunks for smooth progress and stable speed
+        const CHUNK_SIZE = 256 * 1024; // 256KB for better scaling
         const totalChunks = Math.ceil(blobToUpload.size / CHUNK_SIZE);
         let uploadedChunks = 0;
         const uploadStartTime = Date.now();
         let uploadedBytes = 0;
 
-        const uploadChunk = async (i: number, retries = 20): Promise<void> => {
-    
+        const uploadChunk = async (i: number, retries = 100): Promise<void> => {
+          // Wait if paused before even starting the chunk
+          while (isPausedRef.current) {
+            await new Promise(r => setTimeout(r, 1000));
+          }
+
           const start = i * CHUNK_SIZE;
           const end = Math.min(start + CHUNK_SIZE, blobToUpload.size);
           const chunk = blobToUpload.slice(start, end);
           
-          
-    console.log(`Preparing chunk ${i} (size: ${chunk.size})`);
-    const formData = new FormData();
+          const formData = new FormData();
           formData.append('chunk', chunk, 'chunk.mp4');
-          formData.append('jobId', videoId!); // using videoId as jobId here for the upload-chunk endpoint
+          formData.append('jobId', videoId!); 
           formData.append('chunkIndex', i.toString());
           formData.append('totalChunks', totalChunks.toString());
 
           try {
-    console.log(`Sending fetch for chunk ${i}...`);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout to allow slow connections to finish
-    const res = await fetch('/api/upload-chunk', { method: 'POST', body: formData, signal: controller.signal });
-    clearTimeout(timeoutId);
-    console.log(`Fetch returned for chunk ${i} with status ${res.status}`);
-            if (!res.ok) throw new Error(`Status ${res.status}: ` + await res.text());
+            await new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              currentXhrRef.current = xhr;
+              xhr.open('POST', '/api/upload-chunk', true);
+              
+              let lastProgressTime = Date.now();
+              let initialProgressBytes = uploadedBytes;
+              
+              const watchdog = setInterval(() => {
+                // If 30 seconds pass without any progress bytes moving, kill it to trigger a retry
+                if (Date.now() - lastProgressTime > 60000) {
+                  clearInterval(watchdog);
+                  xhr.abort();
+                  reject(new Error("Upload stalled"));
+                }
+                if (isPausedRef.current) {
+                  clearInterval(watchdog);
+                  xhr.abort();
+                  reject(new Error("Paused by user"));
+                }
+              }, 5000);
+
+              xhr.upload.onprogress = (e) => {
+                lastProgressTime = Date.now();
+                if (e.lengthComputable && e.total > 0) {
+                  const chunkProgress = e.loaded / e.total;
+                  const currentProgress = ((uploadedChunks + chunkProgress) / totalChunks) * 100;
+                  
+                  // Compute dynamic speed
+                  const timeElapsed = (Date.now() - uploadStartTime) / 1000;
+                  let currentSpeed = 0;
+                  if (timeElapsed > 0) {
+                     currentSpeed = ((initialProgressBytes + e.loaded) * 8) / 1000000 / timeElapsed;
+                  }
+
+                  setVideoState(prev => ({
+                    ...prev,
+                    uploadProgress: Math.min(99, currentProgress),
+                    uploadSpeed: currentSpeed
+                  }));
+                }
+              };
+
+              xhr.onload = () => {
+                clearInterval(watchdog);
+                if (xhr.status >= 200 && xhr.status < 300) {
+                  resolve(xhr.responseText);
+                } else {
+                  reject(new Error(`Status ${xhr.status}`));
+                }
+              };
+
+              xhr.onerror = () => {
+                clearInterval(watchdog);
+                reject(new Error("Network error"));
+              };
+
+              xhr.onabort = () => {
+                clearInterval(watchdog);
+                reject(new Error("Aborted"));
+              };
+
+              xhr.send(formData);
+            });
             
             uploadedChunks++;
             uploadedBytes += chunk.size;
-            const timeElapsed = (Date.now() - uploadStartTime) / 1000; // in seconds
-            let uploadSpeed = 0;
-            if (timeElapsed > 0) {
-               // Calculate speed in Megabits per second (Mbps) as user requested
-               // (uploadedBytes * 8) / 1,000,000 / timeElapsed
-               uploadSpeed = (uploadedBytes * 8) / 1000000 / timeElapsed;
-            }
-            setVideoState(prev => ({ 
-              ...prev, 
-              uploadProgress: Math.min(99, (uploadedChunks / totalChunks) * 100),
-              uploadSpeed 
-            }));
+            
           } catch (err) {
-    console.error(`Error uploading chunk ${i}:`, err);
-    if (retries > 0) {
-              console.log(`Retrying chunk ${i}... (${retries} left)`);
-              const waitTime = Math.min(15000, 2000 * Math.pow(1.5, 20 - retries)); // Exponential backoff for bad networks
+            console.error(`Chunk ${i} failed, retrying...`, err);
+            setVideoState(prev => ({ ...prev, uploadSpeed: 0 }));
+            
+            // Wait while paused
+            while (isPausedRef.current) {
+               await new Promise(r => setTimeout(r, 1000));
+            }
+            
+            if (retries > 0) {
+              const waitTime = Math.min(5000, 1000 * Math.pow(1.2, 100 - retries));
               await new Promise(r => setTimeout(r, waitTime));
               return uploadChunk(i, retries - 1);
             }
@@ -239,23 +303,56 @@ export default function App() {
           }
         };
 
-        const concurrency = 2; // Reduced to 2 to prevent bandwidth splitting on slow connections
-        for (let i = 0; i < totalChunks; i += concurrency) {
+        let currentConcurrency = 1;
+        for (let i = 0; i < totalChunks; ) {
+          while (isPausedRef.current) {
+            await new Promise(r => setTimeout(r, 1000));
+          }
           const tasks = [];
-          for (let j = 0; j < concurrency && i + j < totalChunks; j++) {
+          for (let j = 0; j < currentConcurrency && i + j < totalChunks; j++) {
             tasks.push(uploadChunk(i + j));
           }
+          
+          const batchStart = Date.now();
           await Promise.all(tasks);
+          const elapsed = Date.now() - batchStart;
+          
+          i += tasks.length;
+          
+          if (elapsed < 1000) {
+             currentConcurrency = Math.min(6, currentConcurrency + 1);
+          } else if (elapsed > 3000) {
+             currentConcurrency = Math.max(1, currentConcurrency - 1);
+          }
+          
+          if (elapsed > 2000 && currentConcurrency === 1) {
+             await new Promise(r => setTimeout(r, 200)); 
+          }
         }
 
         // Notify server that upload is complete to combine chunks
-        const completeRes = await fetch('/api/upload-complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ videoId, totalChunks })
-        });
-        
-        if (!completeRes.ok) throw new Error("Failed to finalize upload on server");
+        let completeSuccess = false;
+        for (let r = 0; r < 5; r++) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const completeRes = await fetch('/api/upload-complete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ videoId, totalChunks }),
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (!completeRes.ok) throw new Error("Failed to finalize");
+            completeSuccess = true;
+            break;
+          } catch (e) {
+            console.warn("Retrying upload-complete...", e);
+            setVideoState(prev => ({ ...prev, uploadSpeed: 0 }));
+            await new Promise(res => setTimeout(res, 2000));
+          }
+        }
+        if (!completeSuccess) throw new Error("Failed to finalize upload on server after retries");
         
         setVideoState(prev => ({ ...prev, uploadProgress: 100, videoId, status: 'analyzing' }));
         // --- END UPLOAD TO SERVER ---
@@ -389,6 +486,8 @@ export default function App() {
                 uploadProgress={videoState.uploadProgress}
                 uploadSpeed={videoState.uploadSpeed}
                 errorMessage={videoState.errorMessage}
+                isPaused={videoState.isPaused}
+                onTogglePause={togglePause}
                 onCancel={() => setVideoState({ url: null, file: null, status: 'idle', clips: [] })}
                 onOpenPolicy={setPolicyView}
               />
