@@ -2,6 +2,7 @@ import React from 'react';
 import { Play, TrendingUp, Clock, CheckCircle2 } from 'lucide-react';
 import { Clip } from '../types';
 import { cn, formatTime } from '../utils';
+import { AdBanner } from './AdBanner';
 
 interface ClipSelectorProps {
   clips: Clip[];
@@ -98,6 +99,10 @@ export const ClipSelector: React.FC<ClipSelectorProps> = ({ clips, selectedClipI
               </div>
             );
           })}
+        </div>
+        
+        <div className="mt-4 shrink-0">
+          <AdBanner />
         </div>
       </div>
     </div>

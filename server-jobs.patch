@@ -1,0 +1,114 @@
+--- server.ts
++++ server.ts
+@@ -128,8 +128,11 @@
+     }
+   });
+ 
+-  // API Route for Video Rendering using FFmpeg
+-  app.post("/api/render", upload.single("video"), async (req, res) => {
++  const renderJobs = new Map();
++
++  // Start Render Job
++  app.post("/api/render/start", upload.single("video"), async (req, res) => {
+     req.setTimeout(0);
+     res.setTimeout(0);
+     try {
+@@ -143,6 +146,15 @@
+       const customTitle = req.body.customTitle || "";
+       const subtitle = req.body.subtitle || "";
+       const aspectRatio = req.body.aspectRatio || "9:16";
++      const jobId = req.body.jobId || Date.now().toString();
++
++      renderJobs.set(jobId, {
++        status: 'processing',
++        progress: 0,
++        url: null,
++        error: null
++      });
++      res.json({ jobId });
+ 
+       const outputFileName = `render_${Date.now()}.mp4`;
+       const outputPath = path.join(uploadDir, outputFileName);
+@@ -190,26 +202,30 @@
+ 
+       command.on('progress', (progress) => {
+         if (progress.percent) {
+-          console.log(`Processing: ${Math.floor(progress.percent)}% done`);
++          const p = Math.floor(progress.percent);
++          if (renderJobs.has(jobId)) {
++             const job = renderJobs.get(jobId);
++             job.progress = p;
++          }
+         }
+       });
+ 
+       command.on('end', () => {
+         console.log(`Render complete: ${outputPath}`);
++        if (renderJobs.has(jobId)) {
++          const job = renderJobs.get(jobId);
++          job.progress = 100;
++          job.status = 'completed';
++          job.url = `/uploads/${outputFileName}`;
++        }
+         // Clean up uploaded file
+         if (req.file && fs.existsSync(req.file.path)) {
+           fs.unlinkSync(req.file.path);
+         }
+-        
+-        // Send the file
+-        res.download(outputPath, "viral_clip.mp4", (err) => {
+-          // Clean up output file after sending
+-          if (fs.existsSync(outputPath)) {
+-            fs.unlinkSync(outputPath);
+-          }
+-        });
+       })
+       .on('error', (err, stdout, stderr) => {
+         console.error("FFmpeg render error:", err.message);
+         console.error("FFmpeg stderr:", stderr);
++        if (renderJobs.has(jobId)) {
++           const job = renderJobs.get(jobId);
++           job.status = 'failed';
++           job.error = err.message;
++        }
+         if (req.file && fs.existsSync(req.file.path)) {
+           fs.unlinkSync(req.file.path);
+         }
+@@ -201,9 +217,6 @@
+         if (fs.existsSync(outputPath)) {
+           fs.unlinkSync(outputPath);
+         }
+-        if (!res.headersSent) {
+-          res.status(500).json({ error: "Failed to render video" });
+-        }
+       })
+       .save(outputPath);
+       
+     } catch (error: any) {
+       console.error("Error during rendering:", error);
++      const jobId = req.body.jobId;
++      if (jobId && renderJobs.has(jobId)) {
++         const job = renderJobs.get(jobId);
++         job.status = 'failed';
++         job.error = error.message;
++      }
+       if (req.file && fs.existsSync(req.file.path)) {
+         fs.unlinkSync(req.file.path);
+       }
+-      if (!res.headersSent) {
+-        res.status(500).json({ error: error.message || "Failed to render video" });
+-      }
+     }
+   });
++
++  app.get("/api/render/status/:jobId", (req, res) => {
++    const job = renderJobs.get(req.params.jobId);
++    if (!job) {
++       return res.status(404).json({ error: "Job not found" });
++    }
++    res.json(job);
++  });
++
++  // Serve the uploads directory statically for the finished files
++  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+ 

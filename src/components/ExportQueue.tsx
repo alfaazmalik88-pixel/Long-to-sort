@@ -1,13 +1,29 @@
 import React from 'react';
-import { Film, CheckCircle2, AlertCircle, Loader2, Download, Share2 } from 'lucide-react';
+import { Film, CheckCircle2, AlertCircle, Loader2, Download } from 'lucide-react';
 import { RenderJob } from '../types';
 import { cn } from '../utils';
+import { AdBanner } from './AdBanner';
 
 interface ExportQueueProps {
   jobs: RenderJob[];
+  videoUrl?: string | null;
 }
 
-export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs }) => {
+export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs, videoUrl }) => {
+  const handleDownload = (url: string, title: string) => {
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      console.error("Download failed:", e);
+      window.open(url, '_blank');
+    }
+  };
+
   if (jobs.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-zinc-950">
@@ -29,19 +45,21 @@ export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs }) => {
         <div className="max-w-4xl mx-auto space-y-4">
           {jobs.map((job) => (
             <div key={job.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex items-center gap-6">
-              <div className="w-24 h-36 bg-zinc-950 rounded-lg flex items-center justify-center border border-zinc-800 shrink-0 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 to-black/50 mix-blend-overlay"></div>
-                {job.status === 'pending' && (
-                  <Loader2 className="w-6 h-6 text-zinc-500 animate-spin relative z-10" />
+              <div id={`render-preview-container-${job.id}`} className="w-24 h-36 bg-zinc-950 rounded-lg flex items-center justify-center border border-zinc-800 shrink-0 relative overflow-hidden group">
+                {job.thumbnailUrl ? (
+                  <img src={job.thumbnailUrl} className="absolute inset-0 w-full h-full object-cover opacity-50 z-0" />
+                ) : (
+                  <Film className="w-8 h-8 text-zinc-700 absolute z-0" />
                 )}
-                {job.status === 'processing' && (
-                  <Loader2 className="w-6 h-6 text-indigo-400 animate-spin relative z-10" />
+                <div className="absolute inset-0 bg-black/40 transition-colors z-0"></div>
+                {job.status === 'pending' && (
+                  <Loader2 className="w-6 h-6 text-zinc-300 animate-spin relative z-10" />
                 )}
                 {job.status === 'ready' && (
-                  <CheckCircle2 className="w-6 h-6 text-emerald-400 relative z-10" />
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400 relative z-10" />
                 )}
                 {job.status === 'failed' && (
-                  <AlertCircle className="w-6 h-6 text-red-400 relative z-10" />
+                  <AlertCircle className="w-8 h-8 text-red-400 relative z-10" />
                 )}
               </div>
 
@@ -72,33 +90,43 @@ export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs }) => {
                 )}
 
                 {job.status === 'processing' && (
-                  <p className="text-sm text-zinc-400">
-                    Recording in real-time in your browser (keep tab open)...
+                  <p className="text-sm text-zinc-400 leading-relaxed">
+                    Rendering your clip on the server...<br/>
+                    <span className="text-zinc-500 text-xs">You can safely leave this page or queue more clips.</span>
+                  </p>
+                )}
+
+                {job.status === 'failed' && (
+                  <p className="text-sm text-red-400/90 leading-relaxed bg-red-500/10 p-3 rounded-lg border border-red-500/20 mt-2">
+                    {job.errorMessage || 'Unknown error occurred while rendering.'}
                   </p>
                 )}
 
                 {job.status === 'ready' && (
                   <div className="flex items-center gap-3 mt-4">
                     {job.blobUrl ? (
-                      <a href={job.blobUrl} download={`${job.title}.webm`} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                      <button 
+                        onClick={() => handleDownload(job.blobUrl!, job.title)}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                      >
                         <Download className="w-4 h-4" />
                         Download Video
-                      </a>
+                      </button>
                     ) : (
-                      <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                      <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 opacity-50 cursor-not-allowed">
                         <Download className="w-4 h-4" />
                         Download MP4
                       </button>
                     )}
-                    <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                      <Share2 className="w-4 h-4" />
-                      Share
-                    </button>
                   </div>
                 )}
               </div>
             </div>
           ))}
+        </div>
+        
+        <div className="mt-8">
+          <AdBanner />
         </div>
       </div>
     </div>

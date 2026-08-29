@@ -15,6 +15,17 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({ clip, settings, vide
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    const video = videoRef.current;
+    return () => {
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (clip && videoRef.current) {
       videoRef.current.currentTime = clip.startTime;
       setCurrentTime(clip.startTime);
@@ -132,11 +143,7 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({ clip, settings, vide
             </div>
           )}
 
-          {settings.showProgressBar && (
-            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-zinc-800">
-              <div className="h-full bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}></div>
-            </div>
-          )}
+
         </div>
       </div>
 
