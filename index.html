@@ -1,71 +1,116 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google-site-verification" content="M6-hgNSXDZFfFMzqaWJAlSzgOudcYS44rb3rfUbiw_s" />
-    <meta name="monetag" content="ef74f25c39fc9139efcca9fb7dc9b4c4">
+// Render Current Part button click handler
+async function renderCurrentPartWithMediaRecorder() {
+  const video = document.getElementById('mainVideo');
+  const durationSelect = selectedDuration || 60; // 1 Min (60s), 1.5 Min (90s), 2 Min (120s)
+  const startTime = (currentPart - 1) * durationSelect;
+  const endTime = Math.min(currentPart * durationSelect, video.duration);
+
+  // Screen keep-alive (Phone screen band hone se rokna)
+  let wakeLock = null;
+  if ('wakeLock' in navigator) {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+
+  // 1. Processing Canvas setup
+  const canvas = document.createElement('canvas');
+  canvas.width = 720;
+  canvas.height = 1280; // 9:16 Shorts format
+  const ctx = canvas.getContext('2d');
+
+  // 2. Audio Context (Perfect Lip-Sync)
+  video.currentTime = startTime;
+  await new Promise(resolve => video.onseeked = resolve);
+
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const sourceNode = audioCtx.createMediaElementSource(video);
+  const audioDest = audioCtx.createMediaStreamDestination();
+  sourceNode.connect(audioDest);
+  sourceNode.connect(audioCtx.destination);
+
+  // 3. Combined Stream (Audio + Video)
+  const canvasStream = canvas.captureStream(30);
+  const combinedStream = new MediaStream([
+    ...canvasStream.getVideoTracks(),
+    ...audioDest.stream.getAudioTracks()
+  ]);
+
+  const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
+  const recorder = new MediaRecorder(combinedStream, {
+    mimeType: mimeType,
+    videoBitsPerSecond: 4500000 // 1080p clean bitrate
+  });
+
+  const recordedChunks = [];
+  recorder.ondataavailable = (e) => {
+    if (e.data.size > 0) recordedChunks.push(e.data);
+  };
+
+  // UI Export Queue & Progress Bar update
+  switchTab('export'); // Export Queue tab par redirect
+  const progressBar = document.getElementById('renderProgressBar');
+  const progressText = document.getElementById('renderProgressText');
+
+  recorder.onstop = () => {
+    if (wakeLock) wakeLock.release();
+    audioCtx.close();
+
+    const outputBlob = new Blob(recordedChunks, { type: mimeType });
+    const downloadUrl = URL.createObjectURL(outputBlob);
     
-    <!-- Primary Title & Description -->
-    <title>ViralClip AI - Free Long to Short Video Converter</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
-    <meta name="description" content="Convert long videos to short viral clips for YouTube Shorts, Instagram Reels, and TikTok instantly in your browser. Free AI video editor with auto-captions and no watermark." />
-    <meta name="keywords" content="long to short video converter, convert long video to short, ai video to shorts, viral reels maker, auto caption generator, video trimmer online, ai shorts generator, free video to shorts, youtube shorts ai, tiktok ai maker" />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <meta name="author" content="ViralClip AI" />
-    <meta name="language" content="English" />
+    // Original UI ka Download Button show karna
+    showDownloadReady(downloadUrl, `Part_${currentPart}.mp4`);
+  };
 
-    <!-- Open Graph (Social Media & WhatsApp) -->
-    <meta property="og:title" content="ViralClip AI - Free AI Video to Shorts Generator" />
-    <meta property="og:description" content="Convert any long video into engaging 9:16 vertical clips with dynamic captions using AI. No watermark, fully free." />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://viralclip-ai.web.app/" />
-    <meta property="og:image" content="https://viralclip-ai.web.app/logo.png" />
+  // 4. Start recording & drawing loop
+  recorder.start();
+  video.muted = false;
+  video.play();
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ViralClip AI - Free Video to Shorts Maker" />
-    <meta name="twitter:description" content="Generate viral Shorts and Reels in seconds using AI. Add auto-captions instantly." />
-    <meta name="twitter:image" content="https://viralclip-ai.web.app/logo.png" />
-
-    <!-- JSON-LD Structured Data for Google Rich Results -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "ViralClip AI",
-      "alternateName": "AI Shorts Generator",
-      "url": "https://viralclip-ai.web.app/",
-      "description": "An AI-powered web application that converts long-form videos into short, viral clips for YouTube Shorts, Instagram Reels, and TikTok with automated captions.",
-      "applicationCategory": "MultimediaApplication",
-      "operatingSystem": "All",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "featureList": [
-        "AI Video Trimming",
-        "Auto Captions Generation",
-        "No Watermark",
-        "Browser-based Export"
-      ]
+  function drawLoop() {
+    if (video.currentTime >= endTime || video.ended) {
+      video.pause();
+      recorder.stop();
+      return;
     }
-    </script>
 
-    <!-- ========================================== -->
-    <!-- MONETAG INTEGRATION START                  -->
-    <!-- ========================================== -->
-    <!-- <script src="https://quge5.com/88/tag.min.js" data-zone="273872" async data-cfasync="false"></script> -->
-    <!-- ========================================== -->
-    <!-- MONETAG INTEGRATION END                    -->
-    <!-- ========================================== -->
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+    // Progress percentage update
+    const currentProgress = Math.round(((video.currentTime - startTime) / (endTime - startTime)) * 100);
+    if (progressBar) progressBar.style.width = `${currentProgress}%`;
+    if (progressText) progressText.innerText = `${currentProgress}%`;
 
+    // 9:16 Center Crop Math
+    const vW = video.videoWidth;
+    const vH = video.videoHeight;
+    const targetRatio = 9 / 16;
+    let sW = vH * targetRatio;
+    let sH = vH;
+    let sX = (vW - sW) / 2;
+    let sY = 0;
+
+    if (vW / vH < targetRatio) {
+      sW = vW;
+      sH = vW / targetRatio;
+      sX = 0;
+      sY = (vH - sH) / 2;
+    }
+
+    ctx.drawImage(video, sX, sY, sW, sH, 0, 0, canvas.width, canvas.height);
+
+    // PART 1 Text (Bottom fixed, no dots)
+    ctx.save();
+    ctx.font = "900 48px sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 4;
+    
+    // Bilkul screen ke bottom par
+    ctx.fillText(`PART ${currentPart}`, canvas.width / 2, canvas.height - 70);
+    ctx.restore();
+
+    requestAnimationFrame(drawLoop);
+  }
+
+  drawLoop();
+}
