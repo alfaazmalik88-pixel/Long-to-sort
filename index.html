@@ -1,93 +1,445 @@
-// Render Current Part button click handler
-async function renderCurrentPartWithMediaRecorder() {
-  const video = document.getElementById('mainVideo');
-  const durationSelect = selectedDuration || 60; // 1 Min (60s), 1.5 Min (90s), 2 Min (120s)
-  const startTime = (currentPart - 1) * durationSelect;
-  const endTime = Math.min(currentPart * durationSelect, video.duration);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Viral Clip Studio</title>
+  <style>
+    :root {
+      --bg: #09090b;
+      --card-bg: #121217;
+      --border: #272730;
+      --accent: #6366f1;
+      --accent-glow: #4f46e5;
+      --text: #f4f4f5;
+      --subtext: #71717a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 50px; display: flex; justify-content: center; }
+    .app-container { width: 100%; max-width: 440px; padding: 12px; }
 
-  // Screen keep-alive (Phone screen band hone se rokna)
+    /* Video Player Canvas Frame */
+    .preview-box {
+      position: relative;
+      width: 100%;
+      height: 260px;
+      background: #000;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid var(--border);
+    }
+    video { width: 100%; height: 100%; object-fit: contain; }
+
+    /* PART 1 - Bottom Fixed & No Dots */
+    .overlay-bottom {
+      position: absolute;
+      bottom: 14px;
+      left: 0;
+      right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .part-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: #ffffff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    }
+    .waveform-dummy {
+      width: 130px;
+      height: 16px;
+      background: repeating-linear-gradient(90deg, #a1a1aa, #a1a1aa 3px, transparent 3px, transparent 7px);
+      opacity: 0.85;
+    }
+
+    /* Player Controls */
+    .player-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 6px;
+      color: var(--subtext);
+      font-size: 0.75rem;
+    }
+    .ctrl-group { display: flex; align-items: center; gap: 18px; }
+    .play-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--accent-glow);
+      border: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      box-shadow: 0 0 14px rgba(99, 102, 241, 0.4);
+    }
+
+    /* Settings UI */
+    .section-title { font-size: 0.95rem; font-weight: 600; margin: 16px 0 10px; display: flex; align-items: center; gap: 8px; }
+    .sub-label { font-size: 0.7rem; font-weight: 600; color: var(--subtext); letter-spacing: 0.6px; margin: 14px 0 8px; text-transform: uppercase; }
+
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .btn-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .chip {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .chip.active {
+      background: #1e1e2d;
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .chip-sub { display: block; font-size: 0.65rem; color: var(--subtext); margin-top: 2px; }
+
+    .part-bar {
+      background: #1e1e2d;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    /* Overlays */
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 0.85rem; }
+    .switch { position: relative; width: 40px; height: 22px; background: var(--border); border-radius: 12px; cursor: pointer; }
+    .switch.on { background: var(--accent-glow); }
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .switch.on::after { transform: translateX(18px); }
+
+    .action-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      background: var(--accent-glow);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .export-btn { background: #10b981; }
+
+    /* Result list */
+    .list { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .item { background: #1e293b; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
+    .dl-btn { background: #10b981; color: #fff; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; }
+    #status-msg { text-align: center; font-size: 0.85rem; color: #38bdf8; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  
+  <!-- Video Display Screen -->
+  <div class="preview-box">
+    <video id="mainVideo" playsinline></video>
+    
+    <!-- Fixed Bottom PART 1 without dots -->
+    <div class="overlay-bottom" id="overlayWrap">
+      <div class="part-title" id="partTitleText">PART 1</div>
+      <div class="waveform-dummy" id="waveformUi"></div>
+    </div>
+  </div>
+
+  <!-- Player Controls Bar -->
+  <div class="player-controls">
+    <span id="timecode">00:00 / 00:00</span>
+    <div class="ctrl-group">
+      <span style="font-size:1.2rem; cursor:pointer;" onclick="shiftPart(-1)">&#x23EE;</span>
+      <button class="play-btn" id="playToggle">&#9654;</button>
+      <span style="font-size:1.2rem; cursor:pointer;" onclick="shiftPart(1)">&#x23ED;</span>
+    </div>
+    <span style="font-size:1rem;">&#x26F6;</span>
+  </div>
+
+  <!-- Editor Settings Section -->
+  <div class="section-title">&#x2699; Editor Settings</div>
+
+  <!-- Target Clip Length -->
+  <div class="sub-label">&#x23F1; TARGET CLIP LENGTH</div>
+  <div class="btn-row" id="durationSelector">
+    <div class="chip active" onclick="updateDuration(60, this)">1 Min</div>
+    <div class="chip" onclick="updateDuration(90, this)">1.5 Min</div>
+    <div class="chip" onclick="updateDuration(120, this)">2 Min</div>
+  </div>
+
+  <!-- Select Part to Edit -->
+  <div class="sub-label">&#x2630; SELECT PART TO EDIT</div>
+  <div class="part-bar">
+    <span id="partName">Part 1</span>
+    <small style="color:var(--subtext);" id="partDurationText">(0s - 60s)</small>
+  </div>
+
+  <!-- Format -->
+  <div class="sub-label">&#x25A2; FORMAT</div>
+  <div class="btn-row" id="formatSelector">
+    <div class="chip active" onclick="setFormat('shorts', this)">Shorts<span class="chip-sub">9:16</span></div>
+    <div class="chip" onclick="setFormat('square', this)">Square<span class="chip-sub">1:1</span></div>
+    <div class="chip" onclick="setFormat('landscape', this)">Landscape<span class="chip-sub">16:9</span></div>
+  </div>
+
+  <!-- Caption Style -->
+  <div class="sub-label">&#x25A7; CAPTION STYLE</div>
+  <div class="btn-grid-2">
+    <div class="chip active" style="text-align:left;">Hormozi<span class="chip-sub">LOUD & BOLD</span></div>
+    <div class="chip" style="text-align:left;">Neon<span class="chip-sub">GLOWING</span></div>
+    <div class="chip" style="text-align:left;">Minimal<span class="chip-sub">Clean Box</span></div>
+    <div class="chip" style="text-align:left;">Karaoke<span class="chip-sub">Word-by-word</span></div>
+  </div>
+
+  <!-- Overlays -->
+  <div class="sub-label">&#x1D413; OVERLAYS</div>
+  <div class="toggle-row">
+    <span>Audio Waveform</span>
+    <div class="switch on" onclick="toggleWave(this)"></div>
+  </div>
+  <div class="toggle-row">
+    <span>Title Sticker</span>
+    <div class="switch on" onclick="toggleTitle(this)"></div>
+  </div>
+
+  <input type="file" id="localVideoFile" accept="video/mp4,video/*" style="display:none;" />
+  <button class="action-btn" onclick="document.getElementById('localVideoFile').click()">Choose 1080p Video</button>
+  <button class="action-btn export-btn" id="exportBtn" style="display:none;" onclick="startBurnExport()">Export Part With Bottom "PART 1"</button>
+
+  <div id="status-msg"></div>
+  <div class="list" id="partsDownloadContainer"></div>
+
+  <!-- Background Processing Engine Canvas -->
+  <canvas id="recorderCanvas" width="720" height="1280" style="display:none;"></canvas>
+</div>
+
+<script>
+  let activePart = 1;
+  let targetSeconds = 60;
+  let selectedFormat = 'shorts';
+  let showWaveform = true;
+  let showTitleSticker = true;
+  let isExporting = false;
   let wakeLock = null;
-  if ('wakeLock' in navigator) {
-    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
-  }
 
-  // 1. Processing Canvas setup
-  const canvas = document.createElement('canvas');
-  canvas.width = 720;
-  canvas.height = 1280; // 9:16 Shorts format
+  const video = document.getElementById('mainVideo');
+  const playToggle = document.getElementById('playToggle');
+  const timecode = document.getElementById('timecode');
+  const partTitleText = document.getElementById('partTitleText');
+  const partName = document.getElementById('partName');
+  const partDurationText = document.getElementById('partDurationText');
+  const exportBtn = document.getElementById('exportBtn');
+  const statusMsg = document.getElementById('status-msg');
+  const partsContainer = document.getElementById('partsDownloadContainer');
+  const canvas = document.getElementById('recorderCanvas');
   const ctx = canvas.getContext('2d');
 
-  // 2. Audio Context (Perfect Lip-Sync)
-  video.currentTime = startTime;
-  await new Promise(resolve => video.onseeked = resolve);
-
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const sourceNode = audioCtx.createMediaElementSource(video);
-  const audioDest = audioCtx.createMediaStreamDestination();
-  sourceNode.connect(audioDest);
-  sourceNode.connect(audioCtx.destination);
-
-  // 3. Combined Stream (Audio + Video)
-  const canvasStream = canvas.captureStream(30);
-  const combinedStream = new MediaStream([
-    ...canvasStream.getVideoTracks(),
-    ...audioDest.stream.getAudioTracks()
-  ]);
-
-  const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
-  const recorder = new MediaRecorder(combinedStream, {
-    mimeType: mimeType,
-    videoBitsPerSecond: 4500000 // 1080p clean bitrate
+  document.getElementById('localVideoFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      video.src = URL.createObjectURL(file);
+      video.load();
+      exportBtn.style.display = 'block';
+      statusMsg.innerText = "Video loaded. Ready to export.";
+    }
   });
 
-  const recordedChunks = [];
-  recorder.ondataavailable = (e) => {
-    if (e.data.size > 0) recordedChunks.push(e.data);
-  };
+  video.addEventListener('loadedmetadata', refreshPartDisplay);
+  video.addEventListener('timeupdate', updateTimecode);
 
-  // UI Export Queue & Progress Bar update
-  switchTab('export'); // Export Queue tab par redirect
-  const progressBar = document.getElementById('renderProgressBar');
-  const progressText = document.getElementById('renderProgressText');
+  playToggle.addEventListener('click', () => {
+    if (video.paused) {
+      video.play();
+      playToggle.innerHTML = "&#10074;&#10074;";
+    } else {
+      video.pause();
+      playToggle.innerHTML = "&#9654;";
+    }
+  });
 
-  recorder.onstop = () => {
-    if (wakeLock) wakeLock.release();
-    audioCtx.close();
+  function updateTimecode() {
+    timecode.innerText = `${formatTime(video.currentTime)} / ${formatTime(video.duration || 0)}`;
+  }
 
-    const outputBlob = new Blob(recordedChunks, { type: mimeType });
-    const downloadUrl = URL.createObjectURL(outputBlob);
-    
-    // Original UI ka Download Button show karna
-    showDownloadReady(downloadUrl, `Part_${currentPart}.mp4`);
-  };
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = Math.floor(sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
 
-  // 4. Start recording & drawing loop
-  recorder.start();
-  video.muted = false;
-  video.play();
+  function updateDuration(sec, el) {
+    document.querySelectorAll('#durationSelector .chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    targetSeconds = sec;
+    refreshPartDisplay();
+  }
 
-  function drawLoop() {
+  function setFormat(fmt, el) {
+    document.querySelectorAll('#formatSelector .chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    selectedFormat = fmt;
+    if (fmt === 'shorts') { canvas.width = 720; canvas.height = 1280; }
+    else if (fmt === 'square') { canvas.width = 720; canvas.height = 720; }
+    else { canvas.width = 1280; canvas.height = 720; }
+  }
+
+  function shiftPart(step) {
+    const maxParts = Math.max(1, Math.ceil((video.duration || 0) / targetSeconds));
+    activePart = Math.max(1, Math.min(maxParts, activePart + step));
+    refreshPartDisplay();
+    video.currentTime = (activePart - 1) * targetSeconds;
+  }
+
+  function refreshPartDisplay() {
+    partTitleText.innerText = `PART ${activePart}`;
+    partName.innerText = `Part ${activePart}`;
+    const start = (activePart - 1) * targetSeconds;
+    const end = Math.min(activePart * targetSeconds, Math.round(video.duration || 0));
+    partDurationText.innerText = `(${start}s - ${end}s)`;
+  }
+
+  function toggleWave(el) {
+    el.classList.toggle('on');
+    showWaveform = el.classList.contains('on');
+    document.getElementById('waveformUi').style.display = showWaveform ? 'block' : 'none';
+  }
+
+  function toggleTitle(el) {
+    el.classList.toggle('on');
+    showTitleSticker = el.classList.contains('on');
+    partTitleText.style.display = showTitleSticker ? 'block' : 'none';
+  }
+
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+      }
+    } catch (err) {
+      console.log('Wake Lock Error:', err);
+    }
+  }
+
+  function releaseWakeLock() {
+    if (wakeLock !== null) {
+      wakeLock.release();
+      wakeLock = null;
+    }
+  }
+
+  async function startBurnExport() {
+    if (isExporting || !video.duration) return;
+    isExporting = true;
+    exportBtn.disabled = true;
+
+    await requestWakeLock();
+
+    const startTime = (activePart - 1) * targetSeconds;
+    const endTime = Math.min(activePart * targetSeconds, video.duration);
+
+    statusMsg.innerText = `Recording Part ${activePart}... Screen auto ON hai.`;
+
+    video.currentTime = startTime;
+    await new Promise(r => video.onseeked = r);
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaElementSource(video);
+    const audioDest = audioCtx.createMediaStreamDestination();
+    source.connect(audioDest);
+    source.connect(audioCtx.destination);
+
+    const canvasStream = canvas.captureStream(30);
+    const stream = new MediaStream([
+      ...canvasStream.getVideoTracks(),
+      ...audioDest.stream.getAudioTracks()
+    ]);
+
+    const mime = MediaRecorder.isTypeSupported('video/mp4') 
+      ? 'video/mp4' 
+      : (MediaRecorder.isTypeSupported('video/webm;codecs=h264,opus') ? 'video/webm;codecs=h264,opus' : 'video/webm');
+
+    const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4000000 });
+    const chunks = [];
+
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = () => {
+      audioCtx.close();
+      releaseWakeLock();
+      isExporting = false;
+      exportBtn.disabled = false;
+
+      const blob = new Blob(chunks, { type: mime });
+      const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+      const url = URL.createObjectURL(blob);
+
+      const item = document.createElement('div');
+      item.className = 'item';
+      item.innerHTML = `
+        <div>
+          <b>Part ${activePart}</b>
+          <small style="color:var(--subtext); display:block;">(${startTime}s - ${Math.round(endTime)}s)</small>
+        </div>
+        <a href="${url}" download="Part_${activePart}.${ext}" class="dl-btn">Save Part ${activePart}</a>
+      `;
+      partsContainer.prepend(item);
+      statusMsg.innerText = `Part ${activePart} ready to save!`;
+    };
+
+    recorder.start();
+    video.muted = false;
+    video.play();
+
+    drawFrame(endTime, recorder);
+  }
+
+  function drawFrame(endTime, recorder) {
+    if (!isExporting) return;
+
     if (video.currentTime >= endTime || video.ended) {
       video.pause();
       recorder.stop();
       return;
     }
 
-    // Progress percentage update
-    const currentProgress = Math.round(((video.currentTime - startTime) / (endTime - startTime)) * 100);
-    if (progressBar) progressBar.style.width = `${currentProgress}%`;
-    if (progressText) progressText.innerText = `${currentProgress}%`;
-
-    // 9:16 Center Crop Math
     const vW = video.videoWidth;
     const vH = video.videoHeight;
-    const targetRatio = 9 / 16;
-    let sW = vH * targetRatio;
-    let sH = vH;
-    let sX = (vW - sW) / 2;
-    let sY = 0;
+    const targetRatio = canvas.width / canvas.height;
+    let sW, sH, sX, sY;
 
-    if (vW / vH < targetRatio) {
+    // Parsed safely without unescaped less-than character tags
+    if (vW / vH >= targetRatio) {
+      sH = vH;
+      sW = vH * targetRatio;
+      sX = (vW - sW) / 2;
+      sY = 0;
+    } else {
       sW = vW;
       sH = vW / targetRatio;
       sX = 0;
@@ -96,21 +448,20 @@ async function renderCurrentPartWithMediaRecorder() {
 
     ctx.drawImage(video, sX, sY, sW, sH, 0, 0, canvas.width, canvas.height);
 
-    // PART 1 Text (Bottom fixed, no dots)
-    ctx.save();
-    ctx.font = "900 48px sans-serif";
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-    ctx.shadowBlur = 12;
-    ctx.shadowOffsetY = 4;
-    
-    // Bilkul screen ke bottom par
-    ctx.fillText(`PART ${currentPart}`, canvas.width / 2, canvas.height - 70);
-    ctx.restore();
+    if (showTitleSticker) {
+      ctx.save();
+      ctx.font = "900 46px sans-serif";
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.shadowColor = "rgba(0,0,0,0.85)";
+      ctx.shadowBlur = 12;
+      ctx.fillText(`PART ${activePart}`, canvas.width / 2, canvas.height - 60);
+      ctx.restore();
+    }
 
-    requestAnimationFrame(drawLoop);
+    requestAnimationFrame(() => drawFrame(endTime, recorder));
   }
+</script>
 
-  drawLoop();
-}
+</body>
+</html>
