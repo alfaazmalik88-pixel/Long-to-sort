@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://viralclipai.in/sitemap.xml

@@ -1,119 +1,69 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { X, FileText, ShieldAlert, Copyright, Zap } from 'lucide-react';
 
-interface PolicyViewProps {
-  type: 'privacy' | 'terms';
-  onBack: () => void;
-}
-
-export const PolicyView: React.FC<PolicyViewProps> = ({ type, onBack }) => {
+export const PolicyView = ({ onClose }: { onClose: () => void }) => {
   return (
-    <div className="flex-1 bg-zinc-950 overflow-y-auto p-6 md:p-12">
-      <div className="max-w-4xl mx-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-8 md:p-12">
-        <button 
-          onClick={onBack}
-          className="flex items-center gap-2 text-zinc-400 hover:text-white mb-8 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back to App</span>
-        </button>
+    <div className="fixed inset-0 z-[200] bg-zinc-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl relative">
+        
+        <div className="flex items-center justify-between p-6 border-b border-zinc-800 bg-zinc-950/50 rounded-t-2xl">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <FileText className="w-6 h-6 text-indigo-400" />
+            Privacy & Terms
+          </h2>
+          <button onClick={onClose} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition-colors">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
 
-        {type === 'privacy' ? (
-          <div className="prose prose-invert prose-indigo max-w-none">
-            <h1 className="text-3xl font-bold mb-6">Privacy Policy</h1>
-            <p className="text-zinc-400 mb-8">Last updated: August 24, 2026</p>
-            
-            <h2 className="text-xl font-semibold mt-8 mb-4">1. Information We Collect</h2>
-            <p className="text-zinc-300 mb-4">
-              At WayinVideo, we collect information to provide better services to our users. This includes:
+        <div className="p-6 overflow-y-auto space-y-8 text-zinc-300 text-sm leading-relaxed custom-scrollbar">
+          
+          <section className="space-y-3">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-emerald-400" />
+              1. Privacy Policy
+            </h3>
+            <p className="text-zinc-400 bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+              Your privacy is extremely important to us. All video processing (splitting, rendering, editing) is done 
+              <strong> 100% locally in your browser</strong>. We do not upload, store, or share your videos to any external servers. 
+              Your files never leave your device.
             </p>
-            <ul className="list-disc pl-6 text-zinc-300 mb-6 space-y-2">
-              <li><strong>User Account Information:</strong> Name, email address, and authentication data via Google OAuth.</li>
-              <li><strong>Uploaded Media:</strong> Video and audio files you upload to our platform for processing.</li>
-              <li><strong>Usage Analytics:</strong> Information about how you interact with our application.</li>
-              <li><strong>Cookies:</strong> Small data files stored on your device to improve your experience.</li>
-            </ul>
+          </section>
 
-            <h2 className="text-xl font-semibold mt-8 mb-4">2. Third-Party Integrations</h2>
-            <p className="text-zinc-300 mb-4">
-              Our service interacts with several third-party APIs and services to function correctly:
+          <section className="space-y-3">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-indigo-400" />
+              2. Terms of Service
+            </h3>
+            <p className="text-zinc-400">
+              By using WayinVideo, you agree to our terms. This service is provided "as is" without any warranties. 
+              We are not responsible for any data loss, rendering issues, or copyright claims resulting from the use of this tool.
             </p>
-            <ul className="list-disc pl-6 text-zinc-300 mb-6 space-y-2">
-              <li>YouTube API, TikTok API, and Instagram API for publishing and scheduling content.</li>
-              <li>Google Drive for importing and exporting media.</li>
-              <li>Payment Processors for handling subscriptions securely.</li>
-              <li>Cloud AI Processing Services to transcribe and analyze your videos.</li>
-            </ul>
+          </section>
 
-            <h2 className="text-xl font-semibold mt-8 mb-4">3. Data Storage & Security</h2>
-            <p className="text-zinc-300 mb-4">
-              Your video files are securely processed and temporarily stored on our secure cloud infrastructure to perform AI-based editing and captioning. <strong>We do not sell your personal data or video content to third parties.</strong> All data is encrypted in transit and at rest.
+          <section className="space-y-3">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-400" />
+              3. Advertising & Cookies
+            </h3>
+            <p className="text-zinc-400">
+              To keep this tool 100% free, we use third-party ad networks (like Monetag and Adsterra). 
+              These networks may use cookies to serve relevant ads. By continuing to use the site, you consent to the use of these cookies.
             </p>
+          </section>
 
-            <h2 className="text-xl font-semibold mt-8 mb-4">4. Your Data Rights (GDPR & CCPA)</h2>
-            <p className="text-zinc-300 mb-4">
-              Depending on your location, you may have specific rights regarding your personal data:
+          <section className="space-y-3">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Copyright className="w-5 h-5 text-red-400" />
+              4. Copyright & Fair Use
+            </h3>
+            <p className="text-zinc-400">
+              You must own the rights or have explicit permission to edit and distribute the videos you upload to our tool. 
+              WayinVideo does not condone copyright infringement and is strictly a utility tool for content creators.
             </p>
-            <ul className="list-disc pl-6 text-zinc-300 mb-6 space-y-2">
-              <li>The right to access the personal data we hold about you.</li>
-              <li>The right to request the deletion of your personal data and uploaded files.</li>
-              <li>The right to opt-out of the sale of personal information (though we do not sell your data).</li>
-              <li>The right to correct inaccurate data.</li>
-            </ul>
+          </section>
 
-            <h2 className="text-xl font-semibold mt-8 mb-4">5. Contact Us</h2>
-            <p className="text-zinc-300 mb-4">
-              If you have any questions about this Privacy Policy or wish to exercise your data rights (including data deletion requests), please contact our support team at:
-            </p>
-            <p className="text-indigo-400 font-medium">kamarpathan0786@gmail.com</p>
-          </div>
-        ) : (
-          <div className="prose prose-invert prose-indigo max-w-none">
-            <h1 className="text-3xl font-bold mb-6">Terms of Service</h1>
-            <p className="text-zinc-400 mb-8">Last updated: August 24, 2026</p>
-            
-            <h2 className="text-xl font-semibold mt-8 mb-4">1. Acceptance of Terms</h2>
-            <p className="text-zinc-300 mb-6">
-              By accessing and using the WayinVideo application ("Service"), you accept and agree to be bound by the terms and provisions of this agreement.
-            </p>
-
-            <h2 className="text-xl font-semibold mt-8 mb-4">2. Description of Service</h2>
-            <p className="text-zinc-300 mb-6">
-              WayinVideo is an AI-powered SaaS application that provides long-to-short video conversion, auto-captioning, and social media scheduling features.
-            </p>
-
-            <h2 className="text-xl font-semibold mt-8 mb-4">3. User Conduct and Content</h2>
-            <p className="text-zinc-300 mb-4">
-              You are solely responsible for the video and audio content you upload, process, and distribute through our Service. You agree not to upload content that:
-            </p>
-            <ul className="list-disc pl-6 text-zinc-300 mb-6 space-y-2">
-              <li>Violates any third-party copyrights or trademarks.</li>
-              <li>Is illegal, harmful, threatening, or offensive.</li>
-              <li>Contains malware, viruses, or other harmful code.</li>
-            </ul>
-
-            <h2 className="text-xl font-semibold mt-8 mb-4">4. Intellectual Property</h2>
-            <p className="text-zinc-300 mb-6">
-              You retain all ownership rights to the original content you upload. By using our Service, you grant us a temporary license to process, modify (e.g., add captions, crop), and temporarily store your content solely for the purpose of providing the Service to you.
-            </p>
-
-            <h2 className="text-xl font-semibold mt-8 mb-4">5. Third-Party Services</h2>
-            <p className="text-zinc-300 mb-6">
-              Our Service allows you to connect to third-party platforms (such as YouTube, TikTok, and Instagram). Your use of these third-party services is governed by their respective terms of service and privacy policies. WayinVideo is not responsible for the content or practices of these third-party services.
-            </p>
-
-            <h2 className="text-xl font-semibold mt-8 mb-4">6. Limitation of Liability</h2>
-            <p className="text-zinc-300 mb-6">
-              WayinVideo and its creators shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the Service.
-            </p>
-
-            <h2 className="text-xl font-semibold mt-8 mb-4">7. Contact Information</h2>
-            <p className="text-zinc-300 mb-4">
-              For any questions regarding these Terms of Service, please contact us at:
-            </p>
-            <p className="text-indigo-400 font-medium">kamarpathan0786@gmail.com</p>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

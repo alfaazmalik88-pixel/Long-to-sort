@@ -1,53 +1,40 @@
 import React from 'react';
-import { Type, Layout, Sliders, Smartphone, Square, Monitor, Captions, Clock, ListVideo, Download, Loader2, CheckCircle2 } from 'lucide-react';
-import { EditorSettings, Clip, RenderJob } from '../types';
+import { EditorSettings, Clip } from '../types';
+import { Sliders, Clock, List, LayoutTemplate, Type, FileText, Smartphone, Monitor, Square, Cpu, Zap } from 'lucide-react';
 import { cn } from '../utils';
-import { AdBanner } from './AdBanner';
 
 interface SettingsPanelProps {
   settings: EditorSettings;
-  setSettings: (settings: EditorSettings) => void;
+  setSettings: (s: EditorSettings) => void;
   onExport: () => void;
-  clipDuration: number;
-  setClipDuration: (val: number) => void;
   clips: Clip[];
   selectedClipId: string | null;
   onSelectClip: (id: string) => void;
   onExportAll: () => void;
-  renderJobs?: RenderJob[];
 }
 
-export const SettingsPanel: React.FC<SettingsPanelProps> = ({ 
-  settings, 
-  setSettings, 
+export const SettingsPanel: React.FC<SettingsPanelProps> = ({
+  settings,
+  setSettings,
   onExport,
-  clipDuration,
-  setClipDuration,
   clips,
   selectedClipId,
   onSelectClip,
   onExportAll,
-  renderJobs = []
 }) => {
-  const updateSetting = <K extends keyof EditorSettings>(key: K, value: EditorSettings[K]) => {
-    setSettings({ ...settings, [key]: value });
-  };
-
   return (
-    <div className="w-full lg:w-80 bg-zinc-950 border-t lg:border-t-0 lg:border-l border-zinc-800 flex flex-col lg:h-full overflow-y-auto custom-scrollbar shrink-0">
-      <div className="p-4 lg:p-6 border-b border-zinc-800">
-        <h2 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
-          <Sliders className="w-5 h-5" />
-          Editor Settings
-        </h2>
+    <div className="w-full lg:w-96 bg-[#0a0a0a] border-t lg:border-t-0 lg:border-l border-zinc-900 flex flex-col lg:h-full overflow-y-auto custom-scrollbar shrink-0">
+      <div className="p-4 border-b border-zinc-900 flex items-center gap-3">
+        <Sliders className="w-5 h-5 text-zinc-300" />
+        <h2 className="text-lg font-medium text-zinc-200">Editor Settings</h2>
       </div>
-
-      <div className="p-6 space-y-8 flex-1">
-        {/* Clip Length Selector */}
+      
+      <div className="p-4 space-y-8 flex-1">
+        {/* Clip Length */}
         <div className="space-y-4">
-          <label className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+          <label className="text-xs text-zinc-400 uppercase tracking-widest flex items-center gap-2">
             <Clock className="w-4 h-4" />
-            Target Clip Length
+            TARGET CLIP LENGTH
           </label>
           <div className="grid grid-cols-3 gap-2">
             {[
@@ -57,12 +44,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             ].map((option) => (
               <button
                 key={option.value}
-                onClick={() => setClipDuration(option.value)}
+                onClick={() => setSettings({...settings, clipDuration: option.value})}
                 className={cn(
-                  "py-2 px-1 rounded-xl border transition-all duration-200 text-xs font-medium text-center",
-                  clipDuration === option.value
-                    ? "bg-indigo-500/10 border-indigo-500 text-indigo-400 shadow-[0_0_15px_-3px_rgba(99,102,241,0.2)]"
-                    : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
+                  "py-2.5 rounded-xl border transition-all text-sm font-medium",
+                  settings.clipDuration === option.value
+                    ? "bg-indigo-900/30 border-indigo-700 text-indigo-300"
+                    : "bg-transparent border-zinc-800 text-zinc-400"
                 )}
               >
                 {option.label}
@@ -71,89 +58,57 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
         </div>
 
-        {/* Part Selector */}
-        {clips.length > 0 && (
-          <div className="space-y-4">
-            <label className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-              <ListVideo className="w-4 h-4" />
-              Select Part to Edit
-            </label>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
-              {clips.map((clip) => (
-                <button
-                  key={clip.id}
-                  onClick={() => onSelectClip(clip.id)}
-                  className={cn(
-                    "w-full text-left px-4 py-3 text-sm transition-colors border-b border-zinc-800/50 last:border-0",
-                    selectedClipId === clip.id
-                      ? "bg-indigo-500/20 text-indigo-300 font-medium"
-                      : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                  )}
-                >
-                  {clip.title} <span className="text-xs text-zinc-500 ml-2">({Math.round(clip.duration)}s)</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Aspect Ratio */}
+        {/* Select Part */}
         <div className="space-y-4">
-          <label className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-            <Layout className="w-4 h-4" />
-            Format
+          <label className="text-xs text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+            <List className="w-4 h-4" />
+            SELECT PART TO EDIT
           </label>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { id: '9:16', icon: Smartphone, label: 'Shorts' },
-              { id: '1:1', icon: Square, label: 'Square' },
-              { id: '16:9', icon: Monitor, label: 'Landscape' }
-            ].map((format) => (
-              <button
-                key={format.id}
-                onClick={() => updateSetting('aspectRatio', format.id as any)}
-                className={cn(
-                  "flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200 gap-2",
-                  settings.aspectRatio === format.id
-                    ? "bg-indigo-500/10 border-indigo-500 text-indigo-400 shadow-[0_0_15px_-3px_rgba(99,102,241,0.2)]"
-                    : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
-                )}
-              >
-                <format.icon className="w-5 h-5" />
-                <span className="text-xs font-medium">{format.label}</span>
-              </button>
-            ))}
+          <div className="bg-indigo-900/10 border border-indigo-900/30 rounded-xl p-3 flex items-center justify-between cursor-pointer">
+            <span className="text-indigo-300 text-sm font-medium">Part {clips.findIndex(c => c.id === selectedClipId) + 1 || 1} <span className="opacity-50 text-xs">({clips.find(c => c.id === selectedClipId)?.duration || 60}s)</span></span>
+            <div className="w-4 h-4 rounded-full bg-indigo-500/20"></div>
           </div>
         </div>
 
-        {/* Subtitles Style */}
+        {/* Format */}
         <div className="space-y-4">
-          <label className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-            <Captions className="w-4 h-4" />
-            Caption Style
+          <label className="text-xs text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+            <LayoutTemplate className="w-4 h-4" />
+            FORMAT
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <button onClick={() => setSettings({...settings, format: 'shorts'})} className={cn("py-3 rounded-xl border flex flex-col items-center gap-2", settings.format === 'shorts' ? "bg-indigo-900/30 border-indigo-700 text-indigo-300" : "bg-transparent border-zinc-800 text-zinc-400")}>
+               <Smartphone className="w-5 h-5" />
+               <span className="text-xs font-medium">Shorts</span>
+            </button>
+            <button onClick={() => setSettings({...settings, format: 'square'})} className={cn("py-3 rounded-xl border flex flex-col items-center gap-2", settings.format === 'square' ? "bg-indigo-900/30 border-indigo-700 text-indigo-300" : "bg-transparent border-zinc-800 text-zinc-400")}>
+               <Square className="w-5 h-5" />
+               <span className="text-xs font-medium">Square</span>
+            </button>
+            <button onClick={() => setSettings({...settings, format: 'landscape'})} className={cn("py-3 rounded-xl border flex flex-col items-center gap-2", settings.format === 'landscape' ? "bg-indigo-900/30 border-indigo-700 text-indigo-300" : "bg-transparent border-zinc-800 text-zinc-400")}>
+               <Monitor className="w-5 h-5" />
+               <span className="text-xs font-medium">Landscape</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Caption Style */}
+        <div className="space-y-4">
+          <label className="text-xs text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+            <Type className="w-4 h-4" />
+            CAPTION STYLE
           </label>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { id: 'hormozi', label: 'Hormozi', preview: 'LOUD & BOLD' },
-              { id: 'neon', label: 'Neon', preview: 'GLOWING' },
-              { id: 'minimal', label: 'Minimal', preview: 'Clean Box' },
-              { id: 'karaoke', label: 'Karaoke', preview: 'Word-by-word' }
-            ].map((style) => (
-              <button
-                key={style.id}
-                onClick={() => updateSetting('subtitleStyle', style.id as any)}
-                className={cn(
-                  "p-3 rounded-xl border transition-all duration-200 text-left",
-                  settings.subtitleStyle === style.id
-                    ? "bg-indigo-500/10 border-indigo-500"
-                    : "bg-zinc-900 border-zinc-800 hover:border-zinc-700"
-                )}
-              >
-                <div className={cn(
-                  "text-sm font-medium mb-1",
-                  settings.subtitleStyle === style.id ? "text-indigo-400" : "text-zinc-300"
-                )}>{style.label}</div>
-                <div className="text-xs text-zinc-500">{style.preview}</div>
+              { id: 'hormozi', name: 'Hormozi', desc: 'LOUD & BOLD' },
+              { id: 'neon', name: 'Neon', desc: 'GLOWING' },
+              { id: 'minimal', name: 'Minimal', desc: 'Clean Box' },
+              { id: 'karaoke', name: 'Karaoke', desc: 'Word-by-word' }
+            ].map(style => (
+              <button key={style.id} onClick={() => setSettings({...settings, captionStyle: style.id as any})} className={cn("p-3 rounded-xl border text-left flex flex-col gap-1 relative", settings.captionStyle === style.id ? "bg-indigo-900/20 border-indigo-700" : "bg-[#111] border-zinc-800")}>
+                 <span className={cn("text-sm font-medium", settings.captionStyle === style.id ? "text-indigo-400" : "text-zinc-300")}>{style.name}</span>
+                 <span className="text-[10px] text-zinc-500">{style.desc}</span>
+                 {settings.captionStyle === style.id && <div className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-indigo-500"></div>}
               </button>
             ))}
           </div>
@@ -161,124 +116,32 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
         {/* Overlays */}
         <div className="space-y-4">
-          <label className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-            <Type className="w-4 h-4" />
-            Overlays
+          <label className="text-xs text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            OVERLAYS
           </label>
-          
-          <div className="space-y-3">
-
-
-            <label className="flex items-center justify-between cursor-pointer group">
-              <span className="text-sm text-zinc-300 group-hover:text-zinc-100 transition-colors">Audio Waveform</span>
-              <div className={cn(
-                "w-10 h-6 rounded-full transition-colors relative",
-                settings.showWaveform ? "bg-indigo-500" : "bg-zinc-800"
-              )}>
-                <input 
-                  type="checkbox" 
-                  className="sr-only" 
-                  checked={settings.showWaveform}
-                  onChange={(e) => updateSetting('showWaveform', e.target.checked)}
-                />
-                <div className={cn(
-                  "absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm",
-                  settings.showWaveform ? "left-5" : "left-1"
-                )} />
-              </div>
-            </label>
-
-            <label className="flex items-center justify-between cursor-pointer group">
-              <span className="text-sm text-zinc-300 group-hover:text-zinc-100 transition-colors">Title Sticker</span>
-              <div className={cn(
-                "w-10 h-6 rounded-full transition-colors relative",
-                settings.showTitleSticker ? "bg-indigo-500" : "bg-zinc-800"
-              )}>
-                <input 
-                  type="checkbox" 
-                  className="sr-only" 
-                  checked={settings.showTitleSticker}
-                  onChange={(e) => updateSetting('showTitleSticker', e.target.checked)}
-                />
-                <div className={cn(
-                  "absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm",
-                  settings.showTitleSticker ? "left-5" : "left-1"
-                )} />
-              </div>
-            </label>
-
-            {settings.showTitleSticker && (
-              <input
-                type="text"
-                placeholder="Sticker text..."
-                value={settings.customTitle}
-                onChange={(e) => updateSetting('customTitle', e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 mt-2"
-              />
-            )}
+          <div className="space-y-2">
+             <div className="flex items-center justify-between p-3">
+                <span className="text-sm text-zinc-300">Audio Waveform</span>
+                <button onClick={() => setSettings({...settings, audioWaveform: !settings.audioWaveform})} className={cn("w-10 h-6 rounded-full transition-colors relative", settings.audioWaveform ? "bg-indigo-600" : "bg-zinc-800")}>
+                   <div className={cn("w-4 h-4 rounded-full bg-white absolute top-1 transition-all", settings.audioWaveform ? "left-5" : "left-1")}></div>
+                </button>
+             </div>
+             <div className="flex items-center justify-between p-3">
+                <span className="text-sm text-zinc-300">Title Sticker</span>
+                <button onClick={() => setSettings({...settings, titleSticker: !settings.titleSticker})} className={cn("w-10 h-6 rounded-full transition-colors relative", settings.titleSticker ? "bg-indigo-600" : "bg-zinc-800")}>
+                   <div className={cn("w-4 h-4 rounded-full bg-white absolute top-1 transition-all", settings.titleSticker ? "left-5" : "left-1")}></div>
+                </button>
+             </div>
           </div>
         </div>
-        
-        <div className="mt-8 mb-4">
-          <AdBanner />
-        </div>
+
       </div>
 
-      
-      <div className="p-6 border-t border-zinc-800 shrink-0 space-y-3">
-        {(() => {
-          const currentJob = renderJobs.find(job => job.clipId === selectedClipId);
-          
-          if (currentJob && currentJob.status === 'processing') {
-            return (
-              <div className="w-full py-4 bg-zinc-900 rounded-xl flex flex-col items-center justify-center border border-zinc-800">
-                <div className="relative flex items-center justify-center w-16 h-16 mb-2">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-zinc-800" />
-                    <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" 
-                            strokeDasharray={28 * 2 * Math.PI} 
-                            strokeDashoffset={28 * 2 * Math.PI - (currentJob.progress / 100) * (28 * 2 * Math.PI)}
-                            className="text-indigo-500 transition-all duration-300" />
-                  </svg>
-                  <span className="absolute text-sm font-bold text-zinc-100">{Math.round(currentJob.progress)}%</span>
-                </div>
-                <span className="text-sm text-zinc-400 font-medium">Uploading & Rendering...</span>
-              </div>
-            );
-          }
-          
-          if (currentJob && currentJob.status === 'ready' && currentJob.blobUrl) {
-            return (
-              <a
-                href={currentJob.blobUrl}
-                download={currentJob.title + '.mp4'}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <Download className="w-5 h-5" />
-                Download MP4
-              </a>
-            );
-          }
-
-          return (
-            <>
-              <button
-                onClick={onExport}
-                className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-medium transition-colors"
-              >
-                Render Current Part
-              </button>
-              <button
-                onClick={onExportAll}
-                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-semibold shadow-[0_0_20px_-5px_rgba(99,102,241,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Render All Parts ({clips.length})
-              </button>
-            </>
-          );
-        })()}
+      <div className="p-4 border-t border-zinc-900 space-y-3 bg-[#0a0a0a]">
+        <button onClick={onExport} className="w-full py-3.5 bg-indigo-900/30 hover:bg-indigo-900/50 text-indigo-300 border border-indigo-800 rounded-xl font-medium transition-colors">Render Current Part</button>
+        <button onClick={onExportAll} className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors">Render All Parts ({clips.length})</button>
       </div>
-
     </div>
   );
 };

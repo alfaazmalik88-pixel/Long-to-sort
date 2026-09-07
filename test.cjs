@@ -1,8 +1,7 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-const assContent = `
-[Script Info]
+const assContent = `[Script Info]
 ScriptType: v4.00+
 PlayResX: 1080
 PlayResY: 1920

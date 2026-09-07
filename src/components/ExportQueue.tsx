@@ -1,134 +1,114 @@
 import React from 'react';
-import { Film, CheckCircle2, AlertCircle, Loader2, Download } from 'lucide-react';
 import { RenderJob } from '../types';
-import { cn } from '../utils';
-import { AdBanner } from './AdBanner';
+import { DownloadModal } from './DownloadModal';
+import { Film, CheckCircle2, Download, AlertTriangle, ExternalLink, XCircle } from 'lucide-react';
 
 interface ExportQueueProps {
   jobs: RenderJob[];
-  videoUrl?: string | null;
+  videoUrl: string | null;
 }
 
-export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs, videoUrl }) => {
-  const handleDownload = (url: string, title: string) => {
-    try {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${title}.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (e) {
-      console.error("Download failed:", e);
-      window.open(url, '_blank');
-    }
-  };
-
-  if (jobs.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-zinc-950">
-        <Film className="w-16 h-16 text-zinc-800 mb-4" />
-        <h2 className="text-xl font-medium text-zinc-300">Render Queue Empty</h2>
-        <p className="text-zinc-500 mt-2">Export a clip from the editor to start rendering.</p>
-      </div>
-    );
-  }
+export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs }) => {
+  const [downloadJob, setDownloadJob] = React.useState<RenderJob | null>(null);
 
   return (
-    <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden">
-      <div className="p-8 border-b border-zinc-800 shrink-0">
-        <h2 className="text-2xl font-bold text-zinc-100">Export Queue</h2>
-        <p className="text-zinc-400 mt-1">Manage your rendering shorts</p>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-        <div className="max-w-4xl mx-auto space-y-4">
-          {jobs.map((job) => (
-            <div key={job.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex items-center gap-6">
-              <div id={`render-preview-container-${job.id}`} className="w-24 h-36 bg-zinc-950 rounded-lg flex items-center justify-center border border-zinc-800 shrink-0 relative overflow-hidden group">
-                {job.thumbnailUrl ? (
-                  <img src={job.thumbnailUrl} className="absolute inset-0 w-full h-full object-cover opacity-50 z-0" />
-                ) : (
-                  <Film className="w-8 h-8 text-zinc-700 absolute z-0" />
-                )}
-                <div className="absolute inset-0 bg-black/40 transition-colors z-0"></div>
-                {job.status === 'pending' && (
-                  <Loader2 className="w-6 h-6 text-zinc-300 animate-spin relative z-10" />
-                )}
-                {job.status === 'ready' && (
-                  <CheckCircle2 className="w-8 h-8 text-emerald-400 relative z-10" />
-                )}
-                {job.status === 'failed' && (
-                  <AlertCircle className="w-8 h-8 text-red-400 relative z-10" />
-                )}
-              </div>
-
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-zinc-100">{job.title}</h3>
-                  <div className="text-sm font-medium">
-                    {job.status === 'pending' && <span className="text-zinc-500">Waiting...</span>}
-                    {job.status === 'processing' && <span className="text-indigo-400">{Math.round(job.progress)}%</span>}
-                    {job.status === 'ready' && <span className="text-emerald-400">Ready</span>}
-                    {job.status === 'failed' && <span className="text-red-400">Failed</span>}
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-black">
+      <div className="max-w-2xl mx-auto pb-32 space-y-6">
+        
+        <div className="mb-2">
+          <h2 className="text-xl font-bold text-white mb-1">Export Queue</h2>
+          <p className="text-zinc-400 text-sm">Manage your rendering shorts</p>
+        </div>
+        
+        {jobs.length === 0 ? (
+          <div className="text-zinc-600 font-medium text-center py-8 bg-[#0a0a0a] rounded-xl border border-zinc-900 text-sm">
+            No jobs in queue.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {jobs.map(job => (
+              <div key={job.id} className="bg-[#0a0a0a] border border-zinc-800 rounded-xl p-5 flex flex-col gap-4 shadow-lg transition-all">
+                
+                {/* Header Info */}
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-[#111] rounded-xl flex items-center justify-center shrink-0 border border-zinc-700">
+                    {job.status === 'ready' ? (
+                       <CheckCircle2 className="w-7 h-7 text-emerald-500" />
+                    ) : job.status === 'error' ? (
+                       <XCircle className="w-7 h-7 text-red-500" />
+                    ) : (
+                      <Film className="w-6 h-6 text-zinc-600" />
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-bold text-zinc-100 truncate">{job.title || 'Video'}</h3>
+                    {job.status === 'processing' ? (
+                      <p className="text-sm text-indigo-400 font-semibold mt-1">Rendering: {Math.round(job.progress)}%</p>
+                    ) : job.status === 'ready' ? (
+                      <p className="text-sm text-emerald-500 font-semibold mt-1">Ready to download</p>
+                    ) : (
+                      <p className="text-sm text-red-500 font-semibold mt-1">Rendering failed</p>
+                    )}
                   </div>
                 </div>
 
+                {/* Processing Bar */}
                 {job.status === 'processing' && (
-                  <div className="w-full bg-zinc-950 h-2 rounded-full overflow-hidden mb-4 border border-zinc-800">
-                    <div 
-                      className="h-full bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-300"
-                      style={{ width: `${job.progress}%` }}
-                    />
+                  <div className="w-full">
+                    <div className="w-full bg-zinc-900 rounded-full h-2.5 overflow-hidden mb-2">
+                      <div className="bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out" style={{ width: `${job.progress}%` }}></div>
+                    </div>
+                    <p className="text-xs text-zinc-400 flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                      Please keep this tab open while rendering.
+                    </p>
+                  </div>
+                )}
+
+                {/* Big Full-Width Download Button */}
+                {job.status === 'ready' && (
+                  <button 
+                    onClick={() => setDownloadJob(job)}
+                    className="w-full py-4 mt-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-base font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/50 active:scale-[0.98] transition-all border border-indigo-500"
+                  >
+                    <Download className="w-6 h-6" />
+                    DOWNLOAD VIDEO
+                  </button>
+                )}
+
+                {/* Error Fallback Box / Alternative Link */}
+                {job.status === 'error' && (
+                  <div className="mt-2 bg-[#120e0a] border border-amber-900/50 p-5 rounded-xl flex flex-col items-center text-center gap-4 animate-in fade-in zoom-in duration-300">
+                    <div className="space-y-1">
+                      <h4 className="text-amber-500 font-bold text-sm">Server Limits Reached</h4>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        Due to high traffic on this free tool, the server couldn't render your video. Please use our alternative tool to cut or download videos directly.
+                      </p>
+                    </div>
+                    <a 
+                      href="https://ghost-ig512.alfaazmalik88.workers.dev/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20 px-5 py-3 rounded-xl text-sm font-bold transition-colors items-center justify-center gap-2"
+                    >
+                      Use Alternative Video Cutter <ExternalLink className="w-4 h-4" />
+                    </a>
                   </div>
                 )}
                 
-                {job.status === 'pending' && (
-                  <p className="text-sm text-zinc-500">
-                    Waiting for previous renders to complete...
-                  </p>
-                )}
-
-                {job.status === 'processing' && (
-                  <p className="text-sm text-zinc-400 leading-relaxed">
-                    Rendering your clip on the server...<br/>
-                    <span className="text-zinc-500 text-xs">You can safely leave this page or queue more clips.</span>
-                  </p>
-                )}
-
-                {job.status === 'failed' && (
-                  <p className="text-sm text-red-400/90 leading-relaxed bg-red-500/10 p-3 rounded-lg border border-red-500/20 mt-2">
-                    {job.errorMessage || 'Unknown error occurred while rendering.'}
-                  </p>
-                )}
-
-                {job.status === 'ready' && (
-                  <div className="flex items-center gap-3 mt-4">
-                    {job.blobUrl ? (
-                      <button 
-                        onClick={() => handleDownload(job.blobUrl!, job.title)}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                      >
-                        <Download className="w-4 h-4" />
-                        Download Video
-                      </button>
-                    ) : (
-                      <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 opacity-50 cursor-not-allowed">
-                        <Download className="w-4 h-4" />
-                        Download MP4
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
-            </div>
-          ))}
-        </div>
-        
-        <div className="mt-8">
-          <AdBanner />
-        </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      <DownloadModal
+          isOpen={!!downloadJob}
+          onClose={() => setDownloadJob(null)}
+          downloadUrl={downloadJob?.blobUrl || ''}
+          fileName={downloadJob?.title || 'video'}
+        />
     </div>
   );
 };
