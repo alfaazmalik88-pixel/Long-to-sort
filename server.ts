@@ -25,17 +25,44 @@ try {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.floor(Math.random() * 1000)}.mp4`)
+  filename: (req, file, cb) => cb(null, `chunk-${Date.now()}-${Math.floor(Math.random() * 1000)}.tmp`)
 });
 const upload = multer({ storage });
 
-// Upload Endpoint
+// Single-file Upload Endpoint (Fallback)
 app.post('/api/upload', upload.single('video'), (req, res) => {
   if (!req.file) {
-    console.error("No file uploaded!");
     return res.status(400).json({ error: 'No video file provided.' });
   }
   return res.json({ videoPath: req.file.path });
+});
+
+// Chunked Upload Endpoint
+app.post('/api/upload-chunk', upload.single('chunk'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No chunk provided.' });
+  }
+
+  const { uploadId, fileName, chunkIndex, totalChunks } = req.body;
+  const safeFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const finalFileName = `${uploadId}-${safeFileName}`;
+  const finalFilePath = path.join(UPLOAD_DIR, finalFileName);
+
+  try {
+    const chunkData = fs.readFileSync(req.file.path);
+    fs.appendFileSync(finalFilePath, chunkData);
+    fs.unlinkSync(req.file.path); // remove the temp chunk
+
+    if (parseInt(chunkIndex) === parseInt(totalChunks) - 1) {
+      // It's the last chunk, return the path
+      return res.json({ videoPath: finalFilePath });
+    } else {
+      return res.json({ status: 'chunk received' });
+    }
+  } catch (err) {
+    console.error("Chunk append error:", err);
+    return res.status(500).json({ error: 'Failed to process chunk.' });
+  }
 });
 
 // Trim Endpoint
@@ -52,7 +79,6 @@ app.post('/api/trim', (req, res) => {
   
   const ffmpegPath = 'ffmpeg';
 
-  // Generate .ass file for subtitles if needed
   let assFile = '';
   // VERY IMPORTANT: -ss must be BEFORE -i for fast seeking
   let command = `"${ffmpegPath}" -y -ss ${startTime || 0} -i "${inputPath}" -t ${duration || 10}`;
@@ -81,33 +107,23 @@ Dialogue: 0,0:00:00.00,0:59:59.00,Default,,0,0,0,,${title}
     command += ` -vf "${filter}" -c:v libx264 -preset ultrafast -crf 28 -threads 0 -c:a aac -b:a 128k "${outputPath}"`;
   }
   
-  console.log("Running command:", command);
-  
   exec(command, (error, stdout, stderr) => {
     try {
-      // NOTE: We do NOT delete the inputPath here anymore since we reuse it!
       if (assFile && fs.existsSync(assFile)) fs.unlinkSync(assFile);
-    } catch (e) {
-      console.error("Failed to delete temp subtitle file:", e);
-    }
+    } catch (e) {}
 
     if (error) {
-      console.error('FFmpeg error:', error);
-      console.error('FFmpeg stderr:', stderr);
       return res.status(500).json({ error: 'Video processing failed.', details: stderr });
     }
 
     if (!fs.existsSync(outputPath)) {
-       console.error("Output file not found after FFmpeg execution");
        return res.status(500).json({ error: 'Output generation failed.' });
     }
 
     res.download(outputPath, outputFileName, (err) => {
       try {
         if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-      } catch (e) {
-        console.error("Failed to delete output file:", e);
-      }
+      } catch (e) {}
     });
   });
 });
