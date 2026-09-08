@@ -119,8 +119,19 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
         </div>
 
         {isUploading || status === 'analyzing' ? (
-          <div className="mt-8 bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-8 text-center flex flex-col items-center gap-6 shadow-xl animate-in fade-in zoom-in duration-300">
-            
+          <div className="mt-8 bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-8 text-center flex flex-col items-center gap-6 shadow-xl animate-in fade-in zoom-in duration-300 relative">
+            <button 
+              onClick={() => {
+                setIsUploading(false);
+                setUploadProgress(0);
+                setPendingFile(null);
+                // The useEffect cleanup will abort the xhr request automatically
+              }}
+              className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors bg-zinc-900 hover:bg-zinc-800 p-2 rounded-full"
+              title="Cancel Upload"
+            >
+              <X className="w-5 h-5" />
+            </button>
              <div className="relative w-24 h-24 flex items-center justify-center">
                 <svg className="w-full h-full text-indigo-900 -rotate-90 transform" viewBox="0 0 100 100">
                   <circle className="text-zinc-800 stroke-current" strokeWidth="6" cx="50" cy="50" r="40" fill="transparent"></circle>
