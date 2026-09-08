@@ -14,6 +14,7 @@ export default function App() {
   const [videoState, setVideoState] = useState<VideoState>({
     url: null,
     file: null,
+    serverPath: null,
     status: 'idle',
     clips: []
   });
@@ -47,7 +48,7 @@ export default function App() {
     return newClips;
   };
 
-  const handleAnalyze = (file: File | string) => {
+  const handleAnalyze = (file: File | string, serverPath?: string) => {
     setVideoState(prev => ({ ...prev, status: 'analyzing' }));
     
     const videoUrl = typeof file === 'string' ? file : URL.createObjectURL(file);
@@ -61,11 +62,11 @@ export default function App() {
       setVideoState({
         url: videoUrl,
         file: typeof file === 'string' ? null : file,
+        serverPath: serverPath || null,
         status: 'ready',
         clips: newClips
       });
       setSelectedClipId(newClips[0]?.id || null);
-      // Auto-redirect to Editor instead of Clips
       setActiveTab('editor');
     };
     
@@ -90,8 +91,10 @@ export default function App() {
   }, [editorSettings.clipDuration]);
 
   const processRenderJob = async (clip: Clip) => {
-    if (!videoState.url) return;
-    const source = videoState.file || videoState.url;
+    if (!videoState.url || !videoState.serverPath) {
+      alert("Video not fully uploaded to server yet.");
+      return;
+    }
     
     const jobId = `job-${Date.now()}`;
     const newJob: RenderJob = {
@@ -107,7 +110,7 @@ export default function App() {
     try {
       const url = await renderVideoClip(
         clip, 
-        source, 
+        videoState.serverPath, 
         { ...editorSettings, showTitleSticker: editorSettings.titleSticker, customTitle: '' } as any, 
         (p) => setRenderJobs(prev => prev.map(j => j.id === jobId ? { ...j, progress: p } : j)),
         jobId

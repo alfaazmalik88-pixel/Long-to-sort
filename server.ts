@@ -29,19 +29,24 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Trim Endpoint
-app.post('/api/trim', upload.single('video'), (req, res) => {
+// Upload Endpoint
+app.post('/api/upload', upload.single('video'), (req, res) => {
   if (!req.file) {
     console.error("No file uploaded!");
     return res.status(400).json({ error: 'No video file provided.' });
   }
+  return res.json({ videoPath: req.file.path });
+});
 
-  const inputPath = req.file.path;
-  const startTime = req.body.startTime || 0;
-  const duration = req.body.duration || 10;
-  const title = req.body.title || '';
-  const titleSticker = req.body.titleSticker === 'true';
+// Trim Endpoint
+app.post('/api/trim', (req, res) => {
+  const { videoPath, startTime, duration, title, titleSticker } = req.body;
   
+  if (!videoPath || !fs.existsSync(videoPath)) {
+    return res.status(400).json({ error: 'Invalid or missing video path.' });
+  }
+
+  const inputPath = videoPath;
   const outputFileName = `clip-${Date.now()}-${Math.floor(Math.random() * 1000)}.mp4`;
   const outputPath = path.join(OUTPUT_DIR, outputFileName);
   
@@ -49,11 +54,9 @@ app.post('/api/trim', upload.single('video'), (req, res) => {
 
   // Generate .ass file for subtitles if needed
   let assFile = '';
-  let command = `"${ffmpegPath}" -y -ss ${startTime} -i "${inputPath}" -t ${duration}`;
+  // VERY IMPORTANT: -ss must be BEFORE -i for fast seeking
+  let command = `"${ffmpegPath}" -y -ss ${startTime || 0} -i "${inputPath}" -t ${duration || 10}`;
 
-  // Reverted to 1080x1920 (1080p) for high quality rendering.
-  // Will be super fast once deployed to a dedicated Hetzner server.
-  
   if (titleSticker && title) {
     assFile = path.join(OUTPUT_DIR, `sub-${Date.now()}.ass`);
     const assContent = `[Script Info]
@@ -82,10 +85,10 @@ Dialogue: 0,0:00:00.00,0:59:59.00,Default,,0,0,0,,${title}
   
   exec(command, (error, stdout, stderr) => {
     try {
-      if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+      // NOTE: We do NOT delete the inputPath here anymore since we reuse it!
       if (assFile && fs.existsSync(assFile)) fs.unlinkSync(assFile);
     } catch (e) {
-      console.error("Failed to delete temp files:", e);
+      console.error("Failed to delete temp subtitle file:", e);
     }
 
     if (error) {

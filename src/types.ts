@@ -14,7 +14,7 @@ export interface EditorSettings {
   captionStyle: 'hormozi' | 'neon' | 'minimal' | 'karaoke';
   audioWaveform: boolean;
   titleSticker: boolean;
-  exportQuality?: '480p' | '720p' | '1080p'; // Added back for compatibility
+  exportQuality?: '480p' | '720p' | '1080p'; 
   showTitleSticker?: boolean;
   customTitle?: string;
 }
@@ -31,6 +31,7 @@ export interface RenderJob {
 export interface VideoState {
   url: string | null;
   file: File | null;
+  serverPath?: string | null;
   status: 'idle' | 'uploading' | 'analyzing' | 'ready' | 'error';
   clips: Clip[];
   isPaused?: boolean;

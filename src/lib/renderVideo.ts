@@ -2,53 +2,35 @@ import { Clip, EditorSettings } from '../types';
 
 export const renderVideoClip = async (
   clip: Clip,
-  videoSource: string | File,
+  serverVideoPath: string,
   settings: EditorSettings,
   onProgress: (progress: number) => void,
   jobIdParam: string
 ): Promise<string> => {
   return new Promise(async (resolve, reject) => {
     try {
-      console.log("Starting FAST SERVER-SIDE Render via FFmpeg...");
+      console.log("Starting FAST SERVER-SIDE Render via FFmpeg using JSON payload...");
       
       let currentProgress = 5;
       onProgress(currentProgress); 
       
-      const formData = new FormData();
-      formData.append('startTime', clip.startTime.toString());
-      formData.append('duration', clip.duration.toString());
-      formData.append('title', clip.title);
-      formData.append('titleSticker', settings.titleSticker ? 'true' : 'false');
-      
-      if (videoSource instanceof File) {
-        formData.append('video', videoSource);
-      } else {
-        const response = await fetch(videoSource);
-        if (!response.ok) throw new Error("Failed to read local video file.");
-        const blob = await response.blob();
-        formData.append('video', blob, 'video.mp4');
-      }
+      const payload = {
+        videoPath: serverVideoPath,
+        startTime: clip.startTime,
+        duration: clip.duration,
+        title: clip.title,
+        titleSticker: settings.titleSticker
+      };
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/api/trim', true);
       xhr.responseType = 'blob'; 
+      xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.timeout = 180000; 
-
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const p = Math.floor((e.loaded / e.total) * 30); // upload is 30% visual progress
-          const calculatedProgress = 5 + p; 
-          
-          if (calculatedProgress > currentProgress) { 
-             currentProgress = calculatedProgress; 
-             onProgress(currentProgress); 
-           }
-        }
-      };
 
       // Visually faster simulation for the processing time
       let simInterval = setInterval(() => {
-          if (currentProgress >= 35 && currentProgress < 99 && xhr.readyState < 4) { 
+          if (currentProgress < 99 && xhr.readyState < 4) { 
              const increment = currentProgress > 85 ? 0.2 : Math.random() * 1.5 + 0.5; 
              currentProgress += increment; 
              onProgress(currentProgress); 
@@ -63,13 +45,27 @@ export const renderVideoClip = async (
           const finalUrl = URL.createObjectURL(xhr.response);
           resolve(finalUrl);
         } else {
-          reject(new Error(`Server Error: ${xhr.statusText}`));
+          // If blob is a JSON error, try to parse it (requires FileReader)
+          if (xhr.response.type === 'application/json') {
+             const reader = new FileReader();
+             reader.onload = () => {
+                 try {
+                     const errData = JSON.parse(reader.result as string);
+                     reject(new Error(errData.error || `Server Error: ${xhr.statusText}`));
+                 } catch(e) {
+                     reject(new Error(`Server Error: ${xhr.statusText}`));
+                 }
+             };
+             reader.readAsText(xhr.response);
+          } else {
+             reject(new Error(`Server Error: ${xhr.statusText}`));
+          }
         }
       };
 
       xhr.onerror = () => {
         clearInterval(simInterval);
-        reject(new Error('Network error during upload/processing'));
+        reject(new Error('Network error during processing'));
       };
       
       xhr.ontimeout = () => {
@@ -77,7 +73,7 @@ export const renderVideoClip = async (
         reject(new Error('Server processing timed out.'));
       };
 
-      xhr.send(formData);
+      xhr.send(JSON.stringify(payload));
     } catch (error) {
       console.error("renderVideoClip error:", error);
       reject(error);

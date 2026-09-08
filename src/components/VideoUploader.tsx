@@ -3,7 +3,7 @@ import { Upload, FileVideo, Video, X, AlertCircle } from 'lucide-react';
 import { VideoState } from '../types';
 
 interface VideoUploaderProps {
-  onAnalyze: (file: File | string) => void;
+  onAnalyze: (file: File | string, serverPath?: string) => void;
   status: VideoState['status'];
 }
 
@@ -11,42 +11,69 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState('');
   
-  // Local state for fake upload progress
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [pendingFile, setPendingFile] = useState<File | string | null>(null);
-
+  
   const [showUrlNotice, setShowUrlNotice] = useState(false);
 
   useEffect(() => {
-    let interval: any;
-    if (isUploading) {
-      interval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            return 100;
-          }
-          // Simulate fast upload (1-5% per tick)
-          return Math.min(100, prev + Math.floor(Math.random() * 10) + 5);
-        });
-      }, 200);
-    }
-    return () => clearInterval(interval);
-  }, [isUploading]);
+    let xhr: XMLHttpRequest;
 
-  useEffect(() => {
-    if (uploadProgress === 100 && pendingFile) {
-      // Small delay before moving to the next screen for smooth UX
-      const t = setTimeout(() => {
-        onAnalyze(pendingFile);
+    if (isUploading && pendingFile instanceof File) {
+      xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload', true);
+      
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const p = Math.floor((e.loaded / e.total) * 100);
+          setUploadProgress(p);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            const serverPath = res.videoPath;
+            setUploadProgress(100);
+            setTimeout(() => {
+              onAnalyze(pendingFile, serverPath);
+              setIsUploading(false);
+              setUploadProgress(0);
+              setPendingFile(null);
+            }, 500);
+          } catch (e) {
+            console.error("Parse error", e);
+            alert("Upload failed to parse response.");
+            setIsUploading(false);
+          }
+        } else {
+          alert("Server error uploading video");
+          setIsUploading(false);
+        }
+      };
+      
+      xhr.onerror = () => {
+        alert("Network error uploading video");
         setIsUploading(false);
-        setUploadProgress(0);
-        setPendingFile(null);
-      }, 500);
-      return () => clearTimeout(t);
+      };
+
+      const formData = new FormData();
+      formData.append('video', pendingFile);
+      xhr.send(formData);
+    } else if (isUploading && typeof pendingFile === 'string') {
+      // Logic for URL analyze if added later
+      onAnalyze(pendingFile);
+      setIsUploading(false);
     }
-  }, [uploadProgress, pendingFile, onAnalyze]);
+
+    return () => {
+      if (xhr) {
+        xhr.abort();
+      }
+    };
+  }, [isUploading, pendingFile, onAnalyze]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,7 +90,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
     }
   };
 
-  // Calculate SVG stroke offset based on progress
   const strokeDashoffset = 251.2 - (251.2 * uploadProgress) / 100;
 
   return (
@@ -74,7 +100,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
           <div className="w-24 h-24 rounded-2xl overflow-hidden bg-black flex items-center justify-center mb-2">
             <img 
               src="/logo.png" 
-              alt="ViralClip AI - Free Long Video to Shorts AI Converter" 
+              alt="ViralClip AI" 
               className="w-full h-full object-cover"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
@@ -94,27 +120,23 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
 
         {isUploading || status === 'analyzing' ? (
           <div className="mt-8 bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-8 text-center flex flex-col items-center gap-6 shadow-xl animate-in fade-in zoom-in duration-300">
-             
+            
              <div className="relative w-24 h-24 flex items-center justify-center">
                 <svg className="w-full h-full text-indigo-900 -rotate-90 transform" viewBox="0 0 100 100">
                   <circle className="text-zinc-800 stroke-current" strokeWidth="6" cx="50" cy="50" r="40" fill="transparent"></circle>
                   <circle 
-                    className="text-indigo-600 progress-ring stroke-current transition-all duration-300 ease-out" 
-                    strokeWidth="6" 
-                    strokeLinecap="round" 
-                    cx="50" cy="50" r="40" 
-                    fill="transparent" 
-                    strokeDasharray="251.2" 
+                    className="text-indigo-600 progress-ring stroke-current transition-all duration-300 ease-out"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    cx="50" cy="50" r="40"
+                    fill="transparent"
+                    strokeDasharray="251.2"
                     strokeDashoffset={strokeDashoffset}
                   ></circle>
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-indigo-400">
                   {uploadProgress}%
                 </div>
-             </div>
-             
-             <div className="px-4 py-1.5 rounded-full bg-indigo-900/30 border border-indigo-900 text-indigo-400 text-xs font-medium">
-               Speed: {(Math.random() * 5 + 15).toFixed(1)} Mbps
              </div>
              
              <div className="space-y-1">
@@ -130,7 +152,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
                 <button 
                   onClick={() => setShowUrlNotice(false)} 
                   className="absolute top-3 right-3 text-zinc-500 hover:text-white transition-colors bg-black/20 p-1.5 rounded-full"
-                  aria-label="Close notice"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -139,20 +160,8 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
                    <div>
                       <h3 className="text-base font-bold text-indigo-300">URL Upload Temporarily Unavailable</h3>
                       <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
-                        Due to server limits on this open-source tool, downloading directly from a URL is temporarily disabled. Please upload your video file directly from your device using the option below.
+                        Due to server limits on this open-source tool, downloading directly from a URL is temporarily disabled. Please upload your video file directly from your device.
                       </p>
-                      <p className="text-sm text-zinc-400 mt-3 font-medium">
-                        If you still need to download or cut a video using a URL, please use our alternative tool:
-                      </p>
-                      <a 
-                        href="https://ghost-ig512.alfaazmalik88.workers.dev/" 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl transition-colors shadow-lg shadow-indigo-900/20"
-                      >
-                        Alternative Video Cutter 
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                      </a>
                    </div>
                 </div>
               </div>
@@ -161,8 +170,8 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
                 <div className="flex-1 flex items-center gap-3 px-3">
                   <Video className="w-5 h-5 text-zinc-600" />
                   <input 
-                    type="text" 
-                    placeholder="Paste YouTube or Video URL" 
+                    type="text"
+                    placeholder="Paste YouTube or Video URL"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     className="bg-transparent text-sm w-full outline-none text-zinc-300 placeholder-zinc-600"
