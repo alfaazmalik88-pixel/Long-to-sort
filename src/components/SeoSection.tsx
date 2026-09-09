@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React from 'react';
 import { ArrowRight, ShieldCheck, FileText, Mail } from 'lucide-react';
 
@@ -155,29 +156,29 @@ export const SeoSection = () => {
       {/* Footer Grid */}
       <div className="w-full bg-[#050505] border-t border-zinc-900 py-12 px-4">
         <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:bg-zinc-900 transition-colors">
+          <Link to="/privacy-policy" className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:bg-zinc-900 transition-colors">
             <ShieldCheck className="w-6 h-6 text-zinc-500" />
             <div className="text-center">
               <div className="text-sm font-bold text-zinc-300">Privacy Policy</div>
               <div className="text-[10px] text-zinc-500">Data & GDPR</div>
             </div>
-          </button>
+          </Link>
           
-          <button className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:bg-zinc-900 transition-colors">
+          <Link to="/terms-of-service" className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:bg-zinc-900 transition-colors">
             <FileText className="w-6 h-6 text-zinc-500" />
             <div className="text-center">
               <div className="text-sm font-bold text-zinc-300">Terms of Service</div>
               <div className="text-[10px] text-zinc-500">Usage rules</div>
             </div>
-          </button>
+          </Link>
 
-          <button className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:bg-zinc-900 transition-colors">
+          <Link to="/contact" className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:bg-zinc-900 transition-colors">
             <Mail className="w-6 h-6 text-zinc-500" />
             <div className="text-center">
               <div className="text-sm font-bold text-zinc-300">Contact Support</div>
               <div className="text-[10px] text-zinc-500">kamarpathan0786@gmail.com</div>
             </div>
-          </button>
+          </Link>
 
           <button className="bg-[#0a0a0a] border border-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:bg-zinc-900 transition-colors">
             <div className="flex items-center gap-1.5 h-6">

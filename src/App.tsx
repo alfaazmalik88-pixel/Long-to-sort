@@ -8,6 +8,10 @@ import { ExportQueue } from './components/ExportQueue';
 import { SeoSection } from './components/SeoSection';
 import { VideoState, Clip, EditorSettings, RenderJob } from './types';
 import { renderVideoClip } from './lib/renderVideo';
+import { Routes, Route } from 'react-router-dom';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { TermsOfService } from './pages/TermsOfService';
+import { Contact } from './pages/Contact';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'upload' | 'clips' | 'editor' | 'export'>('upload');
@@ -143,6 +147,9 @@ export default function App() {
   const activeClip = videoState.clips.find(c => c.id === selectedClipId) || null;
 
   return (
+    <Routes>
+      <Route path="/" element={
+        
     <div className="flex flex-col h-[100dvh] w-full bg-black text-zinc-100 font-sans overflow-hidden selection:bg-indigo-500/30">
       <div className="flex flex-1 overflow-hidden relative">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -185,5 +192,11 @@ export default function App() {
         </main>
       </div>
     </div>
+  
+      } />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
+      <Route path="/contact" element={<Contact />} />
+    </Routes>
   );
 }
