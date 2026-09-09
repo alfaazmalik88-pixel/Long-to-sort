@@ -33,28 +33,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, d
 
   if (!isOpen) return null;
 
-  const handleDownload = () => {
-    try {
-      // 1. Open Monetag Direct Ad Link in a new tab
-      window.open("https://omg10.com/4/11757169", "_blank");
 
-      // 2. Wait for 1.5 seconds so the Ad page loads, then start the download
-      setTimeout(() => {
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = `${fileName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`; 
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        onClose();
-      }, 1500); // 1.5 seconds delay
-      
-    } catch (err) {
-      console.error("Download failed:", err);
-      alert("Download failed. Please try again or right-click the video to save.");
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-[#050505] animate-in fade-in duration-300 overflow-y-auto">
@@ -103,13 +82,27 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, d
                 <span className="text-lg">seconds remaining...</span>
               </button>
             ) : (
-              <button 
-                onClick={handleDownload}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-lg shadow-indigo-900/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group"
+              <a 
+                href="https://omg10.com/4/11757169"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  // Trigger the video download in the background
+                  const a = document.createElement('a');
+                  a.href = downloadUrl;
+                  a.download = `${fileName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`; 
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  
+                  // Close modal smoothly
+                  setTimeout(() => onClose(), 500);
+                }}
+                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-lg shadow-indigo-900/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group cursor-pointer"
               >
                 <Download className="w-6 h-6 group-hover:-translate-y-1 transition-transform" />
                 <span className="text-lg">Download 1080p Video</span>
-              </button>
+              </a>
             )}
             
             {/* Kept clean, removed Ad Support texts */}
