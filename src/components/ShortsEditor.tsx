@@ -31,11 +31,11 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({ clip, settings, vide
         />
         
         {/* Fake title overlay for preview */}
-        <div className="absolute bottom-[2%] left-0 right-0 text-center pointer-events-none">
+        <div className="absolute bottom-[1%] left-0 right-0 text-center pointer-events-none">
           <span 
             className="font-bold text-white tracking-wide" 
             style={{ 
-              fontSize: 'clamp(0.875rem, 2.5vh, 1.5rem)',
+              fontSize: 'clamp(0.6rem, 1.8vh, 1.2rem)',
               textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000'
             }}
           >

@@ -35,19 +35,21 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, d
 
   const handleDownload = () => {
     try {
-      // Direct video download (No ads for now)
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `${fileName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`; 
-      a.target = '_blank'; 
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      // Removed Monetag Ad link completely as requested.
-      // You can add it back here later when you are ready.
+      // 1. Open Monetag Direct Ad Link in a new tab
+      window.open("https://omg10.com/4/11757169", "_blank");
 
-      onClose();
+      // 2. Wait for 1.5 seconds so the Ad page loads, then start the download
+      setTimeout(() => {
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `${fileName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`; 
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        onClose();
+      }, 1500); // 1.5 seconds delay
+      
     } catch (err) {
       console.error("Download failed:", err);
       alert("Download failed. Please try again or right-click the video to save.");

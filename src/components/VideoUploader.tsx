@@ -15,7 +15,44 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [pendingFile, setPendingFile] = useState<File | string | null>(null);
   
+
   const [showUrlNotice, setShowUrlNotice] = useState(false);
+  const [resolutionWarning, setResolutionWarning] = useState<string | null>(null);
+
+  const processFile = async (file: File) => {
+    setResolutionWarning(null);
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    
+    const isUnder1080p = await new Promise<boolean>((resolve) => {
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(video.src);
+        // If either dimension is greater than 1920, it's > 1080p
+        if (video.videoWidth > 1920 || video.videoHeight > 1920) {
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      };
+      video.onerror = () => resolve(true); // if error, just pass it
+      video.src = URL.createObjectURL(file);
+      
+      // Fallback timeout just in case metadata takes too long or fails silently
+      setTimeout(() => {
+        resolve(true);
+      }, 3000);
+    });
+
+    if (!isUnder1080p) {
+      setResolutionWarning("Your video is above 1080p (e.g. 4K/2K). Please upload a video with 1080p or lower resolution. High-resolution videos may crash the server.");
+      return;
+    }
+
+    setPendingFile(file);
+    setIsUploading(true);
+    setUploadProgress(0);
+  };
+
 
   useEffect(() => {
     let isCancelled = false;
@@ -109,14 +146,14 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
     };
   }, [isUploading, pendingFile, onAnalyze]);
 
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setPendingFile(file);
-      setIsUploading(true);
-      setUploadProgress(0);
+      processFile(file);
     }
   };
+
 
   const handleUrlSubmit = () => {
     if (url) {
@@ -195,7 +232,29 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
         ) : (
           <div className="space-y-8 w-full mt-4">
             
+
+            {resolutionWarning && (
+              <div className="relative bg-[#3b1515] border border-red-500/30 p-5 rounded-2xl flex flex-col gap-3 animate-in fade-in zoom-in duration-300">
+                <button 
+                  onClick={() => setResolutionWarning(null)} 
+                  className="absolute top-3 right-3 text-red-400 hover:text-white transition-colors bg-black/20 p-1.5 rounded-full"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="flex items-start gap-4 pr-6">
+                   <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-1" />
+                   <div>
+                      <h3 className="text-base font-bold text-red-400">High Resolution Detected</h3>
+                      <p className="text-sm text-red-300/80 mt-1 leading-relaxed">
+                        {resolutionWarning}
+                      </p>
+                   </div>
+                </div>
+              </div>
+            )}
+
             {showUrlNotice ? (
+
               <div className="relative bg-[#13111c] border border-indigo-500/30 p-5 rounded-2xl flex flex-col gap-3 animate-in fade-in zoom-in duration-300">
                 <button 
                   onClick={() => setShowUrlNotice(false)} 
@@ -253,16 +312,16 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
                 e.preventDefault();
                 e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/10');
               }}
+
               onDrop={(e) => {
                 e.preventDefault();
                 e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-900/10');
                 const file = e.dataTransfer.files?.[0];
                 if (file) {
-                  setPendingFile(file);
-                  setIsUploading(true);
-                  setUploadProgress(0);
+                  processFile(file);
                 }
               }}
+
               className="bg-[#0a0a0a] border border-zinc-900 hover:border-zinc-700 transition-all rounded-3xl p-10 text-center cursor-pointer flex flex-col items-center justify-center min-h-[240px] group"
             >
               <div className="w-16 h-16 bg-zinc-900 group-hover:bg-zinc-800 transition-colors rounded-full flex items-center justify-center mb-4">
