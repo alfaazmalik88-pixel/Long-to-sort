@@ -65,7 +65,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
       const uploadId = Date.now().toString();
       const fileName = pendingFile.name;
 
-      const uploadNextChunk = () => {
+      const uploadNextChunk = (retryCount = 0) => {
         if (isCancelled) return;
 
         const start = currentChunk * CHUNK_SIZE;
@@ -85,22 +85,22 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
         currentXhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
             const chunkProgress = e.loaded / e.total;
-            const overallProgress = Math.floor(((currentChunk + chunkProgress) / totalChunks) * 100);
-            setUploadProgress(Math.min(overallProgress, 99)); // keep max at 99 until fully done
+            const overallProgress = ((currentChunk + chunkProgress) / totalChunks) * 100;
+            setUploadProgress(Math.min(overallProgress, 99.9)); // keep max at 99.9 until fully done
           }
         };
 
         currentXhr.onload = () => {
           if (isCancelled) return;
-          if (currentXhr!.status === 200) {
+          if (currentXhr.status === 200) {
             currentChunk++;
-            setUploadProgress(Math.floor((currentChunk / totalChunks) * 100));
+            setUploadProgress((currentChunk / totalChunks) * 100);
 
             if (currentChunk < totalChunks) {
-              uploadNextChunk();
+              uploadNextChunk(0); // Reset retry count for the next chunk
             } else {
               try {
-                const res = JSON.parse(currentXhr!.responseText);
+                const res = JSON.parse(currentXhr.responseText);
                 const serverPath = res.videoPath;
                 setUploadProgress(100);
                 setTimeout(() => {
@@ -118,21 +118,31 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
               }
             }
           } else {
-            alert("Server error uploading video chunk");
-            setIsUploading(false);
+            if (retryCount < 5) {
+              console.warn(`Chunk ${currentChunk} failed with ${currentXhr.status}. Retrying (${retryCount + 1}/5)...`);
+              setTimeout(() => uploadNextChunk(retryCount + 1), 2000);
+            } else {
+              alert("Server error uploading video chunk after retries");
+              setIsUploading(false);
+            }
           }
         };
 
         currentXhr.onerror = () => {
           if (isCancelled) return;
-          alert("Network error uploading video");
-          setIsUploading(false);
+          if (retryCount < 5) {
+            console.warn(`Network error on chunk ${currentChunk}. Retrying (${retryCount + 1}/5)...`);
+            setTimeout(() => uploadNextChunk(retryCount + 1), 2000);
+          } else {
+            alert("Network error uploading video after retries");
+            setIsUploading(false);
+          }
         };
 
         currentXhr.send(formData);
       };
 
-      uploadNextChunk();
+      uploadNextChunk(0);
     } else if (isUploading && typeof pendingFile === 'string') {
       onAnalyze(pendingFile);
       setIsUploading(false);
@@ -216,7 +226,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
                   ></circle>
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-indigo-400">
-                  {uploadProgress}%
+                  {uploadProgress.toFixed(1)}%
                 </div>
              </div>
              
