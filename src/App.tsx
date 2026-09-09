@@ -139,8 +139,8 @@ export default function App() {
     if (!videoState.url || videoState.clips.length === 0) return;
     
     setActiveTab('export');
-    for (const clip of videoState.clips) {
-      await processRenderJob(clip);
+    for (let i = 0; i < videoState.clips.length; i++) {
+      await processRenderJob(videoState.clips[i]);
     }
   };
 

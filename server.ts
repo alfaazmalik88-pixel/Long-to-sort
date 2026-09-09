@@ -113,6 +113,9 @@ Dialogue: 0,0:00:00.00,0:59:59.00,Default,,0,0,0,,${title}
     } catch (e) {}
 
     if (error) {
+      try {
+        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+      } catch (e) {}
       return res.status(500).json({ error: 'Video processing failed.', details: stderr });
     }
 
