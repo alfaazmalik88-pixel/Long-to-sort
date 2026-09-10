@@ -1,4 +1,6 @@
-<!doctype html>
+const fs = require('fs');
+
+const newHtml = `<!doctype html>
 <html lang="en">
   <head>
     <!-- Google Tag Manager -->
@@ -94,4 +96,7 @@
     <!-- ADSTERRA SCRIPT (Social Bar) -->
     <script type="text/javascript" data-cfasync="false" async="async" src="//pl31243129.profitableratecpmnetwork.com/ae/26/ae/ae26ae9ff287315edb888a1af08e830f.js"></script>
   </body>
-</html>
+</html>`;
+
+fs.writeFileSync('index.html', newHtml);
+console.log("Updated index.html for Global SEO");

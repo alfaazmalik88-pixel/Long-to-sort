@@ -59,7 +59,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
     let currentXhr: XMLHttpRequest | null = null;
 
     if (isUploading && pendingFile instanceof File) {
-      const CHUNK_SIZE = 1024 * 1024; // 1 MB chunks
+      const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB chunks
       const totalChunks = Math.ceil(pendingFile.size / CHUNK_SIZE);
       let currentChunk = 0;
       const uploadId = Date.now().toString();
@@ -86,7 +86,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
           if (e.lengthComputable) {
             const chunkProgress = e.loaded / e.total;
             const overallProgress = ((currentChunk + chunkProgress) / totalChunks) * 100;
-            setUploadProgress(Math.min(overallProgress, 99.9)); // keep max at 99.9 until fully done
+            setUploadProgress(prev => Math.max(prev, Math.min(overallProgress, 99.9))); // keep max at 99.9 until fully done
           }
         };
 
@@ -94,10 +94,10 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
           if (isCancelled) return;
           if (currentXhr.status === 200) {
             currentChunk++;
-            setUploadProgress((currentChunk / totalChunks) * 100);
+            setUploadProgress(prev => Math.max(prev, (currentChunk / totalChunks) * 100));
 
             if (currentChunk < totalChunks) {
-              uploadNextChunk(0); // Reset retry count for the next chunk
+              setTimeout(() => uploadNextChunk(0), 10); // Reset retry count with slight delay for the next chunk
             } else {
               try {
                 const res = JSON.parse(currentXhr.responseText);
@@ -231,7 +231,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onAnalyze, status 
              </div>
              
              <div className="px-4 py-1.5 rounded-full bg-indigo-900/30 border border-indigo-900 text-indigo-400 text-xs font-medium">
-               Speed: 1 MB Chunks
+               Speed: Fast Uploads
              </div>
              
              <div className="space-y-1">

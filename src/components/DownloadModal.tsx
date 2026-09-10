@@ -44,9 +44,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, d
           <img src="/logo.png" alt="ViralClip AI" className="w-8 h-8 rounded-lg" />
           <span className="text-white font-bold text-lg">ViralClip AI</span>
         </div>
-        <button onClick={onClose} className="text-zinc-400 hover:text-white transition-colors bg-zinc-900 p-2 rounded-full">
-          <X className="w-5 h-5" />
-        </button>
+        {/* Close button removed as requested */}
       </div>
 
       {/* Main Content */}
@@ -86,17 +84,25 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, d
                 href="https://omg10.com/4/11757169"
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => {
-                  // Trigger the video download in the background
-                  const a = document.createElement('a');
-                  a.href = downloadUrl;
-                  a.download = `${fileName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`; 
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
+                onClick={(e) => {
+                  const btn = e.currentTarget;
+                  const originalContent = btn.innerHTML;
+                  btn.innerHTML = '<span class="text-lg">Downloading in 5s...</span>';
+                  btn.style.pointerEvents = 'none'; // Prevent multiple clicks while waiting
                   
-                  // Close modal smoothly
-                  setTimeout(() => onClose(), 500);
+                  // Trigger the video download in the background AFTER 5 SECONDS
+                  setTimeout(() => {
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = `${fileName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`; 
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    // Reset button after download starts
+                    btn.innerHTML = originalContent;
+                    btn.style.pointerEvents = 'auto';
+                  }, 5000);
                 }}
                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-lg shadow-indigo-900/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group cursor-pointer"
               >

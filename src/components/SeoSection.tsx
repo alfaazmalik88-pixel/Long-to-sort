@@ -76,10 +76,10 @@ export const SeoSection = () => {
           <SocialGif />
           <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">Turn Long Videos into 10+ Shorts in 30 Seconds</h2>
           <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
-            Skip hours of manual editing. Our free long video to short video AI finds the best moments, creates 10+ engaging Shorts, and gets your content ready for TikTok, Instagram, and YouTube.
+            Skip hours of manual editing and expensive subscriptions. As the best free Opus Clip alternative, our AI video editor finds the best moments from podcasts and videos, adds auto-subtitles, and exports vertical clips for TikTok, Instagram Reels, and YouTube Shorts without watermarks.
           </p>
           <button className="flex items-center gap-2 text-emerald-400 border border-emerald-900/50 bg-emerald-900/10 px-5 py-2.5 rounded-full text-sm font-medium hover:bg-emerald-900/30 transition-colors">
-            Convert Long Video to Shorts <ArrowRight className="w-4 h-4" />
+            Try the Best Opus Clip Alternative <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
@@ -89,7 +89,7 @@ export const SeoSection = () => {
           
           <div className="space-y-6">
             <div>
-              <h3 className="text-xl font-bold text-emerald-400 mb-2">1. Paste a video link or upload your file</h3>
+              <h3 className="text-xl font-bold text-emerald-400 mb-2">1. Paste a YouTube link or upload</h3>
               <p className="text-zinc-400 text-sm leading-relaxed">
                 Paste a link from YouTube, TikTok, Twitch, Vimeo, Facebook, Dailymotion (and more), or upload a video from your device or Google Drive.
               </p>
@@ -115,7 +115,7 @@ export const SeoSection = () => {
         <div className="space-y-6">
           <h2 className="text-3xl font-bold text-white leading-tight">Convert Long Videos to Viral Shorts with ViralClip AI</h2>
           <p className="text-zinc-400 text-sm leading-relaxed">
-            ViralClip AI is a free online tool designed to turn long videos into shorts, reels, and TikTok clips in seconds. Easily convert YouTube podcasts, interviews, and long videos into engaging vertical shorts without watermarks. Simply paste your long video link and let our AI generate viral clips automatically.
+            ViralClip AI is a free online tool designed to repurpose long form videos into viral shorts, reels, and TikToks in seconds. Easily convert YouTube podcasts, interviews, and long videos into engaging vertical shorts without watermarks. Simply paste your long video link and let our AI generate viral clips automatically.
           </p>
           
           <h3 className="text-xl font-bold text-white mt-8 mb-4">How to Use Our ViralClip Video Generator</h3>
@@ -130,9 +130,9 @@ export const SeoSection = () => {
           
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-bold text-zinc-200 mb-2">Is this a completely free youtube video to shorts ai converter?</h3>
+              <h3 className="text-lg font-bold text-zinc-200 mb-2">Is this a completely free Opus Clip alternative?</h3>
               <p className="text-zinc-400 text-sm leading-relaxed">
-                Yes, ViralClip AI is a 100% free tool. Whether you need a <em>podcast to shorts ai free</em> tool or a general <em>long video to reels ai online converter</em>, you can do it all here without any hidden fees.
+                Yes, ViralClip AI is a 100% free AI shorts maker. Whether you need an <em>auto subtitle generator free</em> tool or a full-stack <em>podcast to tiktok</em> converter, you get premium features with zero hidden fees.
               </p>
             </div>
             

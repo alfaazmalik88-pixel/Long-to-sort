@@ -66,7 +66,55 @@ app.post('/api/upload-chunk', upload.single('chunk'), (req, res) => {
 });
 
 // Trim Endpoint
+
+const trimQueue = [];
+let isTrimming = false;
+
+const processTrimQueue = () => {
+  if (isTrimming || trimQueue.length === 0) return;
+  isTrimming = true;
+  const { req, res, next } = trimQueue.shift();
+  
+  // Custom response hook to trigger next in queue when done
+  const originalDownload = res.download.bind(res);
+  const originalStatus = res.status.bind(res);
+  
+  let finished = false;
+  const finish = () => {
+    if (!finished) {
+      finished = true;
+      isTrimming = false;
+      setTimeout(processTrimQueue, 500);
+    }
+  };
+
+  res.download = (path, name, cb) => {
+    originalDownload(path, name, (err) => {
+      finish();
+      if (cb) cb(err);
+    });
+  };
+
+  res.status = (code) => {
+    const s = originalStatus(code);
+    const originalJson = s.json.bind(s);
+    s.json = (data) => {
+      originalJson(data);
+      finish();
+    };
+    return s;
+  };
+  
+  next();
+};
+
 app.post('/api/trim', (req, res) => {
+  trimQueue.push({ req, res, next: () => handleTrim(req, res) });
+  processTrimQueue();
+});
+
+const handleTrim = (req, res) => {
+
   const { videoPath, startTime, duration, title, titleSticker } = req.body;
   
   if (!videoPath || !fs.existsSync(videoPath)) {
@@ -101,13 +149,13 @@ Dialogue: 0,0:00:00.00,0:59:59.00,Default,,0,0,0,,${title}
     fs.writeFileSync(assFile, assContent);
 
     const filter = `crop='min(iw,ih*(9/16))':ih,scale=1080:1920,subtitles='${assFile}'`;
-    command += ` -vf "${filter}" -c:v libx264 -preset ultrafast -crf 28 -threads 0 -c:a aac -b:a 128k "${outputPath}"`;
+    command += ` -vf "${filter}" -c:v libx264 -preset ultrafast -crf 28 -threads 0 -c:a aac -b:a 128k -loglevel error "${outputPath}"`;
   } else {
     const filter = `crop='min(iw,ih*(9/16))':ih,scale=1080:1920`;
-    command += ` -vf "${filter}" -c:v libx264 -preset ultrafast -crf 28 -threads 0 -c:a aac -b:a 128k "${outputPath}"`;
+    command += ` -vf "${filter}" -c:v libx264 -preset ultrafast -crf 28 -threads 0 -c:a aac -b:a 128k -loglevel error "${outputPath}"`;
   }
   
-  exec(command, (error, stdout, stderr) => {
+  exec(command, { maxBuffer: 1024 * 1024 * 100 }, (error, stdout, stderr) => {
     try {
       if (assFile && fs.existsSync(assFile)) fs.unlinkSync(assFile);
     } catch (e) {}
@@ -129,7 +177,7 @@ Dialogue: 0,0:00:00.00,0:59:59.00,Default,,0,0,0,,${title}
       } catch (e) {}
     });
   });
-});
+};
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
