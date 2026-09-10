@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, Download, Clock } from 'lucide-react';
+import { X, ArrowLeft, ShieldCheck, Download, Clock } from 'lucide-react';
 
 interface DownloadModalProps {
   isOpen: boolean;
@@ -31,6 +31,30 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, d
     }
   }, [isOpen, step, countdown]);
 
+  useEffect(() => {
+    if (isOpen) {
+      // Push a dummy state to history so we can intercept the back button
+      window.history.pushState({ modalOpen: true }, '');
+      
+      const handlePopState = () => {
+        // When system back is pressed, close the modal instead of exiting the app
+        onClose();
+      };
+      
+      window.addEventListener('popstate', handlePopState);
+      
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isOpen, onClose]);
+
+  const handleManualClose = () => {
+    // If user clicks our visual back button, we go back in history which triggers the popstate above
+    window.history.back();
+  };
+
+
   if (!isOpen) return null;
 
 
@@ -44,7 +68,12 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, d
           <img src="/logo.png" alt="ViralClip AI" className="w-8 h-8 rounded-lg" />
           <span className="text-white font-bold text-lg">ViralClip AI</span>
         </div>
-        {/* Close button removed as requested */}
+        
+        <button onClick={handleManualClose} className="text-zinc-400 hover:text-white transition-colors bg-zinc-900 p-2 rounded-full flex items-center gap-2 pr-4">
+          <ArrowLeft className="w-5 h-5" />
+          <span className="text-sm font-medium">Back</span>
+        </button>
+
       </div>
 
       {/* Main Content */}
