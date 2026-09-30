@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, FileText, ShieldAlert, Copyright, Zap } from 'lucide-react';
+import { X, FileText, ShieldAlert, Copyright, Zap, RotateCcw } from 'lucide-react';
 
 export const PolicyView = ({ onClose }: { onClose: () => void }) => {
   return (
@@ -47,7 +47,7 @@ export const PolicyView = ({ onClose }: { onClose: () => void }) => {
               3. Advertising & Cookies
             </h3>
             <p className="text-zinc-400">
-              To keep this tool 100% free, we use third-party ad networks (like Monetag and Adsterra). 
+              To offer free trial exports and maintain affordable micro-plans, we may use third-party ad networks (like Monetag and Adsterra). 
               These networks may use cookies to serve relevant ads. By continuing to use the site, you consent to the use of these cookies.
             </p>
           </section>
@@ -60,6 +60,16 @@ export const PolicyView = ({ onClose }: { onClose: () => void }) => {
             <p className="text-zinc-400">
               You must own the rights or have explicit permission to edit and distribute the videos you upload to our tool. 
               WayinVideo does not condone copyright infringement and is strictly a utility tool for content creators.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 text-amber-400" />
+              5. Refund & Cancellation (Digital Processing)
+            </h3>
+            <p className="text-zinc-400">
+              Due to the nature of digital video rendering and cloud computation, once digital processing or clip rendering has completed, payments are generally non-refundable. Cancellations must be initiated before rendering operations begin. If a technical server defect prevents successful video delivery, refunds or credits are evaluated within 24-48 hours via <span className="text-indigo-400 font-medium">viralclipaihelp@gmail.com</span>.
             </p>
           </section>
 

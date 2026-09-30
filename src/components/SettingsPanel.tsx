@@ -1,146 +1,414 @@
 import React from 'react';
 import { EditorSettings, Clip } from '../types';
-import { Sliders, Clock, List, LayoutTemplate, Type, FileText, Smartphone, Monitor, Square, Cpu, Zap } from 'lucide-react';
+import { Sliders, Clock, List, LayoutTemplate, Type, FileText, Smartphone, Monitor, Square, Cpu, Zap, Sparkles, ChevronRight } from 'lucide-react';
 import { cn } from '../utils';
 
 interface SettingsPanelProps {
   settings: EditorSettings;
   setSettings: (s: EditorSettings) => void;
   onExport: () => void;
+  onExportAll: () => void;
   clips: Clip[];
   selectedClipId: string | null;
   onSelectClip: (id: string) => void;
-  onExportAll: () => void;
+  isServerUploading?: boolean;
+  serverUploadProgress?: number;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   settings,
   setSettings,
   onExport,
+  onExportAll,
   clips,
   selectedClipId,
   onSelectClip,
-  onExportAll,
+  isServerUploading = false,
+  serverUploadProgress = 100,
 }) => {
+  const activeClip = clips.find(c => c.id === selectedClipId) || clips[0];
+  const currentTitleValue = settings.customTitle !== undefined ? settings.customTitle : '';
+  const currentIndex = clips.findIndex(c => c.id === selectedClipId);
+
+  const handleNextPart = () => {
+    if (clips.length <= 1) return;
+    const nextIdx = (currentIndex + 1) % clips.length;
+    onSelectClip(clips[nextIdx].id);
+  };
+
+  const handlePrevPart = () => {
+    if (clips.length <= 1) return;
+    const prevIdx = (currentIndex - 1 + clips.length) % clips.length;
+    onSelectClip(clips[prevIdx].id);
+  };
+
   return (
-    <div className="w-full lg:w-96 bg-[#0a0a0a] border-t lg:border-t-0 lg:border-l border-zinc-900 flex flex-col lg:h-full overflow-y-auto custom-scrollbar shrink-0">
-      <div className="p-4 border-b border-zinc-900 flex items-center gap-3">
-        <Sliders className="w-5 h-5 text-zinc-300" />
-        <h2 className="text-lg font-medium text-zinc-200">Editor Settings</h2>
+    <div className="w-full lg:w-96 bg-zinc-950/95 border-t lg:border-t-0 lg:border-l border-zinc-800/80 flex flex-col lg:h-full overflow-y-auto custom-scrollbar shrink-0 backdrop-blur-xl">
+      
+      {/* Panel Header */}
+      <div className="p-4 md:p-5 border-b border-zinc-800/80 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <Sliders className="w-4 h-4" />
+          </div>
+          <h2 className="text-base font-bold text-white tracking-tight">Studio Controls</h2>
+        </div>
+
+        <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+          GPU Accel
+        </span>
       </div>
       
-      <div className="p-4 space-y-8 flex-1">
-        {/* Clip Length */}
-        <div className="space-y-4">
-          <label className="text-xs text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            TARGET CLIP LENGTH
+      <div className="p-4 md:p-5 space-y-6 flex-1">
+        
+        {/* Clip Length Selector */}
+        <div className="space-y-2.5">
+          <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-indigo-400" />
+            Target Clip Length
           </label>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { value: 60, label: '1 Min' },
-              { value: 90, label: '1.5 Min' },
-              { value: 120, label: '2 Min' }
+              { value: 30, label: '30s', sub: 'Short' },
+              { value: 60, label: '60s', sub: 'Reels' },
+              { value: 90, label: '90s', sub: 'TikTok' }
             ].map((option) => (
               <button
                 key={option.value}
+                type="button"
                 onClick={() => setSettings({...settings, clipDuration: option.value})}
                 className={cn(
-                  "py-2.5 rounded-xl border transition-all text-sm font-medium",
+                  "py-2.5 px-2 rounded-2xl border transition-all text-center cursor-pointer",
                   settings.clipDuration === option.value
-                    ? "bg-indigo-900/30 border-indigo-700 text-indigo-300"
-                    : "bg-transparent border-zinc-800 text-zinc-400"
+                    ? "bg-indigo-600/15 border-indigo-500 text-white shadow-sm shadow-indigo-500/20"
+                    : "bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
                 )}
               >
-                {option.label}
+                <div className="text-xs font-bold">{option.label}</div>
+                <div className="text-[10px] text-zinc-500">{option.sub}</div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Select Part */}
-        <div className="space-y-4">
-          <label className="text-xs text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-            <List className="w-4 h-4" />
-            SELECT PART TO EDIT
-          </label>
-          <div className="bg-indigo-900/10 border border-indigo-900/30 rounded-xl p-3 flex items-center justify-between cursor-pointer">
-            <span className="text-indigo-300 text-sm font-medium">Part {clips.findIndex(c => c.id === selectedClipId) + 1 || 1} <span className="opacity-50 text-xs">({clips.find(c => c.id === selectedClipId)?.duration || 60}s)</span></span>
-            <div className="w-4 h-4 rounded-full bg-indigo-500/20"></div>
+        {/* Video Parts Navigation */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+              <List className="w-3.5 h-3.5 text-cyan-400" />
+              Video Parts ({clips.length})
+            </label>
+
+            {clips.length > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handlePrevPart}
+                  className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded text-xs font-semibold border border-zinc-800 cursor-pointer"
+                  title="Previous Part"
+                >
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextPart}
+                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-bold shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1"
+                  title="Open Next Part"
+                >
+                  <span>Agla Part</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Clickable Part Pills */}
+          <div className="max-h-48 overflow-y-auto custom-scrollbar p-1">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {clips.map((c, idx) => {
+                const isSelected = c.id === selectedClipId;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => onSelectClip(c.id)}
+                    className={cn(
+                      "py-2 px-1.5 rounded-xl border text-center transition-all cursor-pointer relative",
+                      isSelected
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30 font-bold ring-1 ring-indigo-400"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 font-medium"
+                    )}
+                  >
+                    <div className="text-xs font-bold">Part {idx + 1}</div>
+                    <div className="text-[10px] opacity-75">{Number(c.duration).toFixed(1)}s</div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Format */}
-        <div className="space-y-4">
-          <label className="text-xs text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-            <LayoutTemplate className="w-4 h-4" />
-            FORMAT
+        {/* Custom Part / Series Tag Text Input (Optional) */}
+        <div className="space-y-2.5">
+          <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Type className="w-3.5 h-3.5 text-indigo-400" />
+              Series Tag / Text (Sabse Niche Chhota Sa)
+            </span>
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              value={currentTitleValue}
+              onChange={(e) => setSettings({ ...settings, customTitle: e.target.value })}
+              placeholder={activeClip ? activeClip.title.toLowerCase() : "part 1"}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-600"
+            />
+          </div>
+          <p className="text-[10px] text-zinc-500">
+            Khali chhodne par automatically sabse niche chhota sa "{activeClip ? activeClip.title.toLowerCase() : 'part 1'}" dikhega.
+          </p>
+        </div>
+
+        {/* Format Switcher */}
+        <div className="space-y-2.5">
+          <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+            <LayoutTemplate className="w-3.5 h-3.5 text-amber-400" />
+            Video Aspect Ratio
           </label>
           <div className="grid grid-cols-3 gap-2">
-            <button onClick={() => setSettings({...settings, format: 'shorts'})} className={cn("py-3 rounded-xl border flex flex-col items-center gap-2", settings.format === 'shorts' ? "bg-indigo-900/30 border-indigo-700 text-indigo-300" : "bg-transparent border-zinc-800 text-zinc-400")}>
-               <Smartphone className="w-5 h-5" />
-               <span className="text-xs font-medium">Shorts</span>
-            </button>
-            <button onClick={() => setSettings({...settings, format: 'square'})} className={cn("py-3 rounded-xl border flex flex-col items-center gap-2", settings.format === 'square' ? "bg-indigo-900/30 border-indigo-700 text-indigo-300" : "bg-transparent border-zinc-800 text-zinc-400")}>
-               <Square className="w-5 h-5" />
-               <span className="text-xs font-medium">Square</span>
-            </button>
-            <button onClick={() => setSettings({...settings, format: 'landscape'})} className={cn("py-3 rounded-xl border flex flex-col items-center gap-2", settings.format === 'landscape' ? "bg-indigo-900/30 border-indigo-700 text-indigo-300" : "bg-transparent border-zinc-800 text-zinc-400")}>
-               <Monitor className="w-5 h-5" />
-               <span className="text-xs font-medium">Landscape</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Caption Style */}
-        <div className="space-y-4">
-          <label className="text-xs text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-            <Type className="w-4 h-4" />
-            CAPTION STYLE
-          </label>
-          <div className="grid grid-cols-2 gap-3">
             {[
-              { id: 'hormozi', name: 'Hormozi', desc: 'LOUD & BOLD' },
-              { id: 'neon', name: 'Neon', desc: 'GLOWING' },
-              { id: 'minimal', name: 'Minimal', desc: 'Clean Box' },
-              { id: 'karaoke', name: 'Karaoke', desc: 'Word-by-word' }
-            ].map(style => (
-              <button key={style.id} onClick={() => setSettings({...settings, captionStyle: style.id as any})} className={cn("p-3 rounded-xl border text-left flex flex-col gap-1 relative", settings.captionStyle === style.id ? "bg-indigo-900/20 border-indigo-700" : "bg-[#111] border-zinc-800")}>
-                 <span className={cn("text-sm font-medium", settings.captionStyle === style.id ? "text-indigo-400" : "text-zinc-300")}>{style.name}</span>
-                 <span className="text-[10px] text-zinc-500">{style.desc}</span>
-                 {settings.captionStyle === style.id && <div className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-indigo-500"></div>}
-              </button>
-            ))}
+              { id: 'shorts', label: '9:16', sub: 'Vertical', icon: Smartphone },
+              { id: 'square', label: '1:1', sub: 'Square', icon: Square },
+              { id: 'landscape', label: '16:9', sub: 'Cinema', icon: Monitor }
+            ].map((f) => {
+              const Icon = f.icon;
+              const isSelected = settings.format === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setSettings({...settings, format: f.id as any})}
+                  className={cn(
+                    "py-3 rounded-2xl border flex flex-col items-center gap-1 transition-all cursor-pointer",
+                    isSelected
+                      ? "bg-indigo-600/15 border-indigo-500 text-white shadow-sm"
+                      : "bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+                  )}
+                >
+                  <Icon className="w-4 h-4 mb-0.5" />
+                  <span className="text-xs font-bold">{f.label}</span>
+                  <span className="text-[10px] text-zinc-500">{f.sub}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Overlays */}
-        <div className="space-y-4">
-          <label className="text-xs text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            OVERLAYS
-          </label>
+        {/* Subtitle Style Presets */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+              Subtitle Style Presets
+            </label>
+            <span className="text-[10px] text-indigo-400 font-medium">Click to select</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {[
+              { 
+                id: 'hormozi', 
+                name: 'Hormozi Style', 
+                desc: 'Bold uppercase, white text, active spoken word highlights in bright yellow/green',
+                preview: 'bg-zinc-950 border border-yellow-400/80 text-yellow-300 font-black uppercase px-2 py-0.5 rounded text-[10px]' 
+              },
+              { 
+                id: 'minimal', 
+                name: 'Minimal Style', 
+                desc: 'Clean white subtitle with subtle black background',
+                preview: 'bg-black/80 border border-white/20 text-white font-bold px-2 py-0.5 rounded text-[10px]' 
+              }
+            ].map(style => {
+              const isSelected = settings.captionStyle === style.id;
+              return (
+                <button
+                  key={style.id}
+                  type="button"
+                  onClick={() => setSettings(prev => ({ ...prev, captionStyle: style.id as any }))}
+                  className={cn(
+                    "p-3 rounded-2xl border text-left flex flex-col gap-2 relative transition-all cursor-pointer",
+                    isSelected
+                      ? "bg-indigo-600/20 border-indigo-500 text-white shadow-md ring-1 ring-indigo-500"
+                      : "bg-zinc-900/70 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={cn("text-xs font-bold", isSelected ? "text-white" : "text-zinc-300")}>
+                      {style.name}
+                    </span>
+                    {isSelected && (
+                      <span className="w-2 h-2 rounded-full bg-indigo-400 shadow-sm shadow-indigo-400" />
+                    )}
+                  </div>
+                  
+                  {/* Live Mini Preview Swatch */}
+                  <div className="flex items-center">
+                    <span className={style.preview}>WORD HIGHLIGHT</span>
+                  </div>
+
+                  <span className="text-[10px] text-zinc-500 leading-snug">{style.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Caption Vertical Position Selector (Niche / Middle) */}
+        {settings.enableCaptions && (
           <div className="space-y-2">
-             <div className="flex items-center justify-between p-3">
-                <span className="text-sm text-zinc-300">Audio Waveform</span>
-                <button onClick={() => setSettings({...settings, audioWaveform: !settings.audioWaveform})} className={cn("w-10 h-6 rounded-full transition-colors relative", settings.audioWaveform ? "bg-indigo-600" : "bg-zinc-800")}>
-                   <div className={cn("w-4 h-4 rounded-full bg-white absolute top-1 transition-all", settings.audioWaveform ? "left-5" : "left-1")}></div>
-                </button>
-             </div>
-             <div className="flex items-center justify-between p-3">
-                <span className="text-sm text-zinc-300">Title Sticker</span>
-                <button onClick={() => setSettings({...settings, titleSticker: !settings.titleSticker})} className={cn("w-10 h-6 rounded-full transition-colors relative", settings.titleSticker ? "bg-indigo-600" : "bg-zinc-800")}>
-                   <div className={cn("w-4 h-4 rounded-full bg-white absolute top-1 transition-all", settings.titleSticker ? "left-5" : "left-1")}></div>
-                </button>
-             </div>
+            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                Caption Position (Niche / Height)
+              </span>
+              <span className="text-[10px] text-indigo-400 font-semibold">
+                {settings.captionPosition === 'middle' ? 'Center (50%)' : settings.captionPosition === 'lower' ? 'Mid-Low (68%)' : 'Niche / Low (80%)'}
+              </span>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'bottom', label: 'Niche / Low', sub: '80% (Face Clear)' },
+                { id: 'lower', label: 'Mid-Low', sub: '68%' },
+                { id: 'middle', label: 'Center', sub: '50%' }
+              ].map(pos => {
+                const isSelected = (settings.captionPosition || 'bottom') === pos.id;
+                return (
+                  <button
+                    key={pos.id}
+                    type="button"
+                    onClick={() => setSettings(prev => ({ ...prev, captionPosition: pos.id as any }))}
+                    className={cn(
+                      "py-2 px-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-0.5",
+                      isSelected
+                        ? "bg-indigo-600/20 border-indigo-500 text-white font-bold shadow-sm ring-1 ring-indigo-500"
+                        : "bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+                    )}
+                  >
+                    <span className="text-xs font-bold">{pos.label}</span>
+                    <span className="text-[9px] text-zinc-500">{pos.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Studio Controls: Overlays & Captions Toggle */}
+        <div className="space-y-2.5">
+          <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-emerald-400" />
+            Studio Controls & Overlays
+          </label>
+          <div className="space-y-1.5 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-2">
+            
+            {/* Generate Animated Captions Toggle (Default: ON) */}
+            <div className="flex items-center justify-between p-2.5">
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                  Generate Animated Captions
+                </span>
+                <span className="text-[10px] text-zinc-500">
+                  {settings.enableCaptions ? 'Captions ON (Word-Level Sync)' : 'Captions OFF'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSettings({...settings, enableCaptions: !settings.enableCaptions})}
+                className={cn(
+                  "w-11 h-6 rounded-full transition-colors relative cursor-pointer",
+                  settings.enableCaptions ? "bg-indigo-600" : "bg-zinc-700"
+                )}
+              >
+                <div className={cn(
+                  "w-4 h-4 rounded-full bg-white transition-transform absolute top-1",
+                  settings.enableCaptions ? "left-6" : "left-1"
+                )} />
+              </button>
+            </div>
+
+            {/* Part 1 Series Tag Toggle */}
+            <div className="flex items-center justify-between p-2.5 border-t border-zinc-800/40">
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+                  <List className="w-3.5 h-3.5 text-amber-400" />
+                  Part 1 Series Tag Badge
+                </span>
+                <span className="text-[10px] text-zinc-500">
+                  {settings.titleSticker ? 'Part Tag ON (Shows Part 1, Part 2)' : 'Part Tag OFF'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSettings({...settings, titleSticker: !settings.titleSticker})}
+                className={cn(
+                  "w-11 h-6 rounded-full transition-colors relative cursor-pointer",
+                  settings.titleSticker ? "bg-indigo-600" : "bg-zinc-700"
+                )}
+              >
+                <div className={cn(
+                  "w-4 h-4 rounded-full bg-white transition-transform absolute top-1",
+                  settings.titleSticker ? "left-6" : "left-1"
+                )} />
+              </button>
+            </div>
+
+            {/* Audio Waveform Bars Toggle */}
+            <div className="flex items-center justify-between p-2.5 border-t border-zinc-800/40">
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-zinc-300">Audio Waveform Bars</span>
+                <span className="text-[10px] text-zinc-500">
+                  {settings.audioWaveform ? 'Waveform ON' : 'Waveform OFF'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSettings({...settings, audioWaveform: !settings.audioWaveform})}
+                className={cn(
+                  "w-11 h-6 rounded-full transition-colors relative cursor-pointer",
+                  settings.audioWaveform ? "bg-indigo-600" : "bg-zinc-700"
+                )}
+              >
+                <div className={cn(
+                  "w-4 h-4 rounded-full bg-white transition-transform absolute top-1",
+                  settings.audioWaveform ? "left-6" : "left-1"
+                )} />
+              </button>
+            </div>
+
           </div>
         </div>
 
-      </div>
+        {/* Render Action Buttons */}
+        <div className="pt-2 space-y-3">
+          <button
+            type="button"
+            onClick={onExport}
+            className="w-full py-3 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs border border-zinc-700 transition-all cursor-pointer active:scale-98 shadow-sm flex items-center justify-center gap-2"
+          >
+            <span>Render Current Part Only</span>
+          </button>
 
-      <div className="p-4 border-t border-zinc-900 space-y-3 bg-[#0a0a0a]">
-        <button onClick={onExport} className="w-full py-3.5 bg-indigo-900/30 hover:bg-indigo-900/50 text-indigo-300 border border-indigo-800 rounded-xl font-medium transition-colors">Render Current Part</button>
-        <button onClick={onExportAll} className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors">Render All Parts ({clips.length})</button>
+          <button
+            type="button"
+            onClick={onExportAll}
+            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:opacity-95 text-white font-black text-xs md:text-sm shadow-xl shadow-indigo-600/30 transition-all cursor-pointer active:scale-98 flex items-center justify-center gap-2"
+          >
+            <Zap className="w-4 h-4 fill-white" />
+            <span>Render All {clips.length} Parts (Full HD)</span>
+          </button>
+        </div>
+
       </div>
     </div>
   );

@@ -11,15 +11,27 @@ export const renderVideoClip = async (
     try {
       console.log("Starting FAST SERVER-SIDE Render via FFmpeg using JSON payload...");
       
-      let currentProgress = 5;
+      let currentProgress = 6;
       onProgress(currentProgress); 
-      
+
+      const progressTimer = setInterval(() => {
+        if (currentProgress < 95) {
+          const step = Math.floor(Math.random() * 4) + 3;
+          currentProgress = Math.min(95, currentProgress + step);
+          onProgress(currentProgress);
+        }
+      }, 500);
+
       const payload = {
         videoPath: serverVideoPath,
         startTime: clip.startTime,
         duration: clip.duration,
-        title: clip.title,
-        titleSticker: settings.titleSticker
+        title: settings.customTitle?.trim() || clip.title,
+        titleSticker: !!settings.titleSticker,
+        enableCaptions: !!settings.enableCaptions,
+        captionStyle: settings.captionStyle || 'hormozi',
+        captionPosition: settings.captionPosition || 'bottom',
+        subtitles: clip.subtitles || []
       };
 
       const xhr = new XMLHttpRequest();
@@ -28,18 +40,8 @@ export const renderVideoClip = async (
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.timeout = 180000; 
 
-      // Visually faster simulation for the processing time
-      let simInterval = setInterval(() => {
-          if (currentProgress < 99 && xhr.readyState < 4) { 
-             const increment = currentProgress > 85 ? 0.2 : Math.random() * 1.5 + 0.5; 
-             currentProgress += increment; 
-             onProgress(currentProgress); 
-         }
-      }, 400);
-
       xhr.onload = () => {
-        clearInterval(simInterval);
-        
+        clearInterval(progressTimer);
         if (xhr.status === 200) {
           onProgress(100);
           const finalUrl = URL.createObjectURL(xhr.response);
@@ -64,12 +66,12 @@ export const renderVideoClip = async (
       };
 
       xhr.onerror = () => {
-        clearInterval(simInterval);
+        clearInterval(progressTimer);
         reject(new Error('Network error during processing'));
       };
       
       xhr.ontimeout = () => {
-        clearInterval(simInterval);
+        clearInterval(progressTimer);
         reject(new Error('Server processing timed out.'));
       };
 

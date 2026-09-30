@@ -1,114 +1,160 @@
 import React from 'react';
 import { RenderJob } from '../types';
 import { DownloadModal } from './DownloadModal';
-import { Film, CheckCircle2, Download, AlertTriangle, ExternalLink, XCircle } from 'lucide-react';
+import { Film, CheckCircle2, Download, AlertTriangle, XCircle, FolderDown } from 'lucide-react';
 
 interface ExportQueueProps {
   jobs: RenderJob[];
-  videoUrl: string | null;
+  videoUrl?: string | null;
+  onDownloadJob?: (jobId: string, duration?: number) => void;
 }
 
-export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs }) => {
+export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs, onDownloadJob }) => {
   const [downloadJob, setDownloadJob] = React.useState<RenderJob | null>(null);
+  const [isDownloadingAll, setIsDownloadingAll] = React.useState(false);
+
+  const readyJobs = jobs.filter(j => j.status === 'ready' && j.blobUrl);
+  const hasProcessing = jobs.some(j => j.status === 'processing');
+
+  const handleDownloadAll = async () => {
+    if (readyJobs.length === 0) return;
+    setIsDownloadingAll(true);
+
+    for (let i = 0; i < readyJobs.length; i++) {
+      const job = readyJobs[i];
+      if (job.blobUrl) {
+        const a = document.createElement('a');
+        a.href = job.blobUrl;
+        a.download = `${(job.title || `part-${i + 1}`).toLowerCase().replace(/[^a-z0-9]/gi, '_')}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        if (onDownloadJob) {
+          onDownloadJob(job.id, job.duration);
+        }
+        await new Promise(r => setTimeout(r, 800));
+      }
+    }
+
+    setIsDownloadingAll(false);
+  };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-black">
+    <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-black text-zinc-100 custom-scrollbar">
       <div className="max-w-2xl mx-auto pb-32 space-y-6">
         
-        <div className="mb-2">
-          <h2 className="text-xl font-bold text-white mb-1">Export Queue</h2>
-          <p className="text-zinc-400 text-sm">Manage your rendering shorts</p>
+        {/* Title: Export Queue */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
+            Export Queue
+          </h1>
+
+          {readyJobs.length > 1 && (
+            <button
+              type="button"
+              onClick={handleDownloadAll}
+              disabled={isDownloadingAll}
+              className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+            >
+              <FolderDown className="w-4 h-4" />
+              <span>{isDownloadingAll ? 'Downloading All...' : `Download All (${readyJobs.length})`}</span>
+            </button>
+          )}
         </div>
         
         {jobs.length === 0 ? (
-          <div className="text-zinc-600 font-medium text-center py-8 bg-[#0a0a0a] rounded-xl border border-zinc-900 text-sm">
-            No jobs in queue.
+          <div className="text-zinc-500 font-medium text-center py-16 bg-zinc-950/60 rounded-3xl border border-zinc-800/80 text-sm space-y-2">
+            <Film className="w-8 h-8 text-zinc-700 mx-auto stroke-[1.5]" />
+            <p className="text-zinc-400 font-semibold">No active render jobs in queue.</p>
+            <p className="text-xs text-zinc-600">Go to Editor tab and click 'Render All Parts'.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {jobs.map(job => (
-              <div key={job.id} className="bg-[#0a0a0a] border border-zinc-800 rounded-xl p-5 flex flex-col gap-4 shadow-lg transition-all">
+              <div 
+                key={job.id} 
+                className="bg-zinc-950/90 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 flex flex-col gap-3 shadow-xl backdrop-blur-xl transition-all"
+              >
                 
                 {/* Header Info */}
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-[#111] rounded-xl flex items-center justify-center shrink-0 border border-zinc-700">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center shrink-0 border border-zinc-800 shadow-inner">
                     {job.status === 'ready' ? (
-                       <CheckCircle2 className="w-7 h-7 text-emerald-500" />
+                       <CheckCircle2 className="w-6 h-6 text-emerald-400" />
                     ) : job.status === 'error' ? (
-                       <XCircle className="w-7 h-7 text-red-500" />
+                       <XCircle className="w-6 h-6 text-rose-500" />
                     ) : (
-                      <Film className="w-6 h-6 text-zinc-600" />
+                       <Film className="w-6 h-6 text-zinc-400" />
                     )}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-bold text-zinc-100 truncate">{job.title || 'Video'}</h3>
+                    <h3 className="text-sm sm:text-base font-bold text-white truncate">
+                      {job.title || 'Part 1'}
+                    </h3>
+                    
                     {job.status === 'processing' ? (
-                      <p className="text-sm text-indigo-400 font-semibold mt-1">Rendering: {Math.round(job.progress)}%</p>
+                      <p className="text-xs text-indigo-400 font-semibold mt-0.5">
+                        Rendering: {Math.round(job.progress || 6)}%
+                      </p>
                     ) : job.status === 'ready' ? (
-                      <p className="text-sm text-emerald-500 font-semibold mt-1">Ready to download</p>
+                      <p className="text-xs text-emerald-400 font-semibold mt-0.5 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> 1080p Full HD Ready
+                      </p>
                     ) : (
-                      <p className="text-sm text-red-500 font-semibold mt-1">Rendering failed</p>
+                      <p className="text-xs text-rose-400 font-semibold mt-0.5">Processing failed</p>
                     )}
                   </div>
                 </div>
 
-                {/* Processing Bar */}
+                {/* Processing Progress Bar */}
                 {job.status === 'processing' && (
-                  <div className="w-full">
-                    <div className="w-full bg-zinc-900 rounded-full h-2.5 overflow-hidden mb-2">
-                      <div className="bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out" style={{ width: `${job.progress}%` }}></div>
-                    </div>
-                    <p className="text-xs text-zinc-400 flex items-center gap-1.5">
-                      <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                      Please keep this tab open while rendering.
-                    </p>
+                  <div className="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden border border-zinc-800/60">
+                    <div 
+                      className="bg-indigo-600 h-full rounded-full transition-all duration-300 ease-out" 
+                      style={{ width: `${Math.max(5, Math.min(100, job.progress || 6))}%` }}
+                    />
                   </div>
                 )}
 
-                {/* Big Full-Width Download Button */}
+                {/* Download CTA Button */}
                 {job.status === 'ready' && (
                   <button 
                     onClick={() => setDownloadJob(job)}
-                    className="w-full py-4 mt-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-base font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/50 active:scale-[0.98] transition-all border border-indigo-500"
+                    className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-95 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-indigo-600/25 active:scale-[0.98] transition-all cursor-pointer"
                   >
-                    <Download className="w-6 h-6" />
-                    DOWNLOAD VIDEO
+                    <Download className="w-4 h-4" />
+                    <span>Download Clean Video</span>
                   </button>
-                )}
-
-                {/* Error Fallback Box / Alternative Link */}
-                {job.status === 'error' && (
-                  <div className="mt-2 bg-[#120e0a] border border-amber-900/50 p-5 rounded-xl flex flex-col items-center text-center gap-4 animate-in fade-in zoom-in duration-300">
-                    <div className="space-y-1">
-                      <h4 className="text-amber-500 font-bold text-sm">Server Limits Reached</h4>
-                      <p className="text-xs text-zinc-400 leading-relaxed">
-                        Due to high traffic on this free tool, the server couldn't render your video. Please use our alternative tool to cut or download videos directly.
-                      </p>
-                    </div>
-                    <a 
-                      href="https://ghost-ig512.alfaazmalik88.workers.dev/" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="w-full inline-flex bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20 px-5 py-3 rounded-xl text-sm font-bold transition-colors items-center justify-center gap-2"
-                    >
-                      Use Alternative Video Cutter <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </div>
                 )}
                 
               </div>
             ))}
           </div>
         )}
-      </div>
 
-      <DownloadModal
-          isOpen={!!downloadJob}
-          onClose={() => setDownloadJob(null)}
-          downloadUrl={downloadJob?.blobUrl || ''}
-          fileName={downloadJob?.title || 'video'}
-        />
+        {/* Warning / Tab Notice matching frame 02:06 */}
+        {hasProcessing && (
+          <div className="bg-amber-950/20 border border-amber-500/20 rounded-2xl p-3.5 flex items-center gap-2.5 text-xs text-amber-300">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>Please keep this tab open while rendering.</span>
+          </div>
+        )}
+        
+        {downloadJob && (
+          <DownloadModal 
+            isOpen={!!downloadJob}
+            onClose={() => setDownloadJob(null)}
+            downloadUrl={downloadJob.blobUrl || ''}
+            fileName={`${(downloadJob.title || 'video').toLowerCase().replace(/\s+/g, '-')}.mp4`}
+            onDownloadSuccess={() => {
+              if (onDownloadJob && downloadJob) {
+                onDownloadJob(downloadJob.id, downloadJob.duration);
+              }
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 };

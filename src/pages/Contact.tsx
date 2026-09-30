@@ -26,8 +26,8 @@ export const Contact = () => {
               <p className="text-zinc-400 mb-4">
                 You can reach out to us directly via email. We aim to respond to all inquiries within 24-48 hours.
               </p>
-              <a href="mailto:kamarpathan0786@gmail.com" className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 font-bold text-lg transition-colors">
-                kamarpathan0786@gmail.com
+              <a href="mailto:viralclipaihelp@gmail.com" className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 font-bold text-lg transition-colors">
+                viralclipaihelp@gmail.com
               </a>
             </div>
           </div>

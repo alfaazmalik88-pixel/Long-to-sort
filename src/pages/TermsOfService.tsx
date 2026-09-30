@@ -33,6 +33,10 @@ export const TermsOfService = () => {
           <p>
             In no event shall ViralClip AI be liable for any direct, indirect, incidental, special, or consequential damages resulting from the use or inability to use our services.
           </p>
+          <h2 className="text-xl font-bold text-white">5. Cancellation & Refund Policy (Digital Processing)</h2>
+          <p>
+            Due to the immediate consumption of digital cloud compute resources upon video processing or AI rendering, transactions are considered finalized and non-refundable once digital rendering begins or completes. Requests for cancellation must be submitted prior to the commencement of computational tasks. In instances of verified technical system failures or incomplete file outputs, credits or full refunds are provided. For full details, review our <Link to="/refund-policy" className="text-indigo-400 hover:underline font-medium">Cancellation & Refund Policy</Link>.
+          </p>
         </div>
       </div>
     </div>

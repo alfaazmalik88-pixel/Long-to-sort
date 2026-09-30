@@ -1,3 +1,17 @@
+export interface WordTimestamp {
+  word: string;
+  start: number;
+  end: number;
+}
+
+export interface SubtitleItem {
+  id: string;
+  startTime: number;
+  endTime: number;
+  text: string;
+  words?: WordTimestamp[];
+}
+
 export interface Clip {
   id: string;
   title: string;
@@ -6,15 +20,18 @@ export interface Clip {
   duration: number;
   transcript?: string;
   viralityScore?: number;
+  subtitles?: SubtitleItem[];
 }
 
 export interface EditorSettings {
   clipDuration: number;
   format: 'shorts' | 'square' | 'landscape';
-  captionStyle: 'hormozi' | 'neon' | 'minimal' | 'karaoke';
+  captionStyle: 'hormozi' | 'minimal' | 'transparent' | 'neon' | 'karaoke';
+  captionPosition?: 'bottom' | 'lower' | 'middle'; // Default: 'bottom' (lower area, avoiding subject's face)
   audioWaveform: boolean;
-  titleSticker: boolean;
-  exportQuality?: '480p' | '720p' | '1080p'; 
+  titleSticker: boolean; // Part 1 series tag ON/OFF
+  enableCaptions: boolean; // Generate Animated Captions ON/OFF (Default: ON)
+  exportQuality?: '480p' | '720p' | '1080p' | '4k'; 
   showTitleSticker?: boolean;
   customTitle?: string;
 }
@@ -26,6 +43,7 @@ export interface RenderJob {
   progress: number;
   blobUrl?: string;
   title?: string;
+  duration?: number; // Video duration in seconds
 }
 
 export interface VideoState {
@@ -35,4 +53,5 @@ export interface VideoState {
   status: 'idle' | 'uploading' | 'analyzing' | 'ready' | 'error';
   clips: Clip[];
   isPaused?: boolean;
+  is4K?: boolean;
 }
