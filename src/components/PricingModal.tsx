@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, Check, Sparkles, Zap, Crown, Flame, ArrowRight, Shield } from 'lucide-react';
 import { PRICING_INR, PRICING_USD, PricingTier } from '../data/pricingData';
 import { CheckoutModal } from './CheckoutModal';
@@ -20,6 +20,20 @@ export const PricingModal: React.FC<PricingModalProps> = ({
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const { user } = useAuth();
+  const sideScrollIndicatorRef = useRef<HTMLDivElement>(null);
+  const scrollRafRef = useRef<number | null>(null);
+
+  const handleFastScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    scrollRafRef.current = requestAnimationFrame(() => {
+      const total = el.scrollHeight - el.clientHeight;
+      if (total > 0 && sideScrollIndicatorRef.current) {
+        const pct = (el.scrollTop / total) * 100;
+        sideScrollIndicatorRef.current.style.height = `${Math.min(100, Math.max(3, pct))}%`;
+      }
+    });
+  };
 
   if (!isOpen) return null;
 
@@ -64,11 +78,8 @@ export const PricingModal: React.FC<PricingModalProps> = ({
               <Zap className="w-5 h-5 fill-amber-400/20" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight flex items-center gap-2">
-                <span>Select Your Plan</span>
-                <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Instant Activation
-                </span>
+              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                Select Your Plan
               </h2>
               <p className="text-xs text-zinc-400">Zero Watermark • 4K Upload & 1080p Full HD Render • No Monthly Subscriptions</p>
             </div>
@@ -111,9 +122,22 @@ export const PricingModal: React.FC<PricingModalProps> = ({
           </div>
         </div>
 
-        {/* Scrollable Cards Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-stretch">
+        {/* Scrollable Container with Fast Side Line Indicator */}
+        <div className="relative flex-1 flex flex-col overflow-hidden">
+          {/* Ultra-Fast Responsive Side Scroll Line Indicator */}
+          <div className="absolute top-0 right-0 bottom-0 w-[4px] bg-zinc-900/30 pointer-events-none z-30">
+            <div 
+              ref={sideScrollIndicatorRef}
+              className="w-full bg-gradient-to-b from-indigo-500 via-indigo-400 to-cyan-400 shadow-[0_0_10px_rgba(99,102,241,0.9)] rounded-full will-change-[height]"
+              style={{ height: '4%' }}
+            />
+          </div>
+
+          <div 
+            onScroll={handleFastScroll}
+            className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar overscroll-y-contain"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-stretch">
             {tiers.map((tier) => {
               const isPopular = tier.popular;
               const isCurrent = user?.plan === tier.id;
@@ -203,7 +227,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
             </div>
             <div className="flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>Instant Credits Activation</span>
+              <span>Full HD 1080p Export</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
@@ -211,6 +235,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Checkout Modal */}

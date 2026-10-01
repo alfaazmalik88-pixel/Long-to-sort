@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { VideoUploader } from './components/VideoUploader';
 import { ClipSelector } from './components/ClipSelector';
@@ -36,18 +36,35 @@ export default function App() {
     clipDuration: 60,
     format: 'shorts',
     captionStyle: 'hormozi',
+    captionPosition: 'bottom',
+    videoFit: 'contain', // Default: No crop, full video 100% visible
     audioWaveform: false,
     titleSticker: true, // Part 1, Part 2 series tag toggle (ON by default)
     enableCaptions: true, // Generate Animated Captions (Default: ON)
     exportQuality: '720p',
     customTitle: ''
   });
+  const [mobileEditorTab, setMobileEditorTab] = useState<'preview' | 'controls'>('preview');
   const [renderJobs, setRenderJobs] = useState<RenderJob[]>([]);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isServerUploading, setIsServerUploading] = useState<boolean>(false);
   const [serverUploadProgress, setServerUploadProgress] = useState<number>(100);
   const [deductedJobs, setDeductedJobs] = useState<Set<string>>(new Set());
+  const sideScrollIndicatorRef = useRef<HTMLDivElement>(null);
+  const scrollRafRef = useRef<number | null>(null);
+
+  const handleFastScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    scrollRafRef.current = requestAnimationFrame(() => {
+      const total = el.scrollHeight - el.clientHeight;
+      if (total > 0 && sideScrollIndicatorRef.current) {
+        const pct = (el.scrollTop / total) * 100;
+        sideScrollIndicatorRef.current.style.height = `${Math.min(100, Math.max(3, pct))}%`;
+      }
+    });
+  };
 
   const handleDeductMinute = (id: string, durationInSeconds?: number, is4KJob?: boolean) => {
     if (deductedJobs.has(id)) return;
@@ -316,6 +333,26 @@ export default function App() {
         });
         setSelectedClipId(generatedClips[0]?.id || null);
 
+        // Call Whisper AI transcription for demo video to enable animated captions
+        fetch('/api/whisper-transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ videoPath: 'public/demo-sample.mp4', startTime: 0, duration: 30 })
+        })
+          .then(r => r.json())
+          .then(data => {
+            if (data?.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
+              setVideoState(prev => ({
+                ...prev,
+                clips: prev.clips.map(c => ({
+                  ...c,
+                  subtitles: data.subtitles
+                }))
+              }));
+            }
+          })
+          .catch(e => console.warn('Whisper demo transcription error:', e));
+
         setTimeout(() => {
           setIsServerUploading(false);
           setActiveTab('editor');
@@ -490,21 +527,35 @@ export default function App() {
         <main className="flex-1 flex flex-col overflow-hidden relative w-full bg-black">
           <ErrorBoundary fallbackTitle="Error loading workspace view">
           {activeTab === 'upload' && (
-            <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar pb-24 md:pb-0">
-              <VideoUploader 
-                onAnalyze={handleAnalyze} 
-                status={videoState.status} 
-                onOpenAuth={() => setIsAuthOpen(true)} 
-                onOpenPricing={handleOpenPricing}
-                isUploading={isServerUploading}
-                uploadProgress={serverUploadProgress}
-                onCancelUpload={() => {
-                  setIsServerUploading(false);
-                  setServerUploadProgress(0);
-                }}
-              />
-              <PricingSection onOpenAuth={() => setIsAuthOpen(true)} />
-              <SeoSection />
+            <div className="relative flex-1 flex flex-col h-full overflow-hidden">
+              {/* Ultra-Fast Responsive Side Scroll Line Indicator */}
+              <div className="absolute top-0 right-0 bottom-0 w-[4px] bg-zinc-900/30 pointer-events-none z-30">
+                <div 
+                  ref={sideScrollIndicatorRef}
+                  className="w-full bg-gradient-to-b from-indigo-500 via-indigo-400 to-cyan-400 shadow-[0_0_10px_rgba(99,102,241,0.9)] rounded-full will-change-[height]"
+                  style={{ height: '3%' }}
+                />
+              </div>
+
+              <div 
+                onScroll={handleFastScroll}
+                className="flex-1 flex flex-col overflow-y-auto custom-scrollbar overscroll-y-contain pb-32 md:pb-12"
+              >
+                <VideoUploader 
+                  onAnalyze={handleAnalyze} 
+                  status={videoState.status} 
+                  onOpenAuth={() => setIsAuthOpen(true)} 
+                  onOpenPricing={handleOpenPricing}
+                  isUploading={isServerUploading}
+                  uploadProgress={serverUploadProgress}
+                  onCancelUpload={() => {
+                    setIsServerUploading(false);
+                    setServerUploadProgress(0);
+                  }}
+                />
+                <PricingSection onOpenAuth={() => setIsAuthOpen(true)} />
+                <SeoSection onLoadDemo={() => handleAnalyze('/demo-sample.mp4?v=7', 'public/demo-sample.mp4')} />
+              </div>
             </div>
           )}
 
@@ -518,25 +569,61 @@ export default function App() {
           )}
 
           {activeTab === 'editor' && (
-            <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden pb-20 md:pb-0">
-              <ShortsEditor 
-                clip={activeClip} 
-                settings={editorSettings as any} 
-                videoUrl={videoState.url} 
-                clips={videoState.clips}
-                onSelectClip={setSelectedClipId}
-              />
-              <SettingsPanel 
-                settings={editorSettings}
-                setSettings={setEditorSettings}
-                clips={videoState.clips}
-                selectedClipId={selectedClipId}
-                onSelectClip={setSelectedClipId}
-                onExport={handleExport}
-                onExportAll={handleExportAll}
-                isServerUploading={isServerUploading}
-                serverUploadProgress={serverUploadProgress}
-              />
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden pb-24 md:pb-0 h-full">
+              {/* Mobile Editor Switcher (Preview vs Controls) - Only on Phones (<768px) */}
+              <div className="md:hidden flex items-center justify-center p-2 bg-zinc-950/95 border-b border-zinc-800/80 shrink-0 z-30">
+                <div className="flex bg-zinc-900/90 p-1 rounded-xl border border-zinc-800 w-full max-w-xs justify-center gap-1 shadow-md">
+                  <button
+                    type="button"
+                    onClick={() => setMobileEditorTab('preview')}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                      mobileEditorTab === 'preview'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <span>🎬 Video Preview</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMobileEditorTab('controls')}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                      mobileEditorTab === 'controls'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <span>⚙️ Controls & Export</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Editor Workspace: Dual-Pane on Tablets & PC, Tabbed on Phones */}
+              <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden w-full h-full">
+                <div className={`flex-1 flex flex-col min-w-0 ${mobileEditorTab === 'preview' ? 'flex' : 'hidden md:flex'}`}>
+                  <ShortsEditor 
+                    clip={activeClip} 
+                    settings={editorSettings as any} 
+                    setSettings={setEditorSettings}
+                    videoUrl={videoState.url} 
+                    clips={videoState.clips}
+                    onSelectClip={setSelectedClipId}
+                  />
+                </div>
+                <div className={`w-full md:w-80 lg:w-96 flex flex-col shrink-0 ${mobileEditorTab === 'controls' ? 'flex' : 'hidden md:flex'}`}>
+                  <SettingsPanel 
+                    settings={editorSettings}
+                    setSettings={setEditorSettings}
+                    clips={videoState.clips}
+                    selectedClipId={selectedClipId}
+                    onSelectClip={setSelectedClipId}
+                    onExport={handleExport}
+                    onExportAll={handleExportAll}
+                    isServerUploading={isServerUploading}
+                    serverUploadProgress={serverUploadProgress}
+                  />
+                </div>
+              </div>
             </div>
           )}
 

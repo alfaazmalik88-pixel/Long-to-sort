@@ -31,6 +31,7 @@ export const renderVideoClip = async (
         enableCaptions: !!settings.enableCaptions,
         captionStyle: settings.captionStyle || 'hormozi',
         captionPosition: settings.captionPosition || 'bottom',
+        videoFit: settings.videoFit || 'contain',
         subtitles: clip.subtitles || []
       };
 

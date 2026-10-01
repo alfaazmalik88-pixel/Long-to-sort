@@ -10,7 +10,7 @@ interface PricingSectionProps {
 }
 
 export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) => {
-  const { currency, setCurrency, isIndia, paymentGateway } = useCountryPricing();
+  const { currency, setCurrency, isIndia, isVpnBlocked } = useCountryPricing();
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const { user } = useAuth();
@@ -45,8 +45,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
 
   return (
     <section id="pricing" className="w-full py-16 px-4 md:px-8 bg-black relative overflow-hidden border-t border-zinc-900">
-      {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none"></div>
+      {/* Lightweight Instant Radial Glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(99,102,241,0.12),rgba(0,0,0,0))] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10 space-y-10">
         {/* Currency Switcher */}

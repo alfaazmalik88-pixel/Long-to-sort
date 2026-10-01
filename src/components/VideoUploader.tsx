@@ -3,7 +3,6 @@ import { Upload, Sparkles, Zap, Flame, Shield, ArrowRight, Play, Film, CheckCirc
 import { VideoState } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { isPlan4KSupported } from '../data/pricingData';
-import { Demo30sSection } from './Demo30sSection';
 
 interface VideoUploaderProps {
   onAnalyze: (file: File | string, serverPath?: string) => void;
@@ -418,27 +417,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                       {isPlan4KSupported(user?.plan) ? '✨ 4K Upload Active (Render: 1080p Full HD)' : 'Regular Plans: Max 1080p Upload (4K requires Pro/Agency)'}
                     </span>
                   </div>
-
-                  {/* Instant Try Demo Button */}
-                  <div 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleTryDemo();
-                    }}
-                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/30 cursor-pointer active:scale-95"
-                  >
-                    {isGeneratingDemo ? (
-                      <>
-                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>Opening Studio...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>✨ Try Instant Sample Video</span>
-                      </>
-                    )}
-                  </div>
                 </div>
               )}
 
@@ -530,12 +508,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             </div>
           </div>
         )}
-
-        {/* 30s Live Demo Video Player & How It's Made Walkthrough */}
-        <Demo30sSection 
-          onLoadDemoIntoEditor={handleTryDemo}
-          isLoading={isGeneratingDemo}
-        />
       </div>
     </div>
   );

@@ -28,6 +28,7 @@ export interface EditorSettings {
   format: 'shorts' | 'square' | 'landscape';
   captionStyle: 'hormozi' | 'minimal' | 'transparent' | 'neon' | 'karaoke';
   captionPosition?: 'bottom' | 'lower' | 'middle'; // Default: 'bottom' (lower area, avoiding subject's face)
+  videoFit?: 'contain' | 'cover'; // 'contain' (no crop, full video visible) vs 'cover' (fill 9:16)
   audioWaveform: boolean;
   titleSticker: boolean; // Part 1 series tag ON/OFF
   enableCaptions: boolean; // Generate Animated Captions ON/OFF (Default: ON)

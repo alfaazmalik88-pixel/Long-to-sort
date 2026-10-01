@@ -43,7 +43,11 @@ const SocialGif = () => (
   </div>
 );
 
-export const SeoSection = () => {
+interface SeoSectionProps {
+  onLoadDemo?: () => void;
+}
+
+export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
   return (
     <div className="w-full flex flex-col items-center">
       <div className="w-full max-w-4xl mx-auto px-4 md:px-8 py-12 space-y-24 text-zinc-300">
@@ -54,12 +58,53 @@ export const SeoSection = () => {
           <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
             Turn one long YouTube video into multiple Shorts, giving your best content more chances to reach new viewers and subscribers. Repurpose hours of footage without manually cutting every clip.
           </p>
-          <button className="flex items-center gap-2 text-emerald-400 border border-emerald-900/50 bg-emerald-900/10 px-5 py-2.5 rounded-full text-sm font-medium hover:bg-emerald-900/30 transition-colors">
-            Grow My Channel <ArrowRight className="w-4 h-4" />
-          </button>
-          <div className="w-full aspect-video bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800 mt-8 relative">
-            <img src="https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?auto=format&fit=crop&q=80&w=1000" alt="Earth from space" className="w-full h-full object-cover opacity-60" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button className="flex items-center gap-2 text-emerald-400 border border-emerald-900/50 bg-emerald-900/10 px-5 py-2.5 rounded-full text-sm font-medium hover:bg-emerald-900/30 transition-colors">
+              Grow My Channel <ArrowRight className="w-4 h-4" />
+            </button>
+            {onLoadDemo && (
+              <button
+                type="button"
+                onClick={onLoadDemo}
+                className="flex items-center gap-2 text-indigo-300 border border-indigo-500/40 bg-indigo-600/20 px-5 py-2.5 rounded-full text-sm font-bold hover:bg-indigo-600/40 transition-colors shadow-lg shadow-indigo-600/20 cursor-pointer active:scale-95"
+              >
+                <Zap className="w-4 h-4 fill-indigo-300" />
+                <span>Open This Demo Video in Studio</span>
+              </button>
+            )}
+          </div>
+          <div className="w-full aspect-video bg-zinc-950 rounded-3xl overflow-hidden border border-zinc-800 mt-8 relative shadow-2xl group">
+            <video 
+              src="/demo-sample.mp4?v=7" 
+              controls 
+              autoPlay 
+              muted 
+              loop 
+              playsInline 
+              className="w-full h-full object-cover rounded-3xl"
+            />
+            {/* Top Left Floating Badge */}
+            <div className="absolute top-4 left-4 z-20 pointer-events-none">
+              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30 shadow-lg flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Demo Video Preview</span>
+              </span>
+            </div>
+
+            {/* Top Right "Open in Studio" Action Button */}
+            {onLoadDemo && (
+              <div className="absolute top-4 right-4 z-20">
+                <button
+                  type="button"
+                  onClick={onLoadDemo}
+                  className="px-3.5 py-1.5 rounded-full bg-indigo-600/90 hover:bg-indigo-500 active:scale-95 text-white font-bold text-xs shadow-xl shadow-indigo-600/50 flex items-center gap-1.5 transition-all cursor-pointer border border-indigo-400/40 backdrop-blur-md"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-white text-white" />
+                  <span>Edit Demo in Studio</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

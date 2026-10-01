@@ -23,7 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ] as const;
 
   return (
-    <div className="w-full md:w-22 bg-zinc-950/90 backdrop-blur-xl border-t md:border-t-0 md:border-r border-zinc-800/80 flex flex-row md:flex-col shrink-0 z-50 fixed bottom-0 left-0 right-0 md:relative h-[66px] md:h-full justify-between shadow-2xl">
+    <div className="w-full md:w-20 lg:w-24 bg-zinc-950/90 backdrop-blur-xl border-t md:border-t-0 md:border-r border-zinc-800/80 flex flex-row md:flex-col shrink-0 z-50 fixed bottom-0 left-0 right-0 md:relative h-[66px] md:h-full justify-between shadow-2xl touch-manipulation select-none">
       <nav className="flex-1 flex flex-row md:flex-col px-3 py-1.5 md:py-8 gap-2 justify-around md:justify-start w-full">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { EditorSettings, Clip } from '../types';
-import { Sliders, Clock, List, LayoutTemplate, Type, FileText, Smartphone, Monitor, Square, Cpu, Zap, Sparkles, ChevronRight } from 'lucide-react';
+import { Sliders, Clock, List, LayoutTemplate, Type, FileText, Smartphone, Monitor, Square, Cpu, Zap, Sparkles, ChevronRight, Maximize2, Crop } from 'lucide-react';
 import { cn } from '../utils';
 
 interface SettingsPanelProps {
@@ -26,6 +26,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isServerUploading = false,
   serverUploadProgress = 100,
 }) => {
+  const sideScrollIndicatorRef = useRef<HTMLDivElement>(null);
+  const scrollRafRef = useRef<number | null>(null);
+
+  const handleFastScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    scrollRafRef.current = requestAnimationFrame(() => {
+      const total = el.scrollHeight - el.clientHeight;
+      if (total > 0 && sideScrollIndicatorRef.current) {
+        const pct = (el.scrollTop / total) * 100;
+        sideScrollIndicatorRef.current.style.height = `${Math.min(100, Math.max(3, pct))}%`;
+      }
+    });
+  };
+
   const activeClip = clips.find(c => c.id === selectedClipId) || clips[0];
   const currentTitleValue = settings.customTitle !== undefined ? settings.customTitle : '';
   const currentIndex = clips.findIndex(c => c.id === selectedClipId);
@@ -43,7 +58,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   };
 
   return (
-    <div className="w-full lg:w-96 bg-zinc-950/95 border-t lg:border-t-0 lg:border-l border-zinc-800/80 flex flex-col lg:h-full overflow-y-auto custom-scrollbar shrink-0 backdrop-blur-xl">
+    <div 
+      onScroll={handleFastScroll}
+      className="w-full lg:w-96 bg-zinc-950/95 border-t lg:border-t-0 lg:border-l border-zinc-800/80 flex flex-col lg:h-full overflow-y-auto custom-scrollbar shrink-0 backdrop-blur-xl relative overscroll-y-contain"
+    >
+      {/* Fast Side Scroll Line */}
+      <div className="absolute top-0 right-0 bottom-0 w-[3px] bg-zinc-900/30 pointer-events-none z-30">
+        <div 
+          ref={sideScrollIndicatorRef}
+          className="w-full bg-gradient-to-b from-indigo-500 via-indigo-400 to-cyan-400 shadow-[0_0_8px_rgba(99,102,241,0.9)] rounded-full will-change-[height]"
+          style={{ height: '4%' }}
+        />
+      </div>
       
       {/* Panel Header */}
       <div className="p-4 md:p-5 border-b border-zinc-800/80 flex items-center justify-between">
@@ -202,6 +228,51 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Video Framing (Crop vs No-Crop) */}
+        <div className="space-y-2.5">
+          <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+              Video Framing (Crop vs Full Video)
+            </span>
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setSettings({ ...settings, videoFit: 'contain' })}
+              className={cn(
+                "p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1",
+                (settings.videoFit || 'contain') === 'contain'
+                  ? "bg-emerald-500/15 border-emerald-500 text-white shadow-sm ring-1 ring-emerald-400"
+                  : "bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-white"
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                <Maximize2 className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-bold">Fit (No Crop)</span>
+              </div>
+              <span className="text-[10px] text-zinc-400">Pura video dikhega, 0% cut</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSettings({ ...settings, videoFit: 'cover' })}
+              className={cn(
+                "p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1",
+                settings.videoFit === 'cover'
+                  ? "bg-amber-500/15 border-amber-500 text-white shadow-sm ring-1 ring-amber-400"
+                  : "bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-white"
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                <Crop className="w-4 h-4 text-amber-400" />
+                <span className="text-xs font-bold">Fill (Crop 9:16)</span>
+              </div>
+              <span className="text-[10px] text-zinc-400">Pura vertical screen bharega</span>
+            </button>
           </div>
         </div>
 
