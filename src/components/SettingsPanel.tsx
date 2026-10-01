@@ -60,7 +60,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   return (
     <div 
       onScroll={handleFastScroll}
-      className="w-full lg:w-96 bg-zinc-950/95 border-t lg:border-t-0 lg:border-l border-zinc-800/80 flex flex-col lg:h-full overflow-y-auto custom-scrollbar shrink-0 backdrop-blur-xl relative overscroll-y-contain"
+      className="w-full lg:w-96 bg-zinc-950/95 border-t lg:border-t-0 lg:border-l border-zinc-800/80 flex flex-col h-full min-h-0 flex-1 overflow-y-auto custom-scrollbar shrink-0 backdrop-blur-xl relative overscroll-y-contain"
     >
       {/* Fast Side Scroll Line */}
       <div className="absolute top-0 right-0 bottom-0 w-[3px] bg-zinc-900/30 pointer-events-none z-30">
@@ -72,7 +72,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       </div>
       
       {/* Panel Header */}
-      <div className="p-4 md:p-5 border-b border-zinc-800/80 flex items-center justify-between">
+      <div className="p-4 md:p-5 border-b border-zinc-800/80 flex items-center justify-between shrink-0 sticky top-0 bg-zinc-950/95 backdrop-blur z-20">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
             <Sliders className="w-4 h-4" />
@@ -85,7 +85,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </span>
       </div>
       
-      <div className="p-4 md:p-5 space-y-6 flex-1">
+      <div className="p-4 md:p-5 space-y-6 flex-1 pb-44 md:pb-12">
         
         {/* Clip Length Selector */}
         <div className="space-y-2.5">
@@ -283,15 +283,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
               Subtitle Style Presets
             </label>
-            <span className="text-[10px] text-indigo-400 font-medium">Click to select</span>
+            <span className="text-[10px] text-yellow-400 font-bold bg-yellow-400/10 border border-yellow-400/25 px-2 py-0.5 rounded-full">
+              ✨ Auto Highlight
+            </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {[
               { 
                 id: 'hormozi', 
-                name: 'Hormozi Style', 
-                desc: 'Bold uppercase, white text, active spoken word highlights in bright yellow/green',
-                preview: 'bg-zinc-950 border border-yellow-400/80 text-yellow-300 font-black uppercase px-2 py-0.5 rounded text-[10px]' 
+                name: 'Hormozi Style (Transparent)', 
+                desc: '100% Transparent floating bold text, active spoken word in glowing yellow',
+                preview: 'bg-transparent text-[#FFE500] font-black uppercase text-[11px] drop-shadow-[0_2px_4px_rgba(0,0,0,1)]' 
               },
               { 
                 id: 'minimal', 
@@ -324,7 +326,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   
                   {/* Live Mini Preview Swatch */}
                   <div className="flex items-center">
-                    <span className={style.preview}>WORD HIGHLIGHT</span>
+                    <span className={style.preview}>ACTIVE WORD HIGHLIGHT</span>
                   </div>
 
                   <span className="text-[10px] text-zinc-500 leading-snug">{style.desc}</span>
@@ -382,23 +384,36 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </label>
           <div className="space-y-1.5 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-2">
             
-            {/* Generate Animated Captions Toggle (Default: ON) */}
-            <div className="flex items-center justify-between p-2.5">
+            {/* Generate Animated Captions Toggle (Default: ON) - Prominently Highlighted */}
+            <div className={cn(
+              "flex items-center justify-between p-2.5 rounded-xl transition-all",
+              settings.enableCaptions
+                ? "bg-amber-500/10 border border-amber-500/30 shadow-xs"
+                : "bg-transparent"
+            )}>
               <div className="flex flex-col">
-                <span className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+                <span className="text-xs font-bold text-white flex items-center gap-1.5 flex-wrap">
                   <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-                  Generate Animated Captions
+                  Auto Captions & Subtitles
+                  <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-yellow-400 text-zinc-950 shadow-xs">
+                    HIGHLIGHT
+                  </span>
                 </span>
-                <span className="text-[10px] text-zinc-500">
-                  {settings.enableCaptions ? 'Captions ON (Word-Level Sync)' : 'Captions OFF'}
+                <span className="text-[10px] text-zinc-400">
+                  {settings.enableCaptions ? 'Active Spoken Word Highlight ON' : 'Captions OFF'}
                 </span>
+                {settings.enableCaptions && (
+                  <span className="text-[9px] text-amber-400/90 font-semibold mt-0.5">
+                    🌐 Whisper Logic: Hindi ➔ Hinglish (Roman) • Global ➔ Original
+                  </span>
+                )}
               </div>
               <button
                 type="button"
                 onClick={() => setSettings({...settings, enableCaptions: !settings.enableCaptions})}
                 className={cn(
-                  "w-11 h-6 rounded-full transition-colors relative cursor-pointer",
-                  settings.enableCaptions ? "bg-indigo-600" : "bg-zinc-700"
+                  "w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ml-2",
+                  settings.enableCaptions ? "bg-amber-500" : "bg-zinc-700"
                 )}
               >
                 <div className={cn(

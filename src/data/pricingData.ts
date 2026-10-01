@@ -3,13 +3,15 @@ export interface PricingTier {
   name: string;
   price: string;
   numericPrice: number;
+  usdEquivalent?: string;
+  inrEquivalent?: string;
   period: string;
   badge?: string;
   popular?: boolean;
-  clipsCredit: string; // Badge (Pill) - Minutes
-  totalExport: string; // Sub-text: Total Video Processing
+  clipsCredit: string;
+  totalExport: string;
   supports4K?: boolean;
-  features: string[];  // Features Checklist
+  features: string[];
   ctaText: string;
 }
 
@@ -19,87 +21,93 @@ export const PRICING_INR: PricingTier[] = [
     name: 'Free Trial',
     price: '₹0',
     numericPrice: 0,
-    period: 'forever',
-    clipsCredit: '5 Minutes',
-    totalExport: 'Up to 5 Minutes Total Video Processing',
+    usdEquivalent: '$0 USD',
+    period: '10m / 24h',
+    badge: '50m Quota',
+    clipsCredit: '10m / Day (50m Total)',
+    totalExport: '10 Mins Daily • Auto-Resets Every 24h • 50 Mins Total Trial',
     features: [
-      '5 Minutes Processing',
-      '1080p Full HD Download & Zero Watermark',
-      'Part 1, Part 2 Series Tags',
-      'Instant Cloud Preview'
+      '10 Minutes Daily Free Trial',
+      'Auto-Resets every 24 Hours',
+      '50 Minutes Total Trial Quota',
+      '1080p HD • Zero Watermark',
+      'Part 1, Part 2 Series Tags'
     ],
-    ctaText: 'Current Plan'
+    ctaText: 'Active Free (10m/Day)'
   },
   {
     id: 'starter',
     name: 'Starter Pack',
     price: '₹49',
     numericPrice: 49,
+    usdEquivalent: '$4.99 USD',
     period: 'one-time',
     clipsCredit: '30 Minutes',
-    totalExport: 'Up to 30 Minutes Total Video Processing',
+    totalExport: '30 Mins Video Processing',
     features: [
       '30 Minutes Processing',
-      '1080p Full HD Download & Zero Watermark',
+      '1080p Full HD • Zero Watermark',
       'Part 1, Part 2 Series Tags',
       'Credits Never Expire'
     ],
-    ctaText: 'Get Starter Pack'
+    ctaText: 'Pay ₹49 INR'
   },
   {
     id: 'creator',
     name: 'Creator Pack',
     price: '₹99',
     numericPrice: 99,
+    usdEquivalent: '$9.99 USD',
     period: 'one-time',
     popular: true,
-    badge: 'Most Popular',
+    badge: 'Popular',
     clipsCredit: '60 Minutes',
-    totalExport: 'Up to 60 Minutes Total Video Processing',
+    totalExport: '60 Mins Video Processing',
     features: [
       '60 Minutes Processing',
-      '1080p Full HD Download & Zero Watermark',
-      'Priority Cloud Processing',
+      '1080p Full HD • Zero Watermark',
+      'Fast Cloud Processing',
       'Multi-Platform Formats'
     ],
-    ctaText: 'Get Creator Pack'
+    ctaText: 'Pay ₹99 INR'
   },
   {
     id: 'pro',
     name: 'Pro Pack',
     price: '₹199',
     numericPrice: 199,
+    usdEquivalent: '$19.99 USD',
     period: 'one-time',
     badge: '4K Upload',
     supports4K: true,
     clipsCredit: '160m (1080p) / 50m (4K)',
-    totalExport: '160 Mins 1080p Upload OR 50 Mins 4K Upload • Render in 1080p Full HD',
+    totalExport: '160 Mins 1080p OR 50 Mins 4K',
     features: [
-      '160 Mins (1080p Upload) OR 50 Mins (4K Upload)',
-      '1080p Full HD Download & Zero Watermark',
-      '4K Source Upload (Exports rendered in Crisp 1080p Full HD)',
-      'VIP High-Speed Render Queue',
-      'Commercial Use License'
+      '160 Mins 1080p / 50 Mins 4K',
+      '1080p Full HD • Zero Watermark',
+      'VIP High-Speed Render',
+      'Commercial License'
     ],
-    ctaText: 'Get Pro Pack'
+    ctaText: 'Pay ₹199 INR'
   },
   {
     id: 'agency',
     name: 'Agency Pack',
     price: '₹499',
     numericPrice: 499,
+    usdEquivalent: '$39.99 USD',
     period: 'one-time',
-    badge: 'VIP 4K Upload',
+    badge: 'VIP Agency',
     supports4K: true,
     clipsCredit: '500 Minutes',
-    totalExport: 'Up to 500 Minutes Total Video Processing • Render in 1080p',
+    totalExport: '500 Mins Video Processing',
     features: [
       '500 Minutes Processing',
-      '1080p Full HD Download & Zero Watermark',
-      '4K Source Upload (Exports rendered in Crisp 1080p Full HD)',
-      'VIP Priority Render Pipeline'
+      '1080p Full HD • Zero Watermark',
+      '4K Upload • Crisp 1080p Render',
+      'VIP Priority Pipeline'
     ],
-    ctaText: 'Get Agency Pack'
+    ctaText: 'Pay ₹499 INR'
   }
 ];
 
@@ -114,85 +122,97 @@ export const PRICING_USD: PricingTier[] = [
     name: 'Free Trial',
     price: '$0',
     numericPrice: 0,
-    period: 'forever',
-    clipsCredit: '5 Minutes',
-    totalExport: 'Up to 5 Minutes Total Video Processing',
+    inrEquivalent: '₹0 INR',
+    period: '10m / 24h',
+    badge: '50m Quota',
+    clipsCredit: '10m / Day (50m Total)',
+    totalExport: '10 Mins Daily • Auto-Resets Every 24h • 50 Mins Total Trial',
     features: [
-      '5 Minutes Processing',
-      '1080p Full HD Download & Zero Watermark',
-      'Part 1, Part 2 Series Tags',
-      'Instant Cloud Preview'
+      '10 Minutes Daily Free Trial',
+      'Auto-Resets every 24 Hours',
+      '50 Minutes Total Trial Quota',
+      '1080p HD • Zero Watermark',
+      'Part 1, Part 2 Series Tags'
     ],
-    ctaText: 'Start Free'
+    ctaText: 'Active Free (10m/Day)'
   },
   {
     id: 'starter',
     name: 'Starter Pack',
     price: '$4.99',
     numericPrice: 4.99,
+    inrEquivalent: '₹49 INR',
     period: 'one-time',
     clipsCredit: '30 Minutes',
-    totalExport: 'Up to 30 Minutes Total Video Processing',
+    totalExport: '30 Mins Video Processing',
     features: [
       '30 Minutes Processing',
-      '1080p Full HD Download & Zero Watermark',
+      '1080p Full HD • Zero Watermark',
       'Part 1, Part 2 Series Tags',
       'Credits Never Expire'
     ],
-    ctaText: 'Choose Starter'
+    ctaText: 'Pay $4.99 USD'
   },
   {
     id: 'creator',
     name: 'Creator Pack',
     price: '$9.99',
     numericPrice: 9.99,
+    inrEquivalent: '₹99 INR',
     period: 'one-time',
     popular: true,
-    badge: 'Creator Choice',
+    badge: 'Popular',
     clipsCredit: '90 Minutes',
-    totalExport: 'Up to 90 Minutes Total Video Processing',
+    totalExport: '90 Mins Video Processing',
     features: [
       '90 Minutes Processing',
-      '1080p Full HD Download & Zero Watermark',
-      'Priority Cloud Processing',
+      '1080p Full HD • Zero Watermark',
+      'Fast Cloud Processing',
       'Multi-Platform Formats'
     ],
-    ctaText: 'Choose Creator'
+    ctaText: 'Pay $9.99 USD'
   },
   {
     id: 'pro',
     name: 'Pro Pack',
     price: '$19.99',
     numericPrice: 19.99,
+    inrEquivalent: '₹199 INR',
     period: 'one-time',
     badge: '4K Upload',
     supports4K: true,
     clipsCredit: '160m (1080p) / 50m (4K)',
-    totalExport: '160 Mins 1080p Upload OR 50 Mins 4K Upload • Render in 1080p Full HD',
+    totalExport: '160 Mins 1080p OR 50 Mins 4K',
     features: [
-      '160 Mins (1080p Upload) OR 50 Mins (4K Upload)',
-      '1080p Full HD Download & Zero Watermark',
-      '4K Source Upload (Exports rendered in Crisp 1080p Full HD)',
-      'VIP High-Speed Render Queue'
+      '160 Mins 1080p / 50 Mins 4K',
+      '1080p Full HD • Zero Watermark',
+      'VIP High-Speed Render',
+      'Commercial License'
     ],
-    ctaText: 'Choose Pro ($19.99)'
+    ctaText: 'Pay $19.99 USD'
   },
   {
     id: 'agency',
     name: 'Agency Pack',
-    price: '$29.99',
-    numericPrice: 29.99,
+    price: '$39.99',
+    numericPrice: 39.99,
+    inrEquivalent: '₹499 INR',
     period: 'one-time',
-    badge: 'VIP 4K Upload',
+    badge: 'VIP Agency',
     supports4K: true,
-    clipsCredit: '501 Minutes',
-    totalExport: 'Up to 501 Minutes Total Video Processing • Render in 1080p',
+    clipsCredit: '500 Minutes',
+    totalExport: '500 Mins Video Processing',
     features: [
-      '501 Minutes Processing',
-      '1080p Full HD Download & Zero Watermark',
-      '4K Source Upload (Exports rendered in Crisp 1080p Full HD)',
-      'VIP Priority Render Pipeline'
+      '500 Minutes Processing',
+      '1080p Full HD • Zero Watermark',
+      '4K Upload • Crisp 1080p Render',
+      'VIP Priority Pipeline'
     ],
-    ctaText: 'Choose Agency ($29.99)'
+    ctaText: 'Pay $39.99 USD'
   }
 ];
+
+export const getPlanDetails = (planId: string, currency: 'INR' | 'USD' = 'INR'): PricingTier | undefined => {
+  const list = currency === 'INR' ? PRICING_INR : PRICING_USD;
+  return list.find(p => p.id === planId);
+};

@@ -356,8 +356,8 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                 {activeSubtitle.text}
               </div>
             ) : (
-              /* Hormozi: Bold uppercase, white text, active spoken word highlights in bright yellow/green */
-              <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 max-w-[94%]">
+              /* Hormozi: 100% Transparent background, floating bold uppercase text, active word glowing yellow */
+              <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[96%] bg-transparent p-0">
                 {activeSubtitle.words && activeSubtitle.words.length > 0 ? (
                   activeSubtitle.words.map((w, idx) => {
                     const isActive = (currentTime >= w.start && currentTime <= w.end) 
@@ -366,18 +366,28 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                     return (
                       <span
                         key={idx}
-                        className={`text-sm sm:text-lg md:text-2xl font-black uppercase tracking-wide transition-all duration-100 ${
+                        className={`text-base sm:text-xl md:text-3xl font-black uppercase tracking-wider transition-all duration-75 select-none bg-transparent ${
                           isActive
-                            ? 'text-yellow-300 scale-110 -rotate-1 drop-shadow-[0_2px_12px_rgba(234,179,8,1)]'
-                            : 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]'
+                            ? 'text-[#FFE500] scale-110 -rotate-1 drop-shadow-[0_2px_12px_rgba(255,229,0,0.9)]'
+                            : 'text-white'
                         }`}
+                        style={{
+                          textShadow: isActive
+                            ? '2.5px 2.5px 0 #000, -2.5px -2.5px 0 #000, 2.5px -2.5px 0 #000, -2.5px 2.5px 0 #000, 0 4px 10px rgba(0,0,0,0.9)'
+                            : '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 3px 6px rgba(0,0,0,0.85)'
+                        }}
                       >
                         {w.word}
                       </span>
                     );
                   })
                 ) : (
-                  <span className="text-base sm:text-xl md:text-2xl font-black uppercase text-yellow-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
+                  <span 
+                    className="text-base sm:text-xl md:text-3xl font-black uppercase text-[#FFE500] tracking-wider select-none bg-transparent"
+                    style={{
+                      textShadow: '2.5px 2.5px 0 #000, -2.5px -2.5px 0 #000, 2.5px -2.5px 0 #000, -2.5px 2.5px 0 #000, 0 4px 10px rgba(0,0,0,0.9)'
+                    }}
+                  >
                     {activeSubtitle.text}
                   </span>
                 )}

@@ -212,7 +212,35 @@ app.get('/api/detect-country', async (req, res) => {
   return res.json({ country: 'GLOBAL', currency: 'USD' });
 });
 
-// Whisper AI Speech-To-Text Subtitle Endpoint (Word-level timestamps)
+// Devanagari to Roman Hinglish Phonetic Transliteration Helper
+function devanagariToHinglish(text: string): string {
+  if (!text || !/[\u0900-\u097F]/.test(text)) {
+    return text;
+  }
+  const charMap: Record<string, string> = {
+    'अ': 'A', 'आ': 'AA', 'इ': 'I', 'ई': 'EE', 'उ': 'U', 'ऊ': 'OO', 'ऋ': 'RI',
+    'ए': 'E', 'ऐ': 'AI', 'ओ': 'O', 'औ': 'AU', 'अं': 'AM', 'अः': 'AH',
+    'क': 'K', 'ख': 'KH', 'ग': 'G', 'घ': 'GH', 'ङ': 'NG',
+    'च': 'CH', 'छ': 'CHH', 'ज': 'J', 'झ': 'JH', 'ञ': 'NY',
+    'ट': 'T', 'ठ': 'TH', 'ड': 'D', 'ढ': 'DH', 'ण': 'N',
+    'त': 'T', 'थ': 'TH', 'द': 'D', 'ध': 'DH', 'न': 'N',
+    'प': 'P', 'फ': 'PH', 'ब': 'B', 'भ': 'BH', 'म': 'M',
+    'य': 'Y', 'र': 'R', 'ल': 'L', 'व': 'V', 'श': 'SH', 'ष': 'SH', 'स': 'S', 'ह': 'H',
+    'क्ष': 'KSH', 'त्र': 'TR', 'ज्ञ': 'GYA',
+    'ा': 'A', 'ि': 'I', 'ी': 'EE', 'ु': 'U', 'ू': 'OO', 'ृ': 'RI',
+    'े': 'E', 'ै': 'AI', 'ो': 'O', 'ौ': 'AU', 'ं': 'N', 'ँ': 'N', 'ः': 'H',
+    '्': '', '़': '', '।': '.'
+  };
+
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    result += charMap[ch] !== undefined ? charMap[ch] : ch;
+  }
+  return result.replace(/\s+/g, ' ').trim();
+}
+
+// Whisper AI Speech-To-Text Subtitle Endpoint (Word-level timestamps with Hindi->Hinglish and Global language handling)
 app.post('/api/whisper-transcribe', async (req, res) => {
   try {
     const { videoPath, startTime, duration } = req.body;
@@ -269,7 +297,38 @@ app.post('/api/whisper-transcribe', async (req, res) => {
               parts: [
                 { inlineData: { mimeType: 'audio/mp3', data: base64Audio } },
                 {
-                  text: 'You are an advanced Whisper AI speech transcription engine. Transcribe this audio accurately with word-level start and end timestamps in seconds. Return ONLY a valid JSON array of subtitle segments. Each segment MUST have: {"id": string, "startTime": number, "endTime": number, "text": string, "words": [{"word": string, "start": number, "end": number}]}. Keep segments short (2 to 4 words max) for Alex Hormozi animated captions. Return ONLY the raw JSON array.'
+                  text: `You are an advanced Whisper AI speech-to-text audio transcription engine designed for viral shorts captions.
+
+MANDATORY LANGUAGE RULES:
+1. HINDI SPEECH:
+   - If the audio contains Hindi or mixed Hindi/English:
+   - Transcribe in ROMAN HINGLISH using Latin alphabet letters only (e.g., "YEH EK SECRET HAI", "AAJ HUM BAAT KARENGE", "VIDEO KO LIKE KARO", "AAP KAISE HO").
+   - NEVER use Devanagari script (NO हिंदी अक्षर). Always convert Hindi words to readable Roman Hinglish.
+2. GLOBAL LANGUAGES:
+   - If the audio is in English, Spanish, French, German, Arabic, Portuguese, Japanese, etc.:
+   - Keep it in that EXACT global language with standard correct spelling.
+   - Example English: "THIS ONE SECRET"
+   - Example Spanish: "ESTO CAMBIA TODO"
+3. WORD TIMESTAMPS:
+   - Provide accurate word-level start and end timestamps in seconds.
+   - Keep each segment short: 2 to 4 words max for Alex Hormozi animated captions.
+   - All words must be in UPPERCASE.
+
+Return ONLY a valid JSON array of objects with schema:
+[
+  {
+    "id": "1",
+    "startTime": 0.0,
+    "endTime": 1.4,
+    "text": "THIS ONE SECRET",
+    "words": [
+      {"word": "THIS", "start": 0.0, "end": 0.4},
+      {"word": "ONE", "start": 0.4, "end": 0.8},
+      {"word": "SECRET", "start": 0.8, "end": 1.4}
+    ]
+  }
+]
+Do NOT return markdown or code block wrappers. Return ONLY raw JSON array.`
                 }
               ]
             }
@@ -280,7 +339,21 @@ app.post('/api/whisper-transcribe', async (req, res) => {
         const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
         const parsed = JSON.parse(cleaned);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          subtitles = parsed;
+          // Normalize words: ensure any Devanagari character is converted to Hinglish Roman text and uppercase
+          subtitles = parsed.map(seg => {
+            const cleanText = devanagariToHinglish(seg.text || '').toUpperCase();
+            const cleanWords = Array.isArray(seg.words)
+              ? seg.words.map((w: any) => ({
+                  ...w,
+                  word: devanagariToHinglish(w.word || '').toUpperCase()
+                }))
+              : [];
+            return {
+              ...seg,
+              text: cleanText,
+              words: cleanWords
+            };
+          });
         }
       } catch (err) {
         console.warn('Whisper AI speech transcription fallback:', err);

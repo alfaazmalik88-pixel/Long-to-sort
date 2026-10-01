@@ -23,61 +23,53 @@ export const detectCountryAndCurrency = (): { country: string; currency: Currenc
   } catch (e) {}
 
   // Outside India -> Default to Global USD ($)
-  return { country: 'US', currency: 'USD' };
+  return { country: 'GLOBAL', currency: 'USD' };
 };
 
 export const useCountryPricing = () => {
-  const [currency, setCurrencyState] = useState<Currency>(() => {
-    const saved = localStorage.getItem('app_currency');
-    if (saved === 'INR' || saved === 'USD') return saved;
-    return detectCountryAndCurrency().currency;
-  });
-
+  const [detectedData, setDetectedData] = useState<{ country: string; currency: Currency }>(() => detectCountryAndCurrency());
+  const [currency, setCurrencyState] = useState<Currency>(() => detectCountryAndCurrency().currency);
   const [country, setCountry] = useState<string>(() => detectCountryAndCurrency().country);
-  const [isDetected, setIsDetected] = useState<boolean>(true);
 
   useEffect(() => {
-    // Listen for currency changes across components
-    const handleCurrencyChange = (e: CustomEvent<Currency>) => {
-      if (e.detail && (e.detail === 'INR' || e.detail === 'USD')) {
-        setCurrencyState(e.detail);
-      }
-    };
-    window.addEventListener('currency_change' as any, handleCurrencyChange);
-
-    // IP-based Country & VPN Detection
+    // Check IP-based location from server
     fetch('/api/detect-country')
       .then(res => res.json())
       .then(data => {
-        if (data && (data.currency === 'INR' || data.currency === 'USD')) {
-          const manualChoice = localStorage.getItem('app_currency_manual');
-          // If no manual toggle forced or if user is testing with VPN, adopt IP currency
-          if (!manualChoice) {
-            setCurrencyState(data.currency);
-            if (data.country) setCountry(data.country);
-          }
+        if (data && data.country) {
+          const isIndia = data.country === 'IN';
+          const newCountry = data.country;
+          const newCurrency: Currency = isIndia ? 'INR' : 'USD';
+          
+          setCountry(newCountry);
+          setCurrencyState(newCurrency);
+          setDetectedData({ country: newCountry, currency: newCurrency });
+          localStorage.setItem('app_currency', newCurrency);
         }
       })
       .catch(() => {});
-
-    return () => {
-      window.removeEventListener('currency_change' as any, handleCurrencyChange);
-    };
   }, []);
 
   const setCurrency = (c: Currency) => {
+    // If Indian user tries to toggle Global, show lock info
+    if (country === 'IN' && c === 'USD') {
+      alert("🔒 Global payment is locked for India users. Please use India (INR ₹) UPI/Cards or enjoy the Free 10 Mins/Day (50 Mins Total) Trial!");
+      return;
+    }
     setCurrencyState(c);
     localStorage.setItem('app_currency', c);
-    localStorage.setItem('app_currency_manual', 'true');
-    window.dispatchEvent(new CustomEvent('currency_change', { detail: c }));
   };
+
+  const isIndia = country === 'IN' || currency === 'INR';
 
   return {
     currency,
     setCurrency,
     country,
-    isIndia: currency === 'INR',
-    paymentGateway: currency === 'INR' ? 'Cashfree' : 'Cashfree Global & PayPal',
-    isDetected
+    isIndia,
+    isGlobalUser: !isIndia,
+    isGlobalLockedForIndia: isIndia,
+    paymentGateway: isIndia ? 'Cashfree UPI & Cards' : 'Cashfree Global & PayPal',
+    isDetected: true
   };
 };

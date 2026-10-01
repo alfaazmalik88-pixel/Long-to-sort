@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Check, Sparkles, Zap, Crown, Flame, ArrowRight, Shield } from 'lucide-react';
+import { X, Check, Sparkles, Zap, Crown, Flame, ArrowRight, Shield, Lock } from 'lucide-react';
 import { PRICING_INR, PRICING_USD, PricingTier } from '../data/pricingData';
 import { CheckoutModal } from './CheckoutModal';
 import { useAuth } from '../context/AuthContext';
@@ -40,13 +40,18 @@ export const PricingModal: React.FC<PricingModalProps> = ({
   const tiers = currency === 'INR' ? PRICING_INR : PRICING_USD;
 
   const handleSelectPlan = (tier: PricingTier) => {
+    if (!user && onOpenAuth) {
+      onClose();
+      onOpenAuth();
+      return;
+    }
     if (tier.id === 'free') {
-      if (!user && onOpenAuth) {
-        onClose();
-        onOpenAuth();
-      } else {
-        onClose();
-      }
+      onClose();
+      return;
+    }
+    // Strict lock on Global paid plans so users cannot click and activate credits without payment
+    if (currency === 'USD') {
+      alert("🔒 Global payment integration (PayPal & International Cards) is in setup. Global paid plans are locked to prevent unauthorized credit activation. Please use your Free 10 Mins/Day (50 Mins Total) Trial or pay via India (INR) UPI/Cards!");
       return;
     }
     setSelectedTier(tier);
@@ -72,53 +77,126 @@ export const PricingModal: React.FC<PricingModalProps> = ({
     <div className="fixed inset-0 z-[260] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-zinc-950 border border-zinc-800 rounded-3xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl relative overflow-hidden my-auto">
         {/* Modal Top Bar */}
-        <div className="p-4 sm:p-6 border-b border-zinc-900 flex items-center justify-between shrink-0 bg-zinc-950/90 backdrop-blur z-20">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
-              <Zap className="w-5 h-5 fill-amber-400/20" />
+        <div className="p-3 sm:p-5 border-b border-zinc-900 shrink-0 bg-zinc-950/95 backdrop-blur z-20 space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-400/20" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-xl font-bold text-white tracking-tight truncate">
+                  Select Your Plan
+                </h2>
+                <p className="text-[10px] sm:text-xs text-zinc-400 truncate">
+                  Zero Watermark • 4K Upload • 1080p Full HD Render
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                Select Your Plan
-              </h2>
-              <p className="text-xs text-zinc-400">Zero Watermark • 4K Upload & 1080p Full HD Render • No Monthly Subscriptions</p>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Desktop Currency Selector */}
+              <div className="hidden sm:flex bg-zinc-900 p-0.5 rounded-xl border border-zinc-800 items-center">
+                <button
+                  type="button"
+                  onClick={() => setCurrency('INR')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    currency === 'INR'
+                      ? 'bg-indigo-600 text-white shadow'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  🇮🇳 ₹ INR
+                </button>
+                {isIndia ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert("🔒 Global payment is locked for India users. Please use India (INR ₹) UPI/Cards or enjoy the Free 10 Mins/Day (50 Mins Total) Trial!");
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-zinc-500 hover:text-zinc-400 cursor-not-allowed whitespace-nowrap flex items-center gap-1 bg-zinc-900/40"
+                    title="Global payments locked for India users"
+                  >
+                    <Lock className="w-3 h-3 text-zinc-500" />
+                    <span>🌐 $ USD</span>
+                    <span className="text-[9px] font-extrabold px-1 py-0.2 rounded bg-zinc-800 text-amber-400/90 border border-zinc-700/60">
+                      Locked
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCurrency('USD')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      currency === 'USD'
+                        ? 'bg-indigo-600 text-white shadow'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    🌐 $ USD
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={onClose}
+                className="p-1.5 sm:p-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors shrink-0 cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Currency Selector inside modal */}
-            <div className="bg-zinc-900 p-0.5 rounded-xl border border-zinc-800 flex items-center">
+          {/* Mobile Currency Selector */}
+          <div className="sm:hidden flex items-center justify-center w-full">
+            <div className="bg-zinc-900/90 p-1 rounded-xl border border-zinc-800 flex items-center w-full max-w-xs justify-center gap-1 shadow-inner">
               <button
                 type="button"
                 onClick={() => setCurrency('INR')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center cursor-pointer whitespace-nowrap ${
                   currency === 'INR'
                     ? 'bg-indigo-600 text-white shadow'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                ₹ INR
+                🇮🇳 ₹ INR
               </button>
-              <button
-                type="button"
-                onClick={() => setCurrency('USD')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  currency === 'USD'
-                    ? 'bg-indigo-600 text-white shadow'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                $ USD
-              </button>
+              {isIndia ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    alert("🔒 Global payment is locked for India users. Please use India (INR ₹) UPI/Cards or enjoy the Free 10 Mins/Day (50 Mins Total) Trial!");
+                  }}
+                  className="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold text-zinc-500 cursor-not-allowed whitespace-nowrap flex items-center justify-center gap-1 bg-zinc-900/40"
+                >
+                  <Lock className="w-3 h-3 text-zinc-500" />
+                  <span>🌐 $ USD (Locked)</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setCurrency('USD')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center cursor-pointer whitespace-nowrap ${
+                    currency === 'USD'
+                      ? 'bg-indigo-600 text-white shadow'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  🌐 $ USD
+                </button>
+              )}
             </div>
+          </div>
 
-            <button
-              onClick={onClose}
-              className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors shrink-0 cursor-pointer"
-              aria-label="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
+          {/* No Auto-Debit Guarantee Banner in English */}
+          <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 text-emerald-300 font-semibold text-[11px] sm:text-xs">
+              <Shield className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>100% One-Time Payment • No Auto-Debit • No Hidden Recurring Charges</span>
+            </div>
+            <span className="hidden sm:inline text-[10px] text-zinc-400 font-medium">
+              Never automatically deducted
+            </span>
           </div>
         </div>
 
@@ -135,9 +213,9 @@ export const PricingModal: React.FC<PricingModalProps> = ({
 
           <div 
             onScroll={handleFastScroll}
-            className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar overscroll-y-contain"
+            className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar overscroll-y-contain pt-4 pb-28 sm:pb-8"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 items-stretch">
             {tiers.map((tier) => {
               const isPopular = tier.popular;
               const isCurrent = user?.plan === tier.id;
@@ -145,74 +223,87 @@ export const PricingModal: React.FC<PricingModalProps> = ({
               return (
                 <div
                   key={tier.id}
-                  className={`rounded-2xl p-4 flex flex-col justify-between relative transition-all duration-200 border ${
+                  className={`rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between relative transition-all duration-200 border ${
                     isPopular
-                      ? 'bg-gradient-to-b from-indigo-950/70 to-zinc-950 border-indigo-500 shadow-xl shadow-indigo-500/20'
-                      : 'bg-zinc-900/60 border-zinc-800 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10'
+                      ? 'bg-gradient-to-b from-indigo-950/70 via-zinc-950 to-zinc-950 border-indigo-500 shadow-lg shadow-indigo-500/20'
+                      : 'bg-zinc-900/60 border-zinc-800/90 hover:border-indigo-500/40 hover:shadow-md'
                   }`}
                 >
                   {/* Floating Badge */}
                   {tier.badge && (
-                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-md whitespace-nowrap">
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[9px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-md whitespace-nowrap">
                       {tier.badge}
                     </div>
                   )}
 
                   <div>
                     {/* Title & Icon */}
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-bold text-white">{tier.name}</span>
-                      <div className="w-7 h-7 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs sm:text-sm font-bold text-white tracking-tight truncate">{tier.name}</span>
+                      <div className="w-6 h-6 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center shrink-0">
                         {getTierIcon(tier.id)}
                       </div>
                     </div>
 
-                    {/* Price */}
-                    <div className="mb-3">
+                    {/* Price + Dollar/INR Add-on */}
+                    <div className="mb-2">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-extrabold text-white tracking-tight">{tier.price}</span>
-                        <span className="text-[11px] text-zinc-400 font-medium">/{tier.period}</span>
+                        <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">{tier.price}</span>
+                        <span className="text-[10px] text-zinc-400 font-medium">/{tier.period}</span>
                       </div>
-                      {/* Badge (Pill) */}
-                      <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-0.5 rounded-full shadow-sm">
-                        <Sparkles className="w-3 h-3 text-indigo-400 shrink-0" />
+
+                      {/* Dollar / INR Dual-Currency Addon Pill */}
+                      <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md shadow-xs">
+                          {currency === 'INR' ? `≈ ${tier.usdEquivalent}` : `≈ ${tier.inrEquivalent}`}
+                        </span>
+                      </div>
+
+                      {/* Minutes Badge */}
+                      <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+                        <Sparkles className="w-2.5 h-2.5 text-indigo-400 shrink-0" />
                         <span>{tier.clipsCredit}</span>
                       </div>
                     </div>
 
-                    {/* Sub-text: Total Video Processing */}
-                    <div className="text-[11px] text-zinc-300 font-semibold pb-3 border-b border-zinc-800/80 flex items-center justify-between gap-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block shadow-sm shadow-emerald-400/50 shrink-0"></span>
-                        <span className="leading-snug">{tier.totalExport}</span>
-                      </div>
-                    </div>
-
-                    {/* Features list */}
-                    <ul className="py-4 space-y-2.5">
+                    {/* Features list (Compact & Clean) */}
+                    <ul className="py-2.5 space-y-1.5 border-t border-zinc-800/80">
                       {tier.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-[11px] text-zinc-300">
-                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                        <li key={idx} className="flex items-start gap-1.5 text-[10px] text-zinc-300">
+                          <Check className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
                           <span className="leading-tight">{feature}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  {/* Action button: Blue on all cards */}
-                  <div className="pt-3 border-t border-zinc-800/80">
-                    <button
-                      type="button"
-                      onClick={() => handleSelectPlan(tier)}
-                      className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer shadow-md ${
-                        isCurrent && tier.id === 'free'
-                          ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
-                          : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 active:scale-[0.98]'
-                      }`}
-                    >
-                      <span>{isCurrent && tier.id === 'free' ? 'Current Free Plan' : tier.ctaText}</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
+                  {/* Action button: Compact on all cards */}
+                  <div className="pt-2.5 border-t border-zinc-800/80">
+                    {currency === 'USD' && tier.id !== 'free' ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          alert("🔒 Global payment integration is currently in setup. Global paid plans are locked to prevent unauthorized credit activation. Please use your Free 10 Mins/Day (50 Mins Total) Trial or switch to India (INR)!");
+                        }}
+                        className="w-full py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all bg-zinc-900/80 border border-zinc-800 text-zinc-500 cursor-not-allowed hover:border-zinc-700"
+                      >
+                        <Lock className="w-3 h-3 text-amber-500/80" />
+                        <span className="truncate">Locked (Setup in Progress)</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSelectPlan(tier)}
+                        className={`w-full py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer shadow-sm ${
+                          isCurrent && tier.id === 'free'
+                            ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
+                            : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 active:scale-[0.98]'
+                        }`}
+                      >
+                        <span className="truncate">{isCurrent && tier.id === 'free' ? 'Current Free' : tier.ctaText}</span>
+                        <ArrowRight className="w-3 h-3 shrink-0" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -238,7 +329,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
       </div>
       </div>
 
-      {/* Checkout Modal */}
+      {/* Checkout Payment Dialog */}
       <CheckoutModal
         tier={selectedTier ? tiers.find(t => t.id === selectedTier.id) || selectedTier : null}
         currency={currency}

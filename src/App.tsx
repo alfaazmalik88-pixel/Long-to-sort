@@ -443,7 +443,11 @@ export default function App() {
   const handleExport = async () => {
     if (user && user.minutes !== undefined && user.minutes <= 0) {
       setIsPricingOpen(true);
-      alert("Aapke Free Minutes poore ho chuke hain. Mazeed video download karne ke liye please plan upgrade karein.");
+      if (user.plan === 'free') {
+        alert("Aaj ke 10 Free Minutes use ho chuke hain! Agle 24 ghante baad naye 10 minutes auto-reset honge (Total 50 Mins Trial) ya turant Starter Pack (₹49) le sakte hain.");
+      } else {
+        alert("Aapke plan ke minutes poore ho chuke hain. Mazeed video download karne ke liye please plan upgrade karein.");
+      }
       return;
     }
     const activeClip = videoState.clips.find(c => c.id === selectedClipId);
@@ -467,7 +471,11 @@ export default function App() {
   const handleExportAll = async () => {
     if (user && user.minutes !== undefined && user.minutes <= 0) {
       setIsPricingOpen(true);
-      alert("Aapke Free Minutes poore ho chuke hain. Mazeed video download karne ke liye please plan upgrade karein.");
+      if (user.plan === 'free') {
+        alert("Aaj ke 10 Free Minutes use ho chuke hain! Agle 24 ghante baad naye 10 minutes auto-reset honge (Total 50 Mins Trial) ya turant Starter Pack (₹49) le sakte hain.");
+      } else {
+        alert("Aapke plan ke minutes poore ho chuke hain. Mazeed video download karne ke liye please plan upgrade karein.");
+      }
       return;
     }
     if (!videoState.url || videoState.clips.length === 0) return;
@@ -477,7 +485,11 @@ export default function App() {
       const clip = videoState.clips[i];
       if (user && user.minutes !== undefined && user.minutes <= 0) {
         setIsPricingOpen(true);
-        alert("Aapke Free Minutes poore ho chuke hain. Mazeed video download karne ke liye please plan upgrade karein.");
+        if (user.plan === 'free') {
+          alert("Aaj ke 10 Free Minutes use ho chuke hain! Agle 24 ghante baad naye 10 minutes auto-reset honge (Total 50 Mins Trial) ya turant Starter Pack (₹49) le sakte hain.");
+        } else {
+          alert("Aapke plan ke minutes poore ho chuke hain. Mazeed video download karne ke liye please plan upgrade karein.");
+        }
         break;
       }
       const url = await processRenderJob(clip);
@@ -599,8 +611,8 @@ export default function App() {
               </div>
 
               {/* Editor Workspace: Dual-Pane on Tablets & PC, Tabbed on Phones */}
-              <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden w-full h-full">
-                <div className={`flex-1 flex flex-col min-w-0 ${mobileEditorTab === 'preview' ? 'flex' : 'hidden md:flex'}`}>
+              <div className="flex-1 flex flex-col md:flex-row overflow-hidden w-full h-full min-h-0">
+                <div className={`flex-1 flex flex-col min-w-0 h-full min-h-0 overflow-hidden ${mobileEditorTab === 'preview' ? 'flex' : 'hidden md:flex'}`}>
                   <ShortsEditor 
                     clip={activeClip} 
                     settings={editorSettings as any} 
@@ -610,7 +622,7 @@ export default function App() {
                     onSelectClip={setSelectedClipId}
                   />
                 </div>
-                <div className={`w-full md:w-80 lg:w-96 flex flex-col shrink-0 ${mobileEditorTab === 'controls' ? 'flex' : 'hidden md:flex'}`}>
+                <div className={`w-full md:w-80 lg:w-96 flex flex-col flex-1 md:flex-none h-full min-h-0 overflow-hidden shrink-0 ${mobileEditorTab === 'controls' ? 'flex' : 'hidden md:flex'}`}>
                   <SettingsPanel 
                     settings={editorSettings}
                     setSettings={setEditorSettings}
