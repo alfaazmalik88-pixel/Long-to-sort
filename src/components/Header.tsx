@@ -79,10 +79,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
           type="button"
           onClick={handlePricingClick}
           title="Click to view & change plans"
-          className="hidden sm:flex text-[10px] uppercase font-extrabold tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
+          className="hidden sm:flex text-[10px] uppercase font-extrabold tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-all cursor-pointer items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>{user?.plan === 'free' ? 'Free 10m/Day (50m Total)' : (user?.planName || 'Free Plan')}</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+          <span>{user?.currency === 'USD' && user?.plan === 'free' ? 'Free 10m/Day' : (user?.planName || 'Free Plan')}</span>
         </button>
       </div>
 
@@ -132,12 +132,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
                   e.stopPropagation();
                   handlePricingClick(e);
                 }}
-                title={user?.plan === 'free' ? "Daily 10m Free Trial • Auto-resets every 24h • Total 50m Quota" : "Click to add more minutes"}
-                className="hidden md:flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold cursor-pointer transition-all"
+                title={user?.currency === 'USD' && user?.plan === 'free' ? "Daily 10m Free Trial • Auto-resets every 24h" : "Click to view / buy minutes"}
+                className="hidden md:flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-[11px] font-bold cursor-pointer transition-all"
               >
-                <Sparkles className="w-3 h-3 text-emerald-400" />
+                <Sparkles className="w-3 h-3 text-indigo-400" />
                 <span>
-                  {typeof user.minutes === 'number' ? (Number.isInteger(user.minutes) ? user.minutes : user.minutes.toFixed(1)) : 10}m {user.plan === 'free' ? 'Today' : 'Left'}
+                  {typeof user.minutes === 'number' ? (Number.isInteger(user.minutes) ? user.minutes : user.minutes.toFixed(1)) : 5} {user?.currency === 'USD' && user?.plan === 'free' ? 'm Today' : 'Mins'}
                 </span>
               </div>
 
@@ -167,21 +167,21 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
                   
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[11px] text-zinc-400">Current Plan:</span>
-                    <span className="text-[11px] font-bold text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-                      {user.plan === 'free' ? 'Free 10m/Day' : (user.planName || 'Free Plan')}
+                    <span className="text-[11px] font-bold text-white px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800">
+                      {user.currency === 'USD' && user.plan === 'free' ? 'Free 10m/Day' : (user.planName || 'Free Plan')}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-zinc-400">
-                      {user.plan === 'free' ? "Today's Free Minutes:" : "Remaining Minutes:"}
+                      {user.currency === 'USD' && user.plan === 'free' ? "Today's Free Minutes:" : "Remaining Minutes:"}
                     </span>
-                    <span className="text-xs font-extrabold text-emerald-400">
-                      {typeof user.minutes === 'number' ? (Number.isInteger(user.minutes) ? user.minutes : user.minutes.toFixed(1)) : 10} Mins
+                    <span className="text-xs font-extrabold text-indigo-400">
+                      {typeof user.minutes === 'number' ? (Number.isInteger(user.minutes) ? user.minutes : user.minutes.toFixed(1)) : 5} Mins
                     </span>
                   </div>
 
-                  {user.plan === 'free' && (
+                  {user.currency === 'USD' && user.plan === 'free' && (
                     <div className="text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded-xl border border-zinc-800/80 space-y-1">
                       <div className="flex justify-between font-semibold">
                         <span>Total Trial Quota:</span>

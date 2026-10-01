@@ -22,18 +22,15 @@ export const PRICING_INR: PricingTier[] = [
     price: '₹0',
     numericPrice: 0,
     usdEquivalent: '$0 USD',
-    period: '10m / 24h',
-    badge: '50m Quota',
-    clipsCredit: '10m / Day (50m Total)',
-    totalExport: '10 Mins Daily • Auto-Resets Every 24h • 50 Mins Total Trial',
+    period: 'forever',
+    clipsCredit: '5 Minutes',
+    totalExport: '5 Mins Video Processing',
     features: [
-      '10 Minutes Daily Free Trial',
-      'Auto-Resets every 24 Hours',
-      '50 Minutes Total Trial Quota',
+      '5 Minutes Free Processing',
       '1080p HD • Zero Watermark',
       'Part 1, Part 2 Series Tags'
     ],
-    ctaText: 'Active Free (10m/Day)'
+    ctaText: 'Current Free Plan'
   },
   {
     id: 'starter',

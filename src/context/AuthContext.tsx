@@ -38,45 +38,66 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'viralclip_user_session';
 
-export const TOTAL_TRIAL_LIMIT = 50; // 50 minutes total lifetime trial
-export const DAILY_TRIAL_ALLOWANCE = 10; // 10 minutes per 24 hours
+// Global-only trial constants (only for foreign users where international payments are in setup)
+export const GLOBAL_TOTAL_TRIAL_LIMIT = 50; 
+export const GLOBAL_DAILY_TRIAL_ALLOWANCE = 10;
 export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 export const applyDailyTrialReset = (targetUser: User): User => {
+  // INDIA USERS: Standard 5 minutes free trial. NO 10m/50m daily reset.
+  if (targetUser.currency === 'INR') {
+    if (targetUser.plan === 'free') {
+      const curMins = typeof targetUser.minutes === 'number' ? targetUser.minutes : 5;
+      return {
+        ...targetUser,
+        minutes: curMins,
+        dailyMinutes: undefined,
+        totalTrialMinutes: undefined,
+        usedTrialMinutes: undefined,
+        totalMinutes: 5,
+        credits: curMins,
+        totalCredits: 5,
+        planName: 'Free Trial'
+      };
+    }
+    return targetUser;
+  }
+
+  // GLOBAL (USD) USERS ONLY: 10m daily / 50m total trial because international payment is in setup
   if (targetUser.plan !== 'free') return targetUser;
 
   const now = Date.now();
   const lastResetTime = targetUser.lastDailyReset ? new Date(targetUser.lastDailyReset).getTime() : 0;
   const usedTrial = typeof targetUser.usedTrialMinutes === 'number' ? targetUser.usedTrialMinutes : 0;
-  const remainingTotalTrial = Math.max(0, TOTAL_TRIAL_LIMIT - usedTrial);
+  const remainingTotalTrial = Math.max(0, GLOBAL_TOTAL_TRIAL_LIMIT - usedTrial);
 
   // If 24 hours have passed or first time initializing
   if (!targetUser.lastDailyReset || (now - lastResetTime >= ONE_DAY_MS)) {
-    const freshDaily = Math.min(DAILY_TRIAL_ALLOWANCE, remainingTotalTrial);
+    const freshDaily = Math.min(GLOBAL_DAILY_TRIAL_ALLOWANCE, remainingTotalTrial);
     return {
       ...targetUser,
       minutes: freshDaily,
       dailyMinutes: freshDaily,
-      totalTrialMinutes: TOTAL_TRIAL_LIMIT,
+      totalTrialMinutes: GLOBAL_TOTAL_TRIAL_LIMIT,
       usedTrialMinutes: usedTrial,
-      totalMinutes: TOTAL_TRIAL_LIMIT,
+      totalMinutes: GLOBAL_TOTAL_TRIAL_LIMIT,
       credits: freshDaily,
-      totalCredits: TOTAL_TRIAL_LIMIT,
+      totalCredits: GLOBAL_TOTAL_TRIAL_LIMIT,
       lastDailyReset: new Date(now).toISOString()
     };
   }
 
   return {
     ...targetUser,
-    dailyMinutes: targetUser.dailyMinutes ?? targetUser.minutes ?? DAILY_TRIAL_ALLOWANCE,
-    totalTrialMinutes: TOTAL_TRIAL_LIMIT,
+    dailyMinutes: targetUser.dailyMinutes ?? targetUser.minutes ?? GLOBAL_DAILY_TRIAL_ALLOWANCE,
+    totalTrialMinutes: GLOBAL_TOTAL_TRIAL_LIMIT,
     usedTrialMinutes: usedTrial,
-    totalMinutes: targetUser.totalMinutes || TOTAL_TRIAL_LIMIT
+    totalMinutes: targetUser.totalMinutes || GLOBAL_TOTAL_TRIAL_LIMIT
   };
 };
 
 const PLAN_MINUTES: Record<string, { minutes: number; name: string }> = {
-  free: { minutes: 10, name: 'Free Trial (50m Quota)' },
+  free: { minutes: 5, name: 'Free Trial' },
   starter: { minutes: 30, name: 'Starter Pack' },
   creator: { minutes: 60, name: 'Creator Pack' },
   pro: { minutes: 160, name: 'Pro Pack' },
@@ -104,9 +125,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         let parsed: User = JSON.parse(saved);
-        parsed.plan = parsed.plan || 'free';
-        parsed.planName = parsed.planName || 'Free Trial (50m Quota)';
         parsed.currency = parsed.currency || 'INR';
+        parsed.plan = parsed.plan || 'free';
+        parsed.planName = parsed.planName || (parsed.currency === 'INR' ? 'Free Trial' : 'Free Trial (50m Quota)');
         parsed = applyDailyTrialReset(parsed);
         setUser(parsed);
       }
@@ -117,11 +138,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // 2. Firebase onAuthStateChanged subscription
     const unsubscribe = onAuthStateChanged(auth, (fbUser: FirebaseUser | null) => {
       if (fbUser) {
-        let savedMinutes = DAILY_TRIAL_ALLOWANCE;
-        let savedTotal = TOTAL_TRIAL_LIMIT;
-        let savedPlan: User['plan'] = 'free';
-        let savedPlanName = 'Free Trial (50m Quota)';
         let savedCurrency: 'INR' | 'USD' = 'INR';
+        let savedMinutes = 5;
+        let savedTotal = 5;
+        let savedPlan: User['plan'] = 'free';
+        let savedPlanName = 'Free Trial';
         let savedUsedTrial = 0;
         let savedLastReset = new Date().toISOString();
 
@@ -129,30 +150,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userSaved = localStorage.getItem(`${STORAGE_KEY}_${fbUser.uid}`) || localStorage.getItem(STORAGE_KEY);
           if (userSaved) {
             const parsed = JSON.parse(userSaved);
+            if (parsed.currency) savedCurrency = parsed.currency;
             if (typeof parsed.minutes === 'number') savedMinutes = parsed.minutes;
             if (typeof parsed.totalMinutes === 'number') savedTotal = parsed.totalMinutes;
             if (parsed.plan) savedPlan = parsed.plan;
             if (parsed.planName) savedPlanName = parsed.planName;
-            if (parsed.currency) savedCurrency = parsed.currency;
             if (typeof parsed.usedTrialMinutes === 'number') savedUsedTrial = parsed.usedTrialMinutes;
             if (parsed.lastDailyReset) savedLastReset = parsed.lastDailyReset;
           }
         } catch (e) {}
 
+        const isInd = savedCurrency === 'INR';
         const syncedUser: User = applyDailyTrialReset({
           id: fbUser.uid,
           name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Creator',
           email: fbUser.email || '',
           avatar: fbUser.photoURL || undefined,
           plan: savedPlan,
-          planName: savedPlanName,
-          minutes: savedMinutes,
-          dailyMinutes: savedMinutes,
-          totalTrialMinutes: TOTAL_TRIAL_LIMIT,
-          usedTrialMinutes: savedUsedTrial,
-          totalMinutes: savedTotal,
-          credits: savedMinutes,
-          totalCredits: savedTotal,
+          planName: isInd ? (savedPlan === 'free' ? 'Free Trial' : savedPlanName) : savedPlanName,
+          minutes: isInd && savedPlan === 'free' ? Math.min(savedMinutes, 5) : savedMinutes,
+          dailyMinutes: isInd ? undefined : savedMinutes,
+          totalTrialMinutes: isInd ? undefined : GLOBAL_TOTAL_TRIAL_LIMIT,
+          usedTrialMinutes: isInd ? undefined : savedUsedTrial,
+          totalMinutes: isInd && savedPlan === 'free' ? 5 : savedTotal,
+          credits: isInd && savedPlan === 'free' ? Math.min(savedMinutes, 5) : savedMinutes,
+          totalCredits: isInd && savedPlan === 'free' ? 5 : savedTotal,
           currency: savedCurrency,
           lastDailyReset: savedLastReset,
           createdAt: new Date().toISOString()
@@ -165,11 +187,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  // Periodic 60s check to ensure 24h reset happens seamlessly without page reload
+  // Periodic 60s check to ensure 24h reset for Global users
   useEffect(() => {
     const checkReset = () => {
       setUser(prev => {
-        if (!prev || prev.plan !== 'free') return prev;
+        if (!prev || prev.currency === 'INR' || prev.plan !== 'free') return prev;
         const refreshed = applyDailyTrialReset(prev);
         if (refreshed.minutes !== prev.minutes || refreshed.lastDailyReset !== prev.lastDailyReset) {
           saveUserSession(refreshed);
@@ -188,20 +210,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await new Promise(res => setTimeout(res, 400));
       const userName = email.split('@')[0];
+      const savedCurr = localStorage.getItem('app_currency') === 'USD' ? 'USD' : 'INR';
+      const isInd = savedCurr === 'INR';
+
       const loggedUser: User = applyDailyTrialReset({
         id: `usr_${Date.now()}`,
         name: userName.charAt(0).toUpperCase() + userName.slice(1),
         email,
         plan: 'free',
-        planName: 'Free Trial (50m Quota)',
-        minutes: DAILY_TRIAL_ALLOWANCE,
-        dailyMinutes: DAILY_TRIAL_ALLOWANCE,
-        totalTrialMinutes: TOTAL_TRIAL_LIMIT,
+        planName: isInd ? 'Free Trial' : 'Free Trial (50m Quota)',
+        minutes: isInd ? 5 : GLOBAL_DAILY_TRIAL_ALLOWANCE,
+        dailyMinutes: isInd ? undefined : GLOBAL_DAILY_TRIAL_ALLOWANCE,
+        totalTrialMinutes: isInd ? undefined : GLOBAL_TOTAL_TRIAL_LIMIT,
         usedTrialMinutes: 0,
-        totalMinutes: TOTAL_TRIAL_LIMIT,
-        credits: DAILY_TRIAL_ALLOWANCE,
-        totalCredits: TOTAL_TRIAL_LIMIT,
-        currency: 'INR',
+        totalMinutes: isInd ? 5 : GLOBAL_TOTAL_TRIAL_LIMIT,
+        credits: isInd ? 5 : GLOBAL_DAILY_TRIAL_ALLOWANCE,
+        totalCredits: isInd ? 5 : GLOBAL_TOTAL_TRIAL_LIMIT,
+        currency: savedCurr,
         lastDailyReset: new Date().toISOString(),
         createdAt: new Date().toISOString()
       });
@@ -215,20 +240,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       await new Promise(res => setTimeout(res, 400));
+      const savedCurr = localStorage.getItem('app_currency') === 'USD' ? 'USD' : 'INR';
+      const isInd = savedCurr === 'INR';
+
       const newUser: User = applyDailyTrialReset({
         id: `usr_${Date.now()}`,
         name: name.trim() || email.split('@')[0],
         email,
         plan: 'free',
-        planName: 'Free Trial (50m Quota)',
-        minutes: DAILY_TRIAL_ALLOWANCE,
-        dailyMinutes: DAILY_TRIAL_ALLOWANCE,
-        totalTrialMinutes: TOTAL_TRIAL_LIMIT,
+        planName: isInd ? 'Free Trial' : 'Free Trial (50m Quota)',
+        minutes: isInd ? 5 : GLOBAL_DAILY_TRIAL_ALLOWANCE,
+        dailyMinutes: isInd ? undefined : GLOBAL_DAILY_TRIAL_ALLOWANCE,
+        totalTrialMinutes: isInd ? undefined : GLOBAL_TOTAL_TRIAL_LIMIT,
         usedTrialMinutes: 0,
-        totalMinutes: TOTAL_TRIAL_LIMIT,
-        credits: DAILY_TRIAL_ALLOWANCE,
-        totalCredits: TOTAL_TRIAL_LIMIT,
-        currency: 'INR',
+        totalMinutes: isInd ? 5 : GLOBAL_TOTAL_TRIAL_LIMIT,
+        credits: isInd ? 5 : GLOBAL_DAILY_TRIAL_ALLOWANCE,
+        totalCredits: isInd ? 5 : GLOBAL_TOTAL_TRIAL_LIMIT,
+        currency: savedCurr,
         lastDailyReset: new Date().toISOString(),
         createdAt: new Date().toISOString()
       });
@@ -238,18 +266,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Google Sign-In using Firebase Auth signInWithPopup and GoogleAuthProvider
+  // Google Sign-In
   const loginWithGoogle = async () => {
     setIsLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const fbUser = result.user;
+      const savedCurr = localStorage.getItem('app_currency') === 'USD' ? 'USD' : 'INR';
+      const isInd = savedCurr === 'INR';
 
-      let savedMinutes = DAILY_TRIAL_ALLOWANCE;
-      let savedTotal = TOTAL_TRIAL_LIMIT;
+      let savedMinutes = isInd ? 5 : GLOBAL_DAILY_TRIAL_ALLOWANCE;
+      let savedTotal = isInd ? 5 : GLOBAL_TOTAL_TRIAL_LIMIT;
       let savedPlan: User['plan'] = 'free';
-      let savedPlanName = 'Free Trial (50m Quota)';
-      let savedCurrency: 'INR' | 'USD' = 'INR';
+      let savedPlanName = isInd ? 'Free Trial' : 'Free Trial (50m Quota)';
+      let savedCurrency: 'INR' | 'USD' = savedCurr;
       let savedUsedTrial = 0;
       let savedLastReset = new Date().toISOString();
 
@@ -273,14 +303,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: fbUser.email || '',
         avatar: fbUser.photoURL || undefined,
         plan: savedPlan,
-        planName: savedPlanName,
-        minutes: savedMinutes,
-        dailyMinutes: savedMinutes,
-        totalTrialMinutes: TOTAL_TRIAL_LIMIT,
-        usedTrialMinutes: savedUsedTrial,
-        totalMinutes: savedTotal,
-        credits: savedMinutes,
-        totalCredits: savedTotal,
+        planName: savedPlan === 'free' ? (isInd ? 'Free Trial' : 'Free Trial (50m Quota)') : savedPlanName,
+        minutes: isInd && savedPlan === 'free' ? Math.min(savedMinutes, 5) : savedMinutes,
+        dailyMinutes: isInd ? undefined : savedMinutes,
+        totalTrialMinutes: isInd ? undefined : GLOBAL_TOTAL_TRIAL_LIMIT,
+        usedTrialMinutes: isInd ? undefined : savedUsedTrial,
+        totalMinutes: isInd && savedPlan === 'free' ? 5 : savedTotal,
+        credits: isInd && savedPlan === 'free' ? Math.min(savedMinutes, 5) : savedMinutes,
+        totalCredits: isInd && savedPlan === 'free' ? 5 : savedTotal,
         currency: savedCurrency,
         lastDailyReset: savedLastReset,
         createdAt: new Date().toISOString()
@@ -305,7 +335,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const upgradePlan = (planId: 'free' | 'starter' | 'creator' | 'pro' | 'agency', currency: 'INR' | 'USD') => {
-    const meta = PLAN_MINUTES[planId] || { minutes: 10, name: 'Free Trial (50m Quota)' };
+    const meta = PLAN_MINUTES[planId] || { minutes: 5, name: 'Free Trial' };
     if (!user) {
       const guestUser: User = {
         id: `guest_${Date.now()}`,
@@ -343,14 +373,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const toDeduct = Math.min(user.minutes || 0, count);
     const rawRemaining = Math.max(0, (user.minutes || 0) - toDeduct);
     const remaining = Number(rawRemaining.toFixed(1));
-    const newUsedTrial = user.plan === 'free'
+    const newUsedTrial = user.plan === 'free' && user.currency === 'USD'
       ? Number(((user.usedTrialMinutes || 0) + toDeduct).toFixed(1))
       : (user.usedTrialMinutes || 0);
 
     const updatedUser: User = {
       ...user,
       minutes: remaining,
-      dailyMinutes: remaining,
+      dailyMinutes: user.currency === 'USD' ? remaining : undefined,
       usedTrialMinutes: newUsedTrial,
       credits: remaining
     };
