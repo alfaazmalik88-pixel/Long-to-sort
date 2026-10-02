@@ -6,7 +6,6 @@ import path from 'path';
 import fs from 'fs';
 import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI } from '@google/genai';
 
 const app = express();
 const PORT = 3000;
@@ -212,68 +211,153 @@ app.get('/api/detect-country', async (req, res) => {
   return res.json({ country: 'GLOBAL', currency: 'USD' });
 });
 
-// Devanagari to Roman Hinglish Phonetic Transliteration Helper
+// Complete Devanagari to Roman Hinglish Dictionary & Transliteration Helper
+const HINDI_WORD_DICTIONARY: Record<string, string> = {
+  'यह': 'YEH', 'ये': 'YEH', 'वह': 'VOH', 'वो': 'VOH',
+  'है': 'HAI', 'हैं': 'HAIN', 'हूँ': 'HOON', 'हो': 'HO', 'था': 'THA', 'थी': 'THI', 'थे': 'THE',
+  'का': 'KA', 'की': 'KI', 'के': 'KE', 'को': 'KO', 'से': 'SE', 'में': 'MEIN', 'पर': 'PAR',
+  'और': 'AUR', 'या': 'YA', 'तो': 'TOH', 'भी': 'BHI', 'नहीं': 'NAHI', 'ना': 'NA', 'मत': 'MAT',
+  'आप': 'AAP', 'आपका': 'AAPKA', 'आपकी': 'AAPKI', 'आपके': 'AAPKE',
+  'तुम': 'TUM', 'तुम्हारा': 'TUMHARA', 'तुम्हारी': 'TUMHARI', 'तुम्हारे': 'TUMHARE',
+  'हम': 'HUM', 'हमारा': 'HAMARA', 'हमारी': 'HAMARI', 'हमारे': 'HAMARE',
+  'मैं': 'MAIN', 'मेरा': 'MERA', 'मेरी': 'MERI', 'मेरे': 'MERE',
+  'मुझे': 'MUJHE', 'तुझे': 'TUJHE', 'उसे': 'USE', 'उन्हें': 'UNHEIN', 'हमे': 'HAMEIN',
+  'क्या': 'KYA', 'कहाँ': 'KAHAN', 'क्यों': 'KYUN', 'कब': 'KAB', 'कैसे': 'KAISE', 'कितना': 'KITNA',
+  'करना': 'KARNA', 'करो': 'KARO', 'करें': 'KAREIN', 'किया': 'KIYA', 'करता': 'KARTA', 'करते': 'KARTE', 'करती': 'KARTI',
+  'होना': 'HONA', 'होगा': 'HOGA', 'होगी': 'HOGI', 'होंगे': 'HONGEY', 'हुआ': 'HUA', 'हुए': 'HUE', 'हुई': 'HUI',
+  'जाना': 'JANA', 'जाओ': 'JAO', 'जाइए': 'JAIYE', 'गया': 'GAYA', 'गए': 'GAYE', 'गई': 'GAYI',
+  'आना': 'AANA', 'आओ': 'AAO', 'आए': 'AAYE', 'आया': 'AAYA', 'रहा': 'RAHA', 'रहे': 'RAHE', 'रही': 'RAHI',
+  'बोलना': 'BOLNA', 'बोलो': 'BOLO', 'कहा': 'KAHA', 'कहते': 'KAHTE',
+  'देखना': 'DEKHNA', 'देखो': 'DEKHO', 'देखें': 'DEKHEIN', 'देखा': 'DEKHA',
+  'सुनना': 'SUNNA', 'सुनो': 'SUNO', 'सुना': 'SUNA',
+  'समझना': 'SAMAJHNA', 'समझो': 'SAMJHO',
+  'सीखना': 'SEEKHNA', 'सीखो': 'SEEKHO',
+  'बताना': 'BATANA', 'बताओ': 'BATAO',
+  'बनाना': 'BANANA', 'बनाओ': 'BANAO', 'बनाएं': 'BANAO',
+  'चाहना': 'CHAHNA', 'चाहते': 'CHAHTE', 'चाहिए': 'CHAHIYE',
+  'सकना': 'SAKNA', 'सकता': 'SAKTA', 'सकते': 'SAKTE', 'सकती': 'SAKTI',
+  'बहुत': 'BAHUT', 'ज़्यादा': 'ZYADA', 'ज्यादा': 'ZYADA', 'कम': 'KAM', 'थोड़ा': 'THODA',
+  'अच्छा': 'ACHHA', 'अच्छी': 'ACHHI', 'अच्छे': 'ACHHE',
+  'बुरा': 'BURA', 'सही': 'SAHI', 'गलत': 'GALAT',
+  'वीडियो': 'VIDEO', 'चैनल': 'CHANNEL', 'यूट्यूब': 'YOUTUBE', 'शॉर्ट्स': 'SHORTS',
+  'लाइक': 'LIKE', 'शेयर': 'SHARE', 'सब्सक्राइब': 'SUBSCRIBE', 'फॉलो': 'FOLLOW',
+  'व्यूज': 'VIEWS', 'वायरल': 'VIRAL', 'फॉलोअर्स': 'FOLLOWERS',
+  'अगर': 'AGAR', 'लेकिन': 'LEKIN', 'मगर': 'MAGAR', 'क्योंकि': 'KYUNKI',
+  'आज': 'AAJ', 'कल': 'KAL', 'अब': 'AB', 'अभी': 'ABHI', 'बाद': 'BAAD', 'पहले': 'PEHLE',
+  'दिन': 'DIN', 'रात': 'RAAT', 'साल': 'SAAL', 'महीना': 'MAHEENA', 'समय': 'TIME', 'वक्त': 'WAQT',
+  'लोग': 'LOG', 'दोस्त': 'DOST', 'भाई': 'BHAI', 'सब': 'SAB', 'कोई': 'KOI', 'कुछ': 'KUCH',
+  'काम': 'KAAM', 'बात': 'BAAT', 'पैसा': 'PAISA', 'रुपये': 'RUPEES', 'ट्रिक': 'TRICK', 'टिप': 'TIP',
+  'सीक्रेट': 'SECRET', 'आइडिया': 'IDEA', 'लाइफ': 'LIFE', 'ग्रो': 'GROW', 'बदल': 'BADAL'
+};
+
 function devanagariToHinglish(text: string): string {
-  if (!text || !/[\u0900-\u097F]/.test(text)) {
-    return text;
+  if (!text) return '';
+  if (!/[\u0900-\u097F]/.test(text)) {
+    return text.toUpperCase();
   }
-  const charMap: Record<string, string> = {
-    'अ': 'A', 'आ': 'AA', 'इ': 'I', 'ई': 'EE', 'उ': 'U', 'ऊ': 'OO', 'ऋ': 'RI',
-    'ए': 'E', 'ऐ': 'AI', 'ओ': 'O', 'औ': 'AU', 'अं': 'AM', 'अः': 'AH',
-    'क': 'K', 'ख': 'KH', 'ग': 'G', 'घ': 'GH', 'ङ': 'NG',
-    'च': 'CH', 'छ': 'CHH', 'ज': 'J', 'झ': 'JH', 'ञ': 'NY',
-    'ट': 'T', 'ठ': 'TH', 'ड': 'D', 'ढ': 'DH', 'ण': 'N',
-    'त': 'T', 'थ': 'TH', 'द': 'D', 'ध': 'DH', 'न': 'N',
-    'प': 'P', 'फ': 'PH', 'ब': 'B', 'भ': 'BH', 'म': 'M',
-    'य': 'Y', 'र': 'R', 'ल': 'L', 'व': 'V', 'श': 'SH', 'ष': 'SH', 'स': 'S', 'ह': 'H',
-    'क्ष': 'KSH', 'त्र': 'TR', 'ज्ञ': 'GYA',
-    'ा': 'A', 'ि': 'I', 'ी': 'EE', 'ु': 'U', 'ू': 'OO', 'ृ': 'RI',
-    'े': 'E', 'ै': 'AI', 'ो': 'O', 'ौ': 'AU', 'ं': 'N', 'ँ': 'N', 'ः': 'H',
-    '्': '', '़': '', '।': '.'
-  };
 
-  let result = '';
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    result += charMap[ch] !== undefined ? charMap[ch] : ch;
-  }
-  return result.replace(/\s+/g, ' ').trim();
-}
+  // Tokenize words and punctuation
+  const words = text.split(/\s+/);
+  const converted = words.map(w => {
+    const cleanWord = w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'।]*/g, '');
+    const punct = w.replace(/[\u0900-\u097Fa-zA-Z0-9]/g, '');
 
-// Whisper AI Speech-To-Text Subtitle Endpoint (Word-level timestamps with Hindi->Hinglish and Global language handling)
-app.post('/api/whisper-transcribe', async (req, res) => {
-  try {
-    const { videoPath, startTime, duration } = req.body;
-    let inputPath = videoPath || '';
-    
-    // Look for video in all possible project directories
-    const candidatePaths = [
-      inputPath,
-      path.join(process.cwd(), inputPath),
-      path.join(process.cwd(), 'public', path.basename(inputPath)),
-      path.join(UPLOAD_DIR, path.basename(inputPath)),
-      path.join(process.cwd(), 'public', 'demo-sample.mp4')
-    ];
+    if (HINDI_WORD_DICTIONARY[cleanWord]) {
+      return HINDI_WORD_DICTIONARY[cleanWord] + punct;
+    }
 
-    let resolvedPath = '';
-    for (const p of candidatePaths) {
-      if (p && fs.existsSync(p)) {
-        resolvedPath = p;
-        break;
+    // Phonetic transliteration
+    const vowels: Record<string, string> = {
+      'अ': 'A', 'आ': 'AA', 'इ': 'I', 'ई': 'EE', 'उ': 'U', 'ऊ': 'OO', 'ऋ': 'RI',
+      'ए': 'E', 'ऐ': 'AI', 'ओ': 'O', 'औ': 'AU', 'अं': 'AN', 'अः': 'AH'
+    };
+
+    const matras: Record<string, string> = {
+      'ा': 'A', 'ि': 'I', 'ी': 'EE', 'ु': 'U', 'ू': 'OO', 'ृ': 'RI',
+      'े': 'E', 'ै': 'AI', 'ो': 'O', 'ौ': 'AU', 'ं': 'N', 'ँ': 'N', 'ः': 'H'
+    };
+
+    const consonants: Record<string, string> = {
+      'क': 'K', 'ख': 'KH', 'ग': 'G', 'घ': 'GH', 'ङ': 'NG',
+      'च': 'CH', 'छ': 'CHH', 'ज': 'J', 'झ': 'JH', 'ञ': 'NY',
+      'ट': 'T', 'ठ': 'TH', 'ड': 'D', 'ढ': 'DH', 'ण': 'N',
+      'त': 'T', 'थ': 'TH', 'द': 'D', 'ध': 'DH', 'न': 'N',
+      'प': 'P', 'फ': 'PH', 'ब': 'B', 'भ': 'BH', 'म': 'M',
+      'य': 'Y', 'र': 'R', 'ल': 'L', 'व': 'V', 'श': 'SH', 'ष': 'SH', 'स': 'S', 'ह': 'H',
+      'क्ष': 'KSH', 'त्र': 'TR', 'ज्ञ': 'GYA'
+    };
+
+    let wordOut = '';
+    for (let i = 0; i < cleanWord.length; i++) {
+      const char = cleanWord[i];
+      const nextChar = cleanWord[i + 1];
+
+      if (vowels[char]) {
+        wordOut += vowels[char];
+      } else if (consonants[char]) {
+        const base = consonants[char];
+        if (nextChar === '्') {
+          // Half consonant
+          wordOut += base;
+          i++; // skip virama
+        } else if (matras[nextChar]) {
+          wordOut += base + matras[nextChar];
+          i++; // skip matra
+        } else if (i === cleanWord.length - 1) {
+          // Last consonant in Hindi usually drops inherent schwa
+          wordOut += base;
+        } else {
+          // Inherent 'a'
+          wordOut += base + 'A';
+        }
+      } else if (matras[char]) {
+        wordOut += matras[char];
+      } else {
+        wordOut += char;
       }
     }
 
-    if (!resolvedPath) {
-      return res.status(400).json({ error: 'Video file not found' });
+    return (wordOut || cleanWord).toUpperCase() + punct;
+  });
+
+  return converted.join(' ').replace(/\s+/g, ' ').trim().toUpperCase();
+}
+
+// Local Faster-Whisper Speech-To-Text Subtitle Endpoint (via Python tiny model)
+app.post('/api/whisper-transcribe', async (req, res) => {
+  const { videoPath, startTime, duration } = req.body;
+  let inputPath = videoPath || '';
+  
+  // Look for video in all possible project directories
+  const candidatePaths = [
+    inputPath,
+    path.join(process.cwd(), inputPath),
+    path.join(process.cwd(), 'public', path.basename(inputPath)),
+    path.join(UPLOAD_DIR, path.basename(inputPath)),
+    path.join(process.cwd(), 'public', 'demo-sample.mp4')
+  ];
+
+  let resolvedPath = '';
+  for (const p of candidatePaths) {
+    if (p && fs.existsSync(p)) {
+      resolvedPath = p;
+      break;
     }
+  }
 
-    const tempAudio = path.join(OUTPUT_DIR, `audio-${Date.now()}-${Math.floor(Math.random() * 1000)}.mp3`);
-    const seek = Math.max(0, startTime || 0);
-    const dur = Math.min(duration || 60, 60);
+  if (!resolvedPath) {
+    return res.status(400).json({ error: 'Video file not found' });
+  }
 
-    // Fast audio extraction via ffmpeg
+  const seek = Math.max(0, startTime || 0);
+  const dur = Math.min(duration || 60, 60);
+  const tempAudio = path.join('/tmp', `audio_${Date.now()}.wav`);
+
+  try {
+    // 1. Extract fast 16kHz mono WAV file to /tmp using ffmpeg
     await new Promise<void>((resolve, reject) => {
-      exec(`ffmpeg -y -ss ${seek} -t ${dur} -i "${resolvedPath}" -vn -ar 16000 -ac 1 -b:a 64k "${tempAudio}"`, (err) => {
+      const ffmpegCmd = `ffmpeg -y -ss ${seek} -t ${dur} -i "${resolvedPath}" -vn -ar 16000 -ac 1 "${tempAudio}"`;
+      exec(ffmpegCmd, (err) => {
         if (err) reject(err);
         else resolve();
       });
@@ -283,96 +367,64 @@ app.post('/api/whisper-transcribe', async (req, res) => {
       return res.status(500).json({ error: 'Audio extraction failed' });
     }
 
-    let subtitles = [];
-    if (process.env.GEMINI_API_KEY) {
-      try {
-        const audioBuffer = fs.readFileSync(tempAudio);
-        const base64Audio = audioBuffer.toString('base64');
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const geminiRes = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                { inlineData: { mimeType: 'audio/mp3', data: base64Audio } },
-                {
-                  text: `You are an advanced Whisper AI speech-to-text audio transcription engine designed for viral shorts captions.
+    // 2. Execute local Python faster-whisper script
+    let subtitles: any[] = [];
+    const pythonCmd = `/root/whisper-env/bin/python3 /root/Long-to-sort/transcribe.py "${tempAudio}"`;
 
-MANDATORY LANGUAGE RULES:
-1. HINDI SPEECH:
-   - If the audio contains Hindi or mixed Hindi/English:
-   - Transcribe in ROMAN HINGLISH using Latin alphabet letters only (e.g., "YEH EK SECRET HAI", "AAJ HUM BAAT KARENGE", "VIDEO KO LIKE KARO", "AAP KAISE HO").
-   - NEVER use Devanagari script (NO हिंदी अक्षर). Always convert Hindi words to readable Roman Hinglish.
-2. GLOBAL LANGUAGES:
-   - If the audio is in English, Spanish, French, German, Arabic, Portuguese, Japanese, etc.:
-   - Keep it in that EXACT global language with standard correct spelling.
-   - Example English: "THIS ONE SECRET"
-   - Example Spanish: "ESTO CAMBIA TODO"
-3. WORD TIMESTAMPS:
-   - Provide accurate word-level start and end timestamps in seconds.
-   - Keep each segment short: 2 to 4 words max for Alex Hormozi animated captions.
-   - All words must be in UPPERCASE.
-
-Return ONLY a valid JSON array of objects with schema:
-[
-  {
-    "id": "1",
-    "startTime": 0.0,
-    "endTime": 1.4,
-    "text": "THIS ONE SECRET",
-    "words": [
-      {"word": "THIS", "start": 0.0, "end": 0.4},
-      {"word": "ONE", "start": 0.4, "end": 0.8},
-      {"word": "SECRET", "start": 0.8, "end": 1.4}
-    ]
-  }
-]
-Do NOT return markdown or code block wrappers. Return ONLY raw JSON array.`
-                }
-              ]
-            }
-          ]
+    try {
+      const stdout = await new Promise<string>((resolve) => {
+        exec(pythonCmd, { maxBuffer: 10 * 1024 * 1024 }, (err, out) => {
+          if (err) {
+            // Also attempt fallback if binary is at python3 or in local project
+            exec(`python3 transcribe.py "${tempAudio}"`, { maxBuffer: 10 * 1024 * 1024 }, (err2, out2) => {
+              if (err2) resolve('');
+              else resolve(out2 || '');
+            });
+          } else {
+            resolve(out || '');
+          }
         });
+      });
 
-        const rawText = geminiRes.text || '';
-        const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const parsed = JSON.parse(cleaned);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Normalize words: ensure any Devanagari character is converted to Hinglish Roman text and uppercase
-          subtitles = parsed.map(seg => {
-            const cleanText = devanagariToHinglish(seg.text || '').toUpperCase();
-            const cleanWords = Array.isArray(seg.words)
-              ? seg.words.map((w: any) => ({
-                  ...w,
-                  word: devanagariToHinglish(w.word || '').toUpperCase()
-                }))
-              : [];
-            return {
-              ...seg,
-              text: cleanText,
-              words: cleanWords
-            };
-          });
+      if (stdout && stdout.trim()) {
+        const cleaned = stdout.trim();
+        const jsonStart = cleaned.indexOf('[');
+        const jsonEnd = cleaned.lastIndexOf(']');
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          const parsed = JSON.parse(cleaned.substring(jsonStart, jsonEnd + 1));
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            subtitles = parsed.map((seg: any) => {
+              const cleanText = devanagariToHinglish(seg.text || '').toUpperCase();
+              const cleanWords = Array.isArray(seg.words)
+                ? seg.words.map((w: any) => ({
+                    ...w,
+                    word: devanagariToHinglish(w.word || '').toUpperCase()
+                  }))
+                : [];
+              return {
+                ...seg,
+                text: cleanText,
+                words: cleanWords
+              };
+            });
+          }
         }
-      } catch (err) {
-        console.warn('Whisper AI speech transcription fallback:', err);
       }
+    } catch (scriptErr) {
+      console.warn('Local Python whisper execution warning:', scriptErr);
     }
 
-    try { if (fs.existsSync(tempAudio)) fs.unlinkSync(tempAudio); } catch(e) {}
-
-    // Fallback if no speech detected or offline: produce realistic word-level timestamps
+    // 3. Fallback if no speech detected or offline: produce viral Hinglish word-level timestamps
     if (subtitles.length === 0) {
       const phrases = [
-        ["THIS", "ONE", "SECRET"],
-        ["CHANGES", "EVERYTHING"],
-        ["TURN", "LONG", "VIDEOS"],
-        ["INTO", "VIRAL", "SHORTS"],
-        ["IN", "JUST", "SECONDS"],
-        ["WATCH", "TILL", "END"],
-        ["GROW", "YOUR", "AUDIENCE"],
-        ["NEVER", "GIVE", "UP"]
+        ["YEH", "EK", "SECRET"],
+        ["SAB", "BADAL", "DEGA"],
+        ["APNE", "LONG", "VIDEOS"],
+        ["VIRAL", "SHORTS", "BANAO"],
+        ["SIRF", "KUCH", "SECONDS"],
+        ["END", "TAK", "DEKHO"],
+        ["GROW", "KARO", "FAST"],
+        ["FOLLOW", "ZAROOR", "KARNA"]
       ];
       const segDuration = 2.0;
       const count = Math.ceil(dur / segDuration);
@@ -381,7 +433,7 @@ Do NOT return markdown or code block wrappers. Return ONLY raw JSON array.`
         const segStart = Number((i * segDuration).toFixed(2));
         const segEnd = Number(((i + 1) * segDuration).toFixed(2));
         const wordDur = Number((segDuration / wordsList.length).toFixed(2));
-        
+
         const words = wordsList.map((w, wIdx) => ({
           word: w,
           start: Number((segStart + wIdx * wordDur).toFixed(2)),
@@ -398,8 +450,24 @@ Do NOT return markdown or code block wrappers. Return ONLY raw JSON array.`
       });
     }
 
+    // 4. Clean up temporary audio file after transcription
+    try {
+      if (fs.existsSync(tempAudio)) {
+        fs.unlinkSync(tempAudio);
+      }
+    } catch (cleanupErr) {
+      console.warn('Failed to clean up temp audio:', cleanupErr);
+    }
+
     return res.json({ subtitles });
   } catch (error: any) {
+    // Ensure cleanup even on error
+    try {
+      if (fs.existsSync(tempAudio)) {
+        fs.unlinkSync(tempAudio);
+      }
+    } catch (e) {}
+
     console.error('Whisper transcribe error:', error);
     return res.status(500).json({ error: error.message || 'Transcription failed' });
   }
@@ -485,16 +553,10 @@ const handleTrim = (req: express.Request, res: express.Response) => {
   if (shouldBurnTitle || shouldBurnCaptions) {
     assFile = path.join(OUTPUT_DIR, `sub-${Date.now()}-${Math.floor(Math.random() * 1000)}.ass`);
     
-    // Bottom Series Tag Badge Style
-    let titleBadgeStyle = 'Style: TitleBadge,Arial,28,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,1,0,2,10,10,35,1';
-    if (captionStyle === 'minimal') {
-      titleBadgeStyle = 'Style: TitleBadge,Arial,28,&H00050505,&H00000000,&H00050505,&H00FFFFFF,-1,0,0,0,100,100,0,0,3,1,0,2,10,10,35,1';
-    } else if (captionStyle === 'neon') {
-      titleBadgeStyle = 'Style: TitleBadge,Arial,30,&H005EEB22,&H00000000,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,35,1';
-    }
+    // Bottom Series Tag Badge Style - 100% Transparent (No Black Box)
+    let titleBadgeStyle = 'Style: TitleBadge,Arial Black,28,&H00FFFFFF,&H00000000,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,35,1';
 
     // Subtitle Caption Vertical Position:
-    // "Sabse niche Kar do Bhai itna super utha Kar rakho part Van dikhna chahie bus"
     // Part 1 sits at MarginV: 35.
     // If Part 1 is ON, captions sit directly above it at MarginV: 110.
     // If Part 1 is OFF, captions sit at MarginV: 45.
@@ -502,13 +564,12 @@ const handleTrim = (req: express.Request, res: express.Response) => {
     if (captionPosition === 'middle') marginV = 960;
     else if (captionPosition === 'lower') marginV = 350;
 
-    // Hormozi Style: Bold uppercase, white text, active spoken word highlights in yellow (&H0000FFFF&)
+    // Subtitle Style - 100% Transparent background (BorderStyle=1 outline only, BackColour=0, NO black box)
     let captionAssStyle = `Style: CaptionStyle,Arial Black,38,&H00FFFFFF,&H0000FFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,0,2,10,10,${marginV},1`;
     if (captionStyle === 'minimal') {
-      // Minimal Style: Clean white subtitle with subtle black background
-      captionAssStyle = `Style: CaptionStyle,Arial,32,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,3,2,0,2,10,10,${marginV},1`;
+      captionAssStyle = `Style: CaptionStyle,Arial Black,34,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,${marginV},1`;
     } else if (captionStyle === 'neon') {
-      captionAssStyle = `Style: CaptionStyle,Arial Black,38,&H005EEB22,&H00000000,&H00051A05,&H00000000,-1,0,0,0,100,100,0,0,1,3,0,2,10,10,${marginV},1`;
+      captionAssStyle = `Style: CaptionStyle,Arial Black,38,&H005EEB22,&H005EEB22,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,0,2,10,10,${marginV},1`;
     }
 
     let assContent = `[Script Info]

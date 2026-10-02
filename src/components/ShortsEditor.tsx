@@ -119,10 +119,10 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
     });
   };
 
-  // Automatically show "part 1", "part 2", etc. or custom title if user typed one
+  // Automatically show "part 1" on preview or custom title if user typed one
   const displayTitle = (settings.customTitle !== undefined && settings.customTitle.trim() !== '')
     ? settings.customTitle.trim()
-    : `part ${currentPartNum}`;
+    : 'part 1';
 
   // Time relative to clip start
   const relTime = Math.max(0, currentTime - (clip.startTime || 0));
@@ -131,19 +131,20 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
   let activeSubtitle = clip.subtitles?.find(s => currentTime >= s.startTime && currentTime <= s.endTime)
     || clip.subtitles?.find(s => relTime >= s.startTime && relTime <= s.endTime);
 
-  // If no subtitles exist yet, generate dynamic synchronized words based on playback so "HIGHLIGHT 1" never appears
+  // If no subtitles exist yet, generate dynamic synchronized Hinglish words based on playback
   if (!activeSubtitle) {
-    const cycle = relTime % 9;
+    const cycle = relTime % 12;
     if (cycle < 3) {
       activeSubtitle = {
         id: 'dyn-1',
         startTime: 0,
         endTime: 3,
-        text: 'TURN LONG VIDEOS',
+        text: 'YEH EK SECRET HAI',
         words: [
-          { word: 'TURN', start: 0, end: 1.0 },
-          { word: 'LONG', start: 1.0, end: 2.0 },
-          { word: 'VIDEOS', start: 2.0, end: 3.0 }
+          { word: 'YEH', start: 0, end: 0.8 },
+          { word: 'EK', start: 0.8, end: 1.5 },
+          { word: 'SECRET', start: 1.5, end: 2.3 },
+          { word: 'HAI', start: 2.3, end: 3.0 }
         ]
       };
     } else if (cycle < 6) {
@@ -151,23 +152,36 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
         id: 'dyn-2',
         startTime: 3,
         endTime: 6,
-        text: 'INTO VIRAL SHORTS',
+        text: 'VIRAL SHORTS BANAO',
         words: [
-          { word: 'INTO', start: 3.0, end: 4.0 },
-          { word: 'VIRAL', start: 4.0, end: 5.0 },
-          { word: 'SHORTS', start: 5.0, end: 6.0 }
+          { word: 'VIRAL', start: 3.0, end: 4.0 },
+          { word: 'SHORTS', start: 4.0, end: 5.0 },
+          { word: 'BANAO', start: 5.0, end: 6.0 }
         ]
       };
-    } else {
+    } else if (cycle < 9) {
       activeSubtitle = {
         id: 'dyn-3',
         startTime: 6,
         endTime: 9,
-        text: 'WATCH TILL END',
+        text: 'SIRF KUCH SECONDS MEIN',
         words: [
-          { word: 'WATCH', start: 6.0, end: 7.0 },
-          { word: 'TILL', start: 7.0, end: 8.0 },
-          { word: 'END', start: 8.0, end: 9.0 }
+          { word: 'SIRF', start: 6.0, end: 6.8 },
+          { word: 'KUCH', start: 6.8, end: 7.5 },
+          { word: 'SECONDS', start: 7.5, end: 8.3 },
+          { word: 'MEIN', start: 8.3, end: 9.0 }
+        ]
+      };
+    } else {
+      activeSubtitle = {
+        id: 'dyn-4',
+        startTime: 9,
+        endTime: 12,
+        text: 'ABHI FOLLOW KAREIN',
+        words: [
+          { word: 'ABHI', start: 9.0, end: 9.8 },
+          { word: 'FOLLOW', start: 9.8, end: 10.8 },
+          { word: 'KAREIN', start: 10.8, end: 12.0 }
         ]
       };
     }
@@ -189,56 +203,24 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
     }
   };
 
-  // Styles for the bottom Part 1 / Series Tag badge
+  // Styles for the bottom Part 1 / Series Tag badge - 100% Transparent (No Black background)
   const getBadgeStyles = () => {
-    switch (settings.captionStyle) {
-      case 'minimal':
-        return 'text-zinc-950 bg-white font-extrabold px-3 py-1 rounded-md shadow-none';
-      case 'neon':
-        return 'text-[#22c55e] bg-zinc-950/90 border border-[#22c55e]/80 font-black px-3 py-1 rounded-full shadow-none';
-      case 'transparent':
-        return 'text-white bg-black/60 backdrop-blur-md border border-white/30 px-3 py-1 rounded-full shadow-none';
-      case 'hormozi':
-      default:
-        return 'text-white bg-black/60 backdrop-blur-md border border-white/30 px-3 py-1 rounded-full shadow-none';
-    }
+    return 'text-white bg-transparent font-black px-2 py-0.5 border-none shadow-none';
   };
 
   return (
     <div className="flex-1 bg-black p-2 sm:p-4 lg:p-6 flex flex-col items-center justify-center relative overflow-hidden w-full">
       
-      {/* Top Studio Toolbar with Part Navigation & Fit Mode */}
+      {/* Top Studio Toolbar */}
       <div className="w-full max-w-sm mb-2.5 flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-[11px] sm:text-xs font-bold text-white tracking-wide">
-            {totalParts > 1 ? `Part ${currentPartNum}/${totalParts}` : '9:16 Preview'}
+            9:16 Master Preview
           </span>
         </div>
 
         <div className="flex items-center gap-1.5">
-          {totalParts > 1 && (
-            <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-0.5">
-              <button
-                type="button"
-                onClick={handlePrevPart}
-                className="p-1 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded transition-colors cursor-pointer"
-                title="Previous Part"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={handleNextPart}
-                className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[11px] sm:text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer active:scale-95"
-                title="Open Next Part"
-              >
-                <span>Part {currentPartNum + 1 > totalParts ? 1 : currentPartNum + 1}</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-
           {/* Video Fit (No Crop vs Crop 9:16) Toggle */}
           <button
             type="button"
@@ -351,13 +333,22 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
             className="absolute left-0 right-0 flex items-center justify-center pointer-events-none z-20 px-3 sm:px-6 text-center animate-in fade-in duration-100"
           >
             {settings.captionStyle === 'minimal' ? (
-              /* Minimal: Clean white subtitle with subtle black background */
-              <div className="bg-black/80 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl border border-white/10 text-white font-bold text-xs sm:text-base tracking-tight shadow-xl">
+              /* Minimal: Clean white subtitle - 100% Transparent, No Black Box */
+              <div 
+                className="text-white font-black text-sm sm:text-lg md:text-2xl uppercase tracking-wider bg-transparent p-0 border-none shadow-none"
+                style={{
+                  background: 'transparent',
+                  backgroundColor: 'transparent',
+                  WebkitTextStroke: '1.2px #000',
+                  paintOrder: 'stroke fill',
+                  textShadow: '2.5px 2.5px 0 #000, -2.5px -2.5px 0 #000, 2.5px -2.5px 0 #000, -2.5px 2.5px 0 #000, 0 3px 6px rgba(0,0,0,0.9)'
+                }}
+              >
                 {activeSubtitle.text}
               </div>
             ) : (
-              /* Hormozi: 100% Transparent background, floating bold uppercase text, active word glowing yellow */
-              <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[96%] bg-transparent p-0">
+              /* Hormozi: 100% Transparent background (no box, no colored glow), floating bold uppercase text, active word in pure yellow */
+              <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[96%] bg-transparent p-0 border-none shadow-none">
                 {activeSubtitle.words && activeSubtitle.words.length > 0 ? (
                   activeSubtitle.words.map((w, idx) => {
                     const isActive = (currentTime >= w.start && currentTime <= w.end) 
@@ -368,13 +359,17 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                         key={idx}
                         className={`text-base sm:text-xl md:text-3xl font-black uppercase tracking-wider transition-all duration-75 select-none bg-transparent ${
                           isActive
-                            ? 'text-[#FFE500] scale-110 -rotate-1 drop-shadow-[0_2px_12px_rgba(255,229,0,0.9)]'
+                            ? 'text-[#FFE500] scale-110 -rotate-1'
                             : 'text-white'
                         }`}
                         style={{
+                          background: 'transparent',
+                          backgroundColor: 'transparent',
+                          WebkitTextStroke: isActive ? '1.5px #000' : '1.2px #000',
+                          paintOrder: 'stroke fill',
                           textShadow: isActive
-                            ? '2.5px 2.5px 0 #000, -2.5px -2.5px 0 #000, 2.5px -2.5px 0 #000, -2.5px 2.5px 0 #000, 0 4px 10px rgba(0,0,0,0.9)'
-                            : '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 3px 6px rgba(0,0,0,0.85)'
+                            ? '3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 0 3px 8px rgba(0,0,0,0.95)'
+                            : '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 5px rgba(0,0,0,0.85)'
                         }}
                       >
                         {w.word}
@@ -385,7 +380,11 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                   <span 
                     className="text-base sm:text-xl md:text-3xl font-black uppercase text-[#FFE500] tracking-wider select-none bg-transparent"
                     style={{
-                      textShadow: '2.5px 2.5px 0 #000, -2.5px -2.5px 0 #000, 2.5px -2.5px 0 #000, -2.5px 2.5px 0 #000, 0 4px 10px rgba(0,0,0,0.9)'
+                      background: 'transparent',
+                      backgroundColor: 'transparent',
+                      WebkitTextStroke: '1.5px #000',
+                      paintOrder: 'stroke fill',
+                      textShadow: '3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 0 3px 8px rgba(0,0,0,0.95)'
                     }}
                   >
                     {activeSubtitle.text}
@@ -400,7 +399,14 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
         {settings.titleSticker && displayTitle !== '' && (
           <div className="absolute bottom-2.5 sm:bottom-3 left-0 right-0 flex flex-col items-center justify-center pointer-events-none z-20 px-3">
             <span 
-              className={`inline-block ${getBadgeStyles()} text-[9px] sm:text-[10px] font-semibold tracking-wide`}
+              className="inline-block text-white font-black uppercase tracking-wider text-[10px] sm:text-[11px] bg-transparent p-0 border-none shadow-none select-none"
+              style={{
+                background: 'transparent',
+                backgroundColor: 'transparent',
+                WebkitTextStroke: '1px #000',
+                paintOrder: 'stroke fill',
+                textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 5px rgba(0,0,0,0.9)'
+              }}
             >
               {displayTitle}
             </span>

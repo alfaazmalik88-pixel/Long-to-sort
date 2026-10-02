@@ -476,23 +476,28 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
 
         {/* Render Action Buttons */}
-        <div className="pt-2 space-y-3">
-          <button
-            type="button"
-            onClick={onExport}
-            className="w-full py-3 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs border border-zinc-700 transition-all cursor-pointer active:scale-98 shadow-sm flex items-center justify-center gap-2"
-          >
-            <span>Render Current Part Only</span>
-          </button>
-
+        <div className="pt-2 space-y-2.5">
           <button
             type="button"
             onClick={onExportAll}
             className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:opacity-95 text-white font-black text-xs md:text-sm shadow-xl shadow-indigo-600/30 transition-all cursor-pointer active:scale-98 flex items-center justify-center gap-2"
           >
             <Zap className="w-4 h-4 fill-white" />
-            <span>Render All {clips.length} Parts (Full HD)</span>
+            <span>🚀 Render All {clips.length > 1 ? `${clips.length} Parts` : ''} & Auto-Download</span>
           </button>
+          <p className="text-[10px] text-zinc-500 text-center font-medium">
+            1 screen pe setting karo — sab parts render hoke automatically download honge!
+          </p>
+
+          {clips.length > 1 && (
+            <button
+              type="button"
+              onClick={onExport}
+              className="w-full py-2.5 px-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-white font-bold text-[11px] border border-zinc-800 transition-all cursor-pointer active:scale-98 flex items-center justify-center gap-1.5"
+            >
+              <span>Render Single Preview Part Only</span>
+            </button>
+          )}
         </div>
 
       </div>

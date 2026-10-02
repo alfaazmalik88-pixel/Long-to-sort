@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, ShieldCheck, Zap, ArrowRight, Check, Lock } from 'lucide-react';
-import { PricingTier, PRICING_INR, PRICING_USD } from '../data/pricingData';
+import React, { useState } from 'react';
+import { X, CheckCircle2, ShieldCheck, Zap, ArrowRight, Lock } from 'lucide-react';
+import { PricingTier, PRICING_INR } from '../data/pricingData';
 import { useAuth } from '../context/AuthContext';
 
 interface CheckoutModalProps {
   tier: PricingTier | null;
-  currency: 'INR' | 'USD';
+  currency?: 'INR' | 'USD';
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (tier: PricingTier) => void;
@@ -13,57 +13,42 @@ interface CheckoutModalProps {
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   tier,
-  currency: _initialCurrency,
   isOpen,
   onClose,
   onSuccess
 }) => {
   const { user, upgradePlan } = useAuth();
-  // Force INR since Global payments are locked
-  const [selectedCurrency, setSelectedCurrency] = useState<'INR' | 'USD'>('INR');
   const [processing, setProcessing] = useState(false);
   const [completed, setCompleted] = useState(false);
 
-  useEffect(() => {
-    // Keep locked to INR
-    setSelectedCurrency('INR');
-  }, [isOpen]);
-
   if (!isOpen || !tier) return null;
 
-  // Resolve matching tier for active currency (Always INR)
-  const activeTiers = PRICING_INR;
-  const activeTier = activeTiers.find(t => t.id === tier.id) || tier;
+  // India Checkout: Pure INR pricing (No Dollars)
+  const activeTier = PRICING_INR.find(t => t.id === tier.id) || tier;
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedCurrency === 'USD') {
-      alert("🔒 Global payment is currently locked. No credits can be added without an active payment gateway. Please use your Free 10m/Day (50m Total) Trial or pay via India (INR) UPI/Cards!");
-      return;
-    }
     setProcessing(true);
 
     try {
-      if (selectedCurrency === 'INR') {
-        try {
-          await fetch('/api/create-cashfree-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              planId: activeTier.id,
-              amount: activeTier.price,
-              customerEmail: user?.email || 'customer@viralclipai.in',
-              customerId: user?.id || `cust_${Date.now()}`
-            })
-          });
-        } catch (e) {
-          console.warn('Cashfree API background ping:', e);
-        }
+      try {
+        await fetch('/api/create-cashfree-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            planId: activeTier.id,
+            amount: activeTier.numericPrice || 49,
+            customerEmail: user?.email || 'customer@viralclipai.in',
+            customerId: user?.id || `cust_${Date.now()}`
+          })
+        });
+      } catch (e) {
+        console.warn('Cashfree API background ping:', e);
       }
 
       // Smooth direct processing & plan activation
       setTimeout(() => {
-        upgradePlan(activeTier.id, selectedCurrency);
+        upgradePlan(activeTier.id, 'INR');
         setProcessing(false);
         setCompleted(true);
         setTimeout(() => {
@@ -74,7 +59,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }, 1000);
     } catch (err) {
       console.error('Payment error:', err);
-      upgradePlan(activeTier.id, selectedCurrency);
+      upgradePlan(activeTier.id, 'INR');
       setProcessing(false);
       setCompleted(true);
       setTimeout(() => {
@@ -97,7 +82,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <div>
               <h3 className="font-bold text-white text-sm sm:text-base">{activeTier.name}</h3>
               <p className="text-[11px] text-zinc-400">
-                {selectedCurrency === 'INR' ? '🇮🇳 Pay in Indian Rupees (INR)' : '🌐 Pay in US Dollars ($ USD)'}
+                🇮🇳 Pay in Indian Rupees (INR ₹)
               </p>
             </div>
           </div>
@@ -110,25 +95,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </button>
         </div>
 
-        {/* Currency Switcher Directly on Payment Screen (INR Active, USD Locked) */}
+        {/* Pure India Cashfree Banner (No Dollar Toggle) */}
         <div className="px-4 sm:px-6 pt-3 pb-1 bg-zinc-950">
-          <div className="bg-zinc-900 p-1 rounded-xl border border-zinc-800 flex items-center shadow-inner gap-1">
-            <button
-              type="button"
-              onClick={() => setSelectedCurrency('INR')}
-              className="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center cursor-pointer bg-indigo-600 text-white shadow"
-            >
-              🇮🇳 Pay in ₹ INR (Active)
-            </button>
-            <button
-              type="button"
-              disabled
-              className="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold text-zinc-500 bg-zinc-900/60 border border-zinc-800/80 cursor-not-allowed flex items-center justify-center gap-1 opacity-70"
-              title="International payments currently locked (Setup in progress)"
-            >
-              <Lock className="w-3 h-3 text-zinc-500" />
-              <span>🌐 $ USD (Locked)</span>
-            </button>
+          <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-xl py-2 px-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🇮🇳</span>
+              <span className="text-xs font-bold text-emerald-300">
+                Official Cashfree UPI & Cards Gateway
+              </span>
+            </div>
+            <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+              100% INR (₹)
+            </span>
           </div>
         </div>
 
@@ -139,7 +117,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
             <h3 className="text-2xl font-bold text-white">Payment Successful!</h3>
             <p className="text-sm text-zinc-400">
-              <span className="text-indigo-400 font-semibold">{activeTier.name}</span> plan is activated in {selectedCurrency}. Your export minutes are added!
+              <span className="text-indigo-400 font-semibold">{activeTier.name}</span> plan is activated in INR (₹). Your export minutes are added!
             </p>
           </div>
         ) : (
@@ -165,8 +143,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
               <div className="text-right">
                 <div className="text-2xl sm:text-3xl font-black text-white">{activeTier.price}</div>
-                <div className="text-[10px] text-zinc-400 uppercase tracking-wider">
-                  {selectedCurrency === 'INR' ? 'INR (₹)' : 'USD ($)'}
+                <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                  INR (₹)
                 </div>
               </div>
             </div>
@@ -175,18 +153,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <div className="bg-zinc-900/70 border border-zinc-800 rounded-xl p-3 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">
-                  {selectedCurrency === 'INR' ? '₹' : '$'}
+                  ₹
                 </div>
                 <div>
                   <p className="font-bold text-white text-[11px] sm:text-xs">
-                    {selectedCurrency === 'INR' 
-                      ? 'Cashfree Payments • UPI & Cards' 
-                      : 'Cashfree & PayPal • Global Checkout'}
+                    Cashfree Payments • UPI & Cards
                   </p>
                   <p className="text-[10px] text-zinc-400">
-                    {selectedCurrency === 'INR'
-                      ? 'UPI (GPay, PhonePe, Paytm), RuPay, Visa, MasterCard'
-                      : 'PayPal, International Cards (Visa, MC, Amex) & Apple Pay'}
+                    UPI (Google Pay, PhonePe, Paytm, BHIM), RuPay & Cards
                   </p>
                 </div>
               </div>
@@ -206,7 +180,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </div>
 
-            {/* Submit Pay CTA Button - Clear Dollar ka Dollar, INR ka INR */}
+            {/* Submit Pay CTA Button */}
             <form onSubmit={handlePay} className="space-y-2.5 pt-1">
               <button
                 type="submit"
@@ -216,7 +190,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {processing ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Connecting to UPI & Cards...</span>
+                    <span>Connecting to Cashfree UPI & Cards...</span>
                   </>
                 ) : (
                   <>
