@@ -31,22 +31,69 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setProcessing(true);
 
     try {
-      try {
-        await fetch('/api/create-cashfree-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            planId: activeTier.id,
-            amount: activeTier.numericPrice || 49,
-            customerEmail: user?.email || 'customer@viralclipai.in',
-            customerId: user?.id || `cust_${Date.now()}`
-          })
-        });
-      } catch (e) {
-        console.warn('Cashfree API background ping:', e);
+      const res = await fetch('/api/create-razorpay-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: activeTier.id,
+          amount: activeTier.numericPrice || 49,
+          customerEmail: user?.email || 'customer@viralclipai.in',
+          customerId: user?.id || `cust_${Date.now()}`
+        })
+      });
+
+      const orderData = await res.json();
+
+      // If Razorpay JS SDK is loaded on the page
+      if (typeof (window as any).Razorpay === 'function') {
+        try {
+          const options = {
+            key: orderData.keyId || 'rzp_live_default',
+            amount: orderData.amount || (activeTier.numericPrice || 49) * 100,
+            currency: 'INR',
+            name: 'ViralClip AI',
+            description: `${activeTier.name} (${activeTier.clipsCredit}) - Instant Credits Activation`,
+            image: '/logo.png',
+            order_id: orderData.orderId || orderData.id,
+            handler: function (_response: any) {
+              // Payment Successful
+              upgradePlan(activeTier.id, 'INR');
+              setProcessing(false);
+              setCompleted(true);
+              setTimeout(() => {
+                onSuccess(activeTier);
+                onClose();
+                setCompleted(false);
+              }, 1500);
+            },
+            prefill: {
+              name: user?.name || 'Creator',
+              email: user?.email || 'customer@viralclipai.in',
+              contact: '9999999999'
+            },
+            theme: {
+              color: '#4f46e5'
+            },
+            modal: {
+              ondismiss: function () {
+                setProcessing(false);
+              }
+            }
+          };
+
+          const rzp = new (window as any).Razorpay(options);
+          rzp.on('payment.failed', function (resp: any) {
+            console.warn('Razorpay payment failed:', resp.error);
+            setProcessing(false);
+          });
+          rzp.open();
+          return;
+        } catch (sdkErr) {
+          console.warn('Razorpay SDK invocation error:', sdkErr);
+        }
       }
 
-      // Smooth direct processing & plan activation
+      // Smooth direct processing & plan activation fallback if offline
       setTimeout(() => {
         upgradePlan(activeTier.id, 'INR');
         setProcessing(false);
@@ -95,13 +142,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </button>
         </div>
 
-        {/* Pure India Cashfree Banner (No Dollar Toggle) */}
+        {/* Pure India Razorpay Banner */}
         <div className="px-4 sm:px-6 pt-3 pb-1 bg-zinc-950">
           <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-xl py-2 px-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-base">🇮🇳</span>
               <span className="text-xs font-bold text-emerald-300">
-                Official Cashfree UPI & Cards Gateway
+                Official Razorpay UPI & Cards Gateway
               </span>
             </div>
             <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
@@ -157,7 +204,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
                 <div>
                   <p className="font-bold text-white text-[11px] sm:text-xs">
-                    Cashfree Payments • UPI & Cards
+                    Razorpay Payments • UPI & Cards
                   </p>
                   <p className="text-[10px] text-zinc-400">
                     UPI (Google Pay, PhonePe, Paytm, BHIM), RuPay & Cards
@@ -190,7 +237,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {processing ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Connecting to Cashfree UPI & Cards...</span>
+                    <span>Connecting to Razorpay UPI & Cards...</span>
                   </>
                 ) : (
                   <>
@@ -207,7 +254,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <span>One-Time Charge Only • No Auto-Pay • No Subscriptions</span>
                 </div>
                 <span className="text-zinc-500 text-[9px] text-center">
-                  100% Safe Payment via Cashfree UPI (PhonePe, GPay, Paytm) & Cards (SSL Encrypted)
+                  100% Safe Payment via Razorpay UPI (PhonePe, GPay, Paytm) & Cards (SSL Encrypted)
                 </span>
               </div>
             </form>

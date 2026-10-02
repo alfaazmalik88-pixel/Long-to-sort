@@ -69,7 +69,7 @@ export const useCountryPricing = () => {
     isIndia,
     isGlobalUser: !isIndia,
     isGlobalLockedForIndia: isIndia,
-    paymentGateway: isIndia ? 'Cashfree UPI & Cards' : 'Cashfree Global & PayPal',
+    paymentGateway: isIndia ? 'Razorpay UPI & Cards' : 'Razorpay Global & PayPal',
     isDetected: true
   };
 };

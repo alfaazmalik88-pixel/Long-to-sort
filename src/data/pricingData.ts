@@ -13,6 +13,7 @@ export interface PricingTier {
   supports4K?: boolean;
   features: string[];
   ctaText: string;
+  paymentLink?: string;
 }
 
 export const PRICING_INR: PricingTier[] = [

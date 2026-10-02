@@ -211,7 +211,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
           <div className="flex items-center gap-2">
             <span className="text-base">🇮🇳</span>
             <span className="text-zinc-300 font-semibold text-[11px] sm:text-xs">
-              India Gateway Active: Pay in ₹ INR via UPI (GPay, PhonePe, Paytm), RuPay & Cards
+              India Gateway Active: Pay in ₹ INR via Razorpay UPI (GPay, PhonePe, Paytm), RuPay & Cards
             </span>
           </div>
           <div className="flex items-center gap-2">
