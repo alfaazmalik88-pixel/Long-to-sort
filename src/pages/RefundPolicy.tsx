@@ -1,6 +1,7 @@
 import React from 'react';
 import { RotateCcw, ArrowLeft, AlertCircle, CheckCircle2, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { CallToActionBanner } from '../components/CallToActionBanner';
 
 export const RefundPolicy = () => {
   return (
@@ -105,6 +106,11 @@ export const RefundPolicy = () => {
               All refund requests are reviewed within <strong>24 to 48 hours</strong>. Once approved, the refund will be automatically initiated to your original payment method (Credit/Debit Card, UPI, Net Banking) and typically reflects in your bank account within <strong>5 to 7 business days</strong> depending on your bank or payment processor.
             </p>
           </section>
+
+          <CallToActionBanner 
+            title="Try ViralClip AI Risk-Free"
+            subtitle="Start with our 5 minutes free trial. No card required, zero commitments."
+          />
         </div>
       </div>
     </div>

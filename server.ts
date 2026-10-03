@@ -587,8 +587,8 @@ const handleTrim = (req: express.Request, res: express.Response) => {
     if (captionPosition === 'middle') marginV = 960;
     else if (captionPosition === 'lower') marginV = 350;
 
-    // Subtitle Style - 100% Transparent background (BorderStyle=1 outline only, BackColour=0, NO black box)
-    let captionAssStyle = `Style: CaptionStyle,Arial Black,38,&H00FFFFFF,&H0000FFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,0,2,10,10,${marginV},1`;
+    // Subtitle Style - 100% Transparent background (BorderStyle=1 clean thin outline, BackColour=0, NO black box)
+    let captionAssStyle = `Style: CaptionStyle,Arial Black,38,&H00FFFFFF,&H0000FFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,1.5,0,2,10,10,${marginV},1`;
     if (captionStyle === 'minimal') {
       captionAssStyle = `Style: CaptionStyle,Arial Black,34,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,${marginV},1`;
     } else if (captionStyle === 'neon') {

@@ -23,15 +23,18 @@ export const PRICING_INR: PricingTier[] = [
     price: '₹0',
     numericPrice: 0,
     usdEquivalent: '$0 USD',
-    period: 'forever',
-    clipsCredit: '5 Minutes',
-    totalExport: '5 Mins Video Processing',
+    period: 'one-time',
+    badge: 'One-Time',
+    clipsCredit: '5 Free Mins',
+    totalExport: '5 Mins One-Time Welcome Trial • Zero Watermark',
     features: [
-      '5 Minutes Free Processing',
-      '1080p HD • Zero Watermark',
+      '5 Minutes One-Time Trial',
+      '1080p Full HD Video',
+      'Zero Watermark Guaranteed',
+      'Alex Hormozi Captions',
       'Part 1, Part 2 Series Tags'
     ],
-    ctaText: 'Current Free Plan'
+    ctaText: 'Current Plan'
   },
   {
     id: 'starter',
@@ -121,18 +124,18 @@ export const PRICING_USD: PricingTier[] = [
     price: '$0',
     numericPrice: 0,
     inrEquivalent: '₹0 INR',
-    period: '10m / 24h',
-    badge: '50m Quota',
-    clipsCredit: '10m / Day (50m Total)',
-    totalExport: '10 Mins Daily • Auto-Resets Every 24h • 50 Mins Total Trial',
+    period: 'one-time',
+    badge: 'One-Time',
+    clipsCredit: '5 Free Mins',
+    totalExport: '5 Mins One-Time Welcome Trial • Zero Watermark',
     features: [
-      '10 Minutes Daily Free Trial',
-      'Auto-Resets every 24 Hours',
-      '50 Minutes Total Trial Quota',
-      '1080p HD • Zero Watermark',
+      '5 Minutes One-Time Trial',
+      '1080p Full HD Video',
+      'Zero Watermark Guaranteed',
+      'Alex Hormozi Captions',
       'Part 1, Part 2 Series Tags'
     ],
-    ctaText: 'Active Free (10m/Day)'
+    ctaText: 'Current Plan'
   },
   {
     id: 'starter',

@@ -17,6 +17,8 @@ import { TermsOfService } from './pages/TermsOfService';
 import { Contact } from './pages/Contact';
 import { RefundPolicy } from './pages/RefundPolicy';
 import { PricingPage } from './pages/PricingPage';
+import { BlogPage } from './pages/BlogPage';
+import { AboutUs } from './pages/AboutUs';
 import { PricingSection } from './components/PricingSection';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAuth } from './context/AuthContext';
@@ -74,9 +76,10 @@ export default function App() {
       return next;
     });
 
-    // Exact minutes based on downloaded video duration (e.g. 30s = 0.5m, 60s = 1.0m, 90s = 1.5m)
-    const sec = durationInSeconds && durationInSeconds > 0 ? durationInSeconds : 60;
-    const baseMinutes = sec / 60;
+    // Exact minutes based on downloaded video duration (e.g. 15s = 0.25m, 30s = 0.5m, 45s = 0.75m, 60s = 1.0m)
+    // 100% precision down to the second - zero extra deductions
+    const exactSeconds = durationInSeconds && durationInSeconds > 0 ? durationInSeconds : 60;
+    const baseMinutes = exactSeconds / 60;
 
     // ₹199 Plan rule:
     // If using 4K: 50 minutes quota
@@ -84,7 +87,7 @@ export default function App() {
     // Ratio: 160 / 50 = 3.2x credit deduction for 4K video rendering
     const is4K = is4KJob !== undefined ? is4KJob : (videoState.is4K || false);
     const rateMultiplier = is4K ? (160 / 50) : 1.0;
-    const minutesToDeduct = Number(Math.max(0.1, (baseMinutes * rateMultiplier)).toFixed(1));
+    const minutesToDeduct = (baseMinutes * rateMultiplier);
     useMinutes(minutesToDeduct);
   };
 
@@ -443,11 +446,7 @@ export default function App() {
   const handleExport = async () => {
     if (user && user.minutes !== undefined && user.minutes <= 0) {
       setIsPricingOpen(true);
-      if (user.currency === 'USD' && user.plan === 'free') {
-        alert("You have used your daily free trial minutes! They will refresh in the next 24-hour cycle (Total 50 Mins Trial).");
-      } else {
-        alert("Aapke Free Minutes khatam ho chuke hain. Mazeed video download karne ke liye please Starter Pack (₹49) le lijiye!");
-      }
+      alert("Aapka One-Time Free Trial (5 Minutes) khatam ho chuka hai. Mazeed videos download karne ke liye please plan (starting ₹49) select karein!");
       return;
     }
     const activeClip = videoState.clips.find(c => c.id === selectedClipId);
@@ -471,11 +470,7 @@ export default function App() {
   const handleExportAll = async () => {
     if (user && user.minutes !== undefined && user.minutes <= 0) {
       setIsPricingOpen(true);
-      if (user.currency === 'USD' && user.plan === 'free') {
-        alert("You have used your daily free trial minutes! They will refresh in the next 24-hour cycle (Total 50 Mins Trial).");
-      } else {
-        alert("Aapke Free Minutes khatam ho chuke hain. Mazeed video download karne ke liye please Starter Pack (₹49) le lijiye!");
-      }
+      alert("Aapka One-Time Free Trial (5 Minutes) khatam ho chuka hai. Mazeed videos download karne ke liye please plan (starting ₹49) select karein!");
       return;
     }
     if (!videoState.url || videoState.clips.length === 0) return;
@@ -485,11 +480,7 @@ export default function App() {
       const clip = videoState.clips[i];
       if (user && user.minutes !== undefined && user.minutes <= 0) {
         setIsPricingOpen(true);
-        if (user.currency === 'USD' && user.plan === 'free') {
-          alert("You have used your daily free trial minutes! They will refresh in the next 24-hour cycle (Total 50 Mins Trial).");
-        } else {
-          alert("Aapke Free Minutes khatam ho chuke hain. Mazeed video download karne ke liye please Starter Pack (₹49) le lijiye!");
-        }
+        alert("Aapka One-Time Free Trial (5 Minutes) khatam ho chuka hai. Mazeed videos download karne ke liye please plan (starting ₹49) select karein!");
         break;
       }
       const url = await processRenderJob(clip);
@@ -664,6 +655,10 @@ export default function App() {
       <Route path="/refund-policy" element={<RefundPolicy />} />
       <Route path="/cancellation-refund" element={<RefundPolicy />} />
       <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/blog" element={<BlogPage />} />
+      <Route path="/guides" element={<BlogPage />} />
+      <Route path="/about" element={<AboutUs />} />
+      <Route path="/about-us" element={<AboutUs />} />
     </Routes>
   );
 }

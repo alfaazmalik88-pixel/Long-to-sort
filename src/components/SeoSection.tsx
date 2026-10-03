@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import React, { useState } from 'react';
-import { ArrowRight, ShieldCheck, FileText, Mail, RotateCcw, Zap, Sparkles, Check, ChevronDown, Flame, Video, Layers } from 'lucide-react';
+import { ArrowRight, ShieldCheck, FileText, Mail, RotateCcw, Zap, Sparkles, Check, ChevronDown, Flame, Video, Layers, BookOpen } from 'lucide-react';
 
 const SocialGif = () => (
   <div className="w-full aspect-[21/9] sm:aspect-[24/9] bg-[#0a0a0a] rounded-2xl overflow-hidden border border-zinc-800/80 relative flex items-center justify-center shadow-lg">
@@ -53,7 +53,7 @@ export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
   const faqs = [
     {
       q: 'Is ViralClip AI free to use?',
-      a: 'Yes! You get 10 free minutes daily (50 minutes total lifetime trial quota) that auto-resets every 24 hours. Affordable lifetime packs start at just ₹49 with zero monthly subscriptions.'
+      a: 'Yes! Every new creator gets 5 free processing minutes as a one-time trial to test out 1080p rendering and animated captions without paying anything. Lifetime top-up packs start at just ₹49.'
     },
     {
       q: 'Does it leave any watermark?',
@@ -96,7 +96,7 @@ export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
               <span className="text-[10px] text-zinc-400">Zero manual cutting</span>
             </div>
             <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-2 text-center">
-              <span className="text-emerald-400 font-extrabold text-xs block">🛡️ 0 Watermark</span>
+              <span className="text-indigo-400 font-extrabold text-xs block">🛡️ 0 Watermark</span>
               <span className="text-[10px] text-zinc-400">Pure creator branding</span>
             </div>
             <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-2 text-center">
@@ -117,9 +117,9 @@ export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
                 const el = document.getElementById('pricing');
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="h-11 px-5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 transition-all cursor-pointer shadow-sm"
+              className="h-11 px-5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-zinc-100 border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer shadow-sm"
             >
-              <span>See Plans (₹49) • Free 10m/Day Trial</span>
+              <span>See Plans (₹49) • 5 Mins Free Trial</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
@@ -149,8 +149,8 @@ export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
             />
             {/* Top Left Floating Badge */}
             <div className="absolute top-3 left-3 z-20 pointer-events-none">
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-black/85 backdrop-blur-md text-emerald-400 border border-emerald-500/30 shadow-md flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-black/85 backdrop-blur-md text-indigo-300 border border-indigo-500/30 shadow-md flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
                 <span>Live Interactive Demo</span>
               </span>
             </div>
@@ -244,10 +244,24 @@ export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
 
       </div>
       
-      {/* Footer Grid - Compact, Sleek & Elegant (All 5 Cards Sized Down & Clean) */}
+      {/* Footer Grid - Compact, Sleek & Elegant (All 6 Cards Sized Down & Clean) */}
       <div className="w-full bg-[#0a0a0c] border-t border-zinc-800/80 py-6 px-3 sm:px-4 shadow-xl">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5">
-          {/* Card 1: Pricing & Plans with INR and Dollar */}
+        <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-2.5">
+          {/* Card 1: Viral Guides & Blog */}
+          <Link 
+            to="/blog" 
+            className="bg-zinc-900/80 hover:bg-zinc-800/90 border border-purple-500/40 hover:border-purple-400/80 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5 transition-all shadow-sm group active:scale-95 text-center"
+          >
+            <div className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-400/30 flex items-center justify-center text-purple-300 group-hover:scale-105 transition-transform shrink-0">
+              <BookOpen className="w-3.5 h-3.5 text-purple-300" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors">Viral Guides</div>
+              <div className="text-[10px] text-zinc-400 mt-0.5 leading-tight">Shorts & SEO Tips</div>
+            </div>
+          </Link>
+
+          {/* Card 2: Pricing & Plans with INR and Dollar */}
           <Link 
             to="/pricing" 
             className="bg-zinc-900/80 hover:bg-zinc-800/90 border border-amber-500/40 hover:border-amber-400/80 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5 transition-all shadow-sm group active:scale-95 text-center"
@@ -258,15 +272,15 @@ export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
             <div>
               <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">Pricing & Plans</div>
               <div className="text-[10px] font-semibold text-amber-300/90 mt-0.5 leading-tight">
-                ₹0 / ₹49 / ₹99 / ₹199
+                ₹0 / ₹49 / ₹99
               </div>
-              <div className="text-[9px] text-zinc-400 font-medium leading-tight">
-                ($0 • $4.99 • $9.99 • $19.99)
+              <div className="text-[9px] font-medium text-zinc-400 mt-0.5 leading-tight">
+                $0 / $4.99 / $9.99 USD
               </div>
             </div>
           </Link>
 
-          {/* Card 2: Privacy Policy */}
+          {/* Card 3: Privacy Policy */}
           <Link 
             to="/privacy-policy" 
             className="bg-zinc-900/80 hover:bg-zinc-800/90 border border-emerald-500/40 hover:border-emerald-400/80 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5 transition-all shadow-sm group active:scale-95 text-center"
@@ -280,7 +294,7 @@ export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
             </div>
           </Link>
           
-          {/* Card 3: Terms of Service */}
+          {/* Card 4: Terms of Service */}
           <Link 
             to="/terms-of-service" 
             className="bg-zinc-900/80 hover:bg-zinc-800/90 border border-cyan-500/40 hover:border-cyan-400/80 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5 transition-all shadow-sm group active:scale-95 text-center"
@@ -294,7 +308,7 @@ export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
             </div>
           </Link>
 
-          {/* Card 4: Refund & Cancel */}
+          {/* Card 5: Refund & Cancel */}
           <Link 
             to="/refund-policy" 
             className="bg-zinc-900/80 hover:bg-zinc-800/90 border border-rose-500/40 hover:border-rose-400/80 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5 transition-all shadow-sm group active:scale-95 text-center"
@@ -308,10 +322,10 @@ export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
             </div>
           </Link>
 
-          {/* Card 5: Contact Support */}
+          {/* Card 6: Contact Support */}
           <Link 
             to="/contact" 
-            className="col-span-2 sm:col-span-1 md:col-span-1 bg-zinc-900/80 hover:bg-zinc-800/90 border border-indigo-500/40 hover:border-indigo-400/80 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5 transition-all shadow-sm group active:scale-95 text-center"
+            className="bg-zinc-900/80 hover:bg-zinc-800/90 border border-indigo-500/40 hover:border-indigo-400/80 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5 transition-all shadow-sm group active:scale-95 text-center"
           >
             <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-400/30 flex items-center justify-center text-indigo-300 group-hover:scale-105 transition-transform shrink-0">
               <Mail className="w-3.5 h-3.5 text-indigo-300" />
@@ -321,6 +335,20 @@ export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
               <div className="text-[10px] text-zinc-400 mt-0.5 leading-tight truncate max-w-[130px] sm:max-w-none">viralclipaihelp@gmail.com</div>
             </div>
           </Link>
+        </div>
+
+        {/* Legal & Compliance Quick Links */}
+        <div className="max-w-5xl mx-auto mt-5 pt-4 border-t border-zinc-900/90 flex flex-wrap items-center justify-between gap-3 text-[11px] text-zinc-500">
+          <p>© 2026 ViralClip AI. All rights reserved. Built for high-growth creators.</p>
+          <div className="flex items-center gap-4 flex-wrap font-medium">
+            <Link to="/about" className="text-zinc-400 hover:text-white transition-colors">About Us</Link>
+            <Link to="/blog" className="text-zinc-400 hover:text-white transition-colors">Viral Guides</Link>
+            <Link to="/pricing" className="text-zinc-400 hover:text-white transition-colors">Pricing (₹49 / $5)</Link>
+            <Link to="/privacy-policy" className="text-zinc-400 hover:text-white transition-colors">Privacy Policy</Link>
+            <Link to="/terms-of-service" className="text-zinc-400 hover:text-white transition-colors">Terms</Link>
+            <Link to="/refund-policy" className="text-zinc-400 hover:text-white transition-colors">Refund Policy</Link>
+            <Link to="/contact" className="text-zinc-400 hover:text-white transition-colors">Contact</Link>
+          </div>
         </div>
       </div>
     </div>

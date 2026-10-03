@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileText, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { CallToActionBanner } from '../components/CallToActionBanner';
 
 export const TermsOfService = () => {
   return (
@@ -37,6 +38,11 @@ export const TermsOfService = () => {
           <p>
             Due to the immediate consumption of digital cloud compute resources upon video processing or AI rendering, transactions are considered finalized and non-refundable once digital rendering begins or completes. Requests for cancellation must be submitted prior to the commencement of computational tasks. In instances of verified technical system failures or incomplete file outputs, credits or full refunds are provided. For full details, review our <Link to="/refund-policy" className="text-indigo-400 hover:underline font-medium">Cancellation & Refund Policy</Link>.
           </p>
+
+          <CallToActionBanner 
+            title="Start Creating High-Impact Shorts"
+            subtitle="Ready to grow on YouTube Shorts, Instagram Reels & TikTok? Claim your 5 free minutes trial now."
+          />
         </div>
       </div>
     </div>

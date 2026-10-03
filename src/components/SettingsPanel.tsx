@@ -404,7 +404,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </span>
                 {settings.enableCaptions && (
                   <span className="text-[9px] text-amber-400/90 font-semibold mt-0.5">
-                    🌐 Whisper Logic: Hindi ➔ Hinglish (Roman) • Global ➔ Original
+                    🌐 Smart AI Subtitles: Auto-detects speech & synchronizes word highlights
                   </span>
                 )}
               </div>

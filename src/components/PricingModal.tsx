@@ -51,7 +51,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
     }
     // Strict lock on Global paid plans so users cannot click and activate credits without payment
     if (currency === 'USD') {
-      alert("🔒 Global payment integration (PayPal & International Cards) is in setup. Global paid plans are locked to prevent unauthorized credit activation. Please use your Free 10 Mins/Day (50 Mins Total) Trial or pay via India (INR) UPI/Cards!");
+      alert("🔒 Global payment integration (PayPal & International Cards) is in setup. Global paid plans are locked to prevent unauthorized credit activation. Please use your One-Time 5 Mins Free Trial or pay via India (INR) UPI/Cards!");
       return;
     }
     setSelectedTier(tier);
@@ -74,17 +74,25 @@ export const PricingModal: React.FC<PricingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[260] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-zinc-950 border border-zinc-800 rounded-3xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl relative overflow-hidden my-auto">
-        {/* Modal Top Bar */}
-        <div className="p-3 sm:p-5 border-b border-zinc-900 shrink-0 bg-zinc-950/95 backdrop-blur z-20 space-y-2.5">
+    <div 
+      className="fixed inset-0 z-[260] bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div 
+        className="bg-zinc-950 border border-zinc-800 rounded-2xl sm:rounded-3xl w-full max-w-6xl h-[92vh] max-h-[92vh] flex flex-col shadow-2xl relative overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Top Bar - Permanently Fixed at Top */}
+        <div className="p-3 sm:p-4 border-b border-zinc-900 shrink-0 bg-zinc-950 sticky top-0 z-30 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
                 <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-400/20" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-base sm:text-xl font-bold text-white tracking-tight truncate">
+                <h2 className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight truncate">
                   Select Your Plan
                 </h2>
                 <p className="text-[10px] sm:text-xs text-zinc-400 truncate">
@@ -201,7 +209,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
         </div>
 
         {/* Scrollable Container with Fast Side Line Indicator */}
-        <div className="relative flex-1 flex flex-col overflow-hidden">
+        <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Ultra-Fast Responsive Side Scroll Line Indicator */}
           <div className="absolute top-0 right-0 bottom-0 w-[4px] bg-zinc-900/30 pointer-events-none z-30">
             <div 
@@ -213,7 +221,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
 
           <div 
             onScroll={handleFastScroll}
-            className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar overscroll-y-contain pt-4 pb-28 sm:pb-8"
+            className="p-3 sm:p-5 overflow-y-auto flex-1 space-y-4 custom-scrollbar overscroll-contain pt-3 pb-24 sm:pb-8"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 items-stretch">
             {tiers.map((tier) => {

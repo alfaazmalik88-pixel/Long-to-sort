@@ -1,6 +1,7 @@
 import React from 'react';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { CallToActionBanner } from '../components/CallToActionBanner';
 
 export const Contact = () => {
   return (
@@ -31,6 +32,11 @@ export const Contact = () => {
               </a>
             </div>
           </div>
+
+          <CallToActionBanner 
+            title="Have a Video Ready to Edit?"
+            subtitle="Start converting your long video into high-retention viral shorts with our 5 minutes free trial."
+          />
         </div>
       </div>
     </div>

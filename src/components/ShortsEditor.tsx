@@ -131,7 +131,7 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
   let activeSubtitle = clip.subtitles?.find(s => currentTime >= s.startTime && currentTime <= s.endTime)
     || clip.subtitles?.find(s => relTime >= s.startTime && relTime <= s.endTime);
 
-  // If no subtitles exist yet, generate dynamic synchronized Hinglish words based on playback
+  // If no subtitles exist yet, generate dynamic synchronized captions based on playback
   if (!activeSubtitle) {
     const cycle = relTime % 12;
     if (cycle < 3) {
@@ -365,11 +365,11 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                         style={{
                           background: 'transparent',
                           backgroundColor: 'transparent',
-                          WebkitTextStroke: isActive ? '1.5px #000' : '1.2px #000',
+                          WebkitTextStroke: isActive ? '1.2px #000' : '1px #000',
                           paintOrder: 'stroke fill',
                           textShadow: isActive
-                            ? '3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 0 3px 8px rgba(0,0,0,0.95)'
-                            : '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 5px rgba(0,0,0,0.85)'
+                            ? '1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000'
+                            : '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000'
                         }}
                       >
                         {w.word}
@@ -382,9 +382,9 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                     style={{
                       background: 'transparent',
                       backgroundColor: 'transparent',
-                      WebkitTextStroke: '1.5px #000',
+                      WebkitTextStroke: '1.2px #000',
                       paintOrder: 'stroke fill',
-                      textShadow: '3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 0 3px 8px rgba(0,0,0,0.95)'
+                      textShadow: '1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000'
                     }}
                   >
                     {activeSubtitle.text}

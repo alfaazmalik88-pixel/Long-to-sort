@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { CallToActionBanner } from '../components/CallToActionBanner';
 
 export const PrivacyPolicy = () => {
   return (
@@ -35,6 +36,11 @@ export const PrivacyPolicy = () => {
           <p>
             We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.
           </p>
+
+          <CallToActionBanner 
+            title="Privacy First AI Video Repurposing"
+            subtitle="Your raw video files never leave your device. Try our 5 minutes free trial with 100% data safety."
+          />
         </div>
       </div>
     </div>

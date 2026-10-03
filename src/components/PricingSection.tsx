@@ -27,7 +27,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
     }
     // Strict lock on Global paid plans so users cannot click and activate credits without payment
     if (currency === 'USD') {
-      alert("🔒 Global payment integration (PayPal & International Cards) is in setup. Global paid plans are locked to prevent unauthorized credit activation. Please use your Free 10 Mins/Day (50 Mins Total) Trial or pay via India (INR) UPI/Cards!");
+      alert("🔒 Global payment integration (PayPal & International Cards) is in setup. Global paid plans are locked to prevent unauthorized credit activation. Please use your One-Time 5 Mins Free Trial or pay via India (INR) UPI/Cards!");
       return;
     }
     setSelectedTier(tier);
@@ -103,9 +103,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
             </div>
           </div>
 
-          {/* No Auto-Debit Guarantee in English */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-semibold shadow-xs">
-            <Shield className="w-3.5 h-3.5 text-emerald-400" />
+          {/* No Auto-Debit Guarantee */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 text-zinc-400 text-xs font-medium">
+            <Shield className="w-3.5 h-3.5 text-indigo-400" />
             <span>100% One-Time Payment • No Auto-Debit • Never Automatically Deducted</span>
           </div>
         </div>
@@ -217,7 +217,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
           <div className="flex items-center gap-2">
             <span className="text-amber-400 font-semibold text-[11px] sm:text-xs flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-amber-400" />
-              Global USD Payments: Locked (Setup in Progress) • Use Free 10m/Day (50m Total) Trial
+              Global USD Payments: Locked (Setup in Progress) • Pay via India (INR) UPI/Cards
             </span>
           </div>
         </div>

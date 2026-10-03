@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User as UserIcon, LogOut, ChevronDown, Zap, Sparkles } from 'lucide-react';
+import { User as UserIcon, LogOut, ChevronDown, Zap, Sparkles, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCountryPricing } from '../utils/countryPricing';
+import { formatMinutesAndSeconds } from '../utils/formatTime';
 import { Link, useLocation } from 'react-router-dom';
 
 interface HeaderProps {
@@ -82,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
           className="hidden sm:flex text-[10px] uppercase font-extrabold tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-all cursor-pointer items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-          <span>{user?.currency === 'USD' && user?.plan === 'free' ? 'Free 10m/Day' : (user?.planName || 'Free Plan')}</span>
+          <span>{user?.planName || 'Free Trial'}</span>
         </button>
       </div>
 
@@ -95,6 +96,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
           }`}
         >
           AI Generator
+        </Link>
+
+        <Link
+          to="/blog"
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            location.pathname === '/blog' || location.pathname === '/guides' ? 'text-white bg-zinc-900 border border-zinc-800 shadow-sm' : 'text-zinc-400 hover:text-white'
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Viral Guides</span>
         </Link>
 
         {/* Pricing Button */}
@@ -132,12 +143,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
                   e.stopPropagation();
                   handlePricingClick(e);
                 }}
-                title={user?.currency === 'USD' && user?.plan === 'free' ? "Daily 10m Free Trial • Auto-resets every 24h" : "Click to view / buy minutes"}
+                title="One-Time Free Trial • Click to view / buy minutes"
                 className="hidden md:flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-[11px] font-bold cursor-pointer transition-all"
               >
                 <Sparkles className="w-3 h-3 text-indigo-400" />
                 <span>
-                  {typeof user.minutes === 'number' ? (Number.isInteger(user.minutes) ? user.minutes : user.minutes.toFixed(1)) : 5} {user?.currency === 'USD' && user?.plan === 'free' ? 'm Today' : 'Mins'}
+                  {formatMinutesAndSeconds(user.minutes)}
                 </span>
               </div>
 
@@ -168,34 +179,18 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[11px] text-zinc-400">Current Plan:</span>
                     <span className="text-[11px] font-bold text-white px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800">
-                      {user.currency === 'USD' && user.plan === 'free' ? 'Free 10m/Day' : (user.planName || 'Free Plan')}
+                      {user.planName || 'Free Trial'}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-zinc-400">
-                      {user.currency === 'USD' && user.plan === 'free' ? "Today's Free Minutes:" : "Remaining Minutes:"}
+                      Remaining Minutes:
                     </span>
                     <span className="text-xs font-extrabold text-indigo-400">
-                      {typeof user.minutes === 'number' ? (Number.isInteger(user.minutes) ? user.minutes : user.minutes.toFixed(1)) : 5} Mins
+                      {formatMinutesAndSeconds(user.minutes)}
                     </span>
                   </div>
-
-                  {user.currency === 'USD' && user.plan === 'free' && (
-                    <div className="text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded-xl border border-zinc-800/80 space-y-1">
-                      <div className="flex justify-between font-semibold">
-                        <span>Total Trial Quota:</span>
-                        <span className="text-zinc-200">50 Minutes Total</span>
-                      </div>
-                      <div className="flex justify-between text-zinc-500">
-                        <span>Daily Allowance:</span>
-                        <span className="text-emerald-400">10 Mins / 24 Hours</span>
-                      </div>
-                      <div className="text-amber-400/90 pt-0.5 text-[9px]">
-                        ⚡ Resets automatically every 24 hours
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <div className="py-1">
@@ -215,6 +210,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
                       ₹49 / $5
                     </span>
                   </button>
+
+                  <Link
+                    to="/blog"
+                    onClick={() => setDropdownOpen(false)}
+                    className="w-full px-4 py-2.5 text-left text-xs font-semibold text-zinc-300 hover:bg-zinc-900 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Viral Guides & Tutorials</span>
+                  </Link>
 
                   <button
                     onClick={() => {

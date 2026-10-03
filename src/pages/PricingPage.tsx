@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PricingSection } from '../components/PricingSection';
+import { CallToActionBanner } from '../components/CallToActionBanner';
 
 export const PricingPage: React.FC = () => {
   return (
@@ -15,6 +16,14 @@ export const PricingPage: React.FC = () => {
         </Link>
       </div>
       <PricingSection />
+      <div className="max-w-4xl mx-auto px-4 pb-16">
+        <CallToActionBanner 
+          title="Ready to Create Your First Viral Clip?"
+          subtitle="Upload any video up to 60 minutes. Get 5 free processing minutes instantly on signup."
+          primaryButtonText="Upload Video Now (5 Mins Free)"
+          showPricingLink={false}
+        />
+      </div>
     </div>
   );
 };
