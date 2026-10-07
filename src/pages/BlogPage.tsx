@@ -17,7 +17,7 @@ import {
   Play, 
   Video 
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   BLOG_ARTICLES, 
   BLOG_CATEGORIES, 
@@ -28,10 +28,26 @@ import {
 
 export const BlogPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<BlogCategory>('All Guides');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeArticle, setActiveArticle] = useState<BlogArticle | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+
+  // Auto-open article from query param if provided (e.g. ?article=opus-clip-alternative)
+  React.useEffect(() => {
+    const slugParam = searchParams.get('article') || searchParams.get('slug');
+    if (slugParam) {
+      const found = BLOG_ARTICLES.find(a => a.slug === slugParam || a.id === slugParam);
+      if (found) {
+        setActiveArticle(found);
+      }
+    }
+    const catParam = searchParams.get('category');
+    if (catParam && (BLOG_CATEGORIES as readonly string[]).includes(catParam)) {
+      setSelectedCategory(catParam as BlogCategory);
+    }
+  }, [searchParams]);
 
   // Filter articles based on category and search
   const filteredArticles = BLOG_ARTICLES.filter((article) => {
@@ -46,6 +62,8 @@ export const BlogPage: React.FC = () => {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
+      case 'AI Tool Alternatives':
+        return <Crown className="w-3.5 h-3.5 text-purple-400" />;
       case 'Viral Growth Guides':
         return <Zap className="w-3.5 h-3.5 text-indigo-400" />;
       case 'AI Video Editing Tips':
@@ -155,6 +173,132 @@ export const BlogPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Dedicated 4 Alternatives Quick Links Showcase */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 pb-8">
+        <div className="bg-gradient-to-b from-zinc-950 via-zinc-950/90 to-zinc-900/40 border border-zinc-800 rounded-3xl p-5 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-zinc-850 pb-5">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 uppercase tracking-wider">
+                <Crown className="w-4 h-4" />
+                <span>2026 Competitive Breakdowns</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">
+                Top AI Video Repurposing Alternatives
+              </h2>
+              <p className="text-xs sm:text-sm text-zinc-400 max-w-xl">
+                Compare ViralClip AI side-by-side with industry competitors on pricing, watermarks, auto-debit policies, and render speed.
+              </p>
+            </div>
+            <span className="text-[11px] font-bold text-zinc-500 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+              4 Separate In-Depth Guides
+            </span>
+          </div>
+
+          {/* 4 Distinct Tool Alternative Cards with Separate Links */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. Opus Clip Alternative */}
+            <Link
+              to="/opus-clip-alternative"
+              className="bg-zinc-900/70 hover:bg-zinc-900 border border-indigo-500/30 hover:border-indigo-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 transition-all duration-200 group hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 cursor-pointer"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wide bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                    #1 Highest Volume
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-bold">5 min read</span>
+                </div>
+                <h3 className="text-base font-extrabold text-white group-hover:text-indigo-300 transition-colors leading-snug">
+                  Opus Clip Alternative
+                </h3>
+                <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed">
+                  No Auto-Debit, Pay-As-You-Go ($5 / ₹49). Never lose unused credits every 30 days.
+                </p>
+              </div>
+              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-bold text-indigo-400 group-hover:text-indigo-300">
+                <span>View Opus Comparison</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </Link>
+
+            {/* 2. Submagic Alternative */}
+            <Link
+              to="/submagic-alternative"
+              className="bg-zinc-900/70 hover:bg-zinc-900 border border-amber-500/30 hover:border-amber-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 transition-all duration-200 group hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10 cursor-pointer"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    Reels & Captions
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-bold">4 min read</span>
+                </div>
+                <h3 className="text-base font-extrabold text-white group-hover:text-amber-300 transition-colors leading-snug">
+                  Submagic Alternative
+                </h3>
+                <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed">
+                  Authentic Hormozi Captions & 1080p Export (Zero Watermark) without paying $20/month.
+                </p>
+              </div>
+              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-bold text-amber-400 group-hover:text-amber-300">
+                <span>View Submagic Comparison</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </Link>
+
+            {/* 3. Klap Alternative */}
+            <Link
+              to="/klap-alternative"
+              className="bg-zinc-900/70 hover:bg-zinc-900 border border-emerald-500/30 hover:border-emerald-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 transition-all duration-200 group hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 cursor-pointer"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wide bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    Most Affordable
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-bold">4 min read</span>
+                </div>
+                <h3 className="text-base font-extrabold text-white group-hover:text-emerald-300 transition-colors leading-snug">
+                  Klap.app Alternative
+                </h3>
+                <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed">
+                  Cheapest for Shorts & Reels. Skip Klap's $29/mo starter fee and heavy free watermark logos.
+                </p>
+              </div>
+              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-bold text-emerald-400 group-hover:text-emerald-300">
+                <span>View Klap Comparison</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </Link>
+
+            {/* 4. Vizard AI Alternative */}
+            <Link
+              to="/vizard-alternative"
+              className="bg-zinc-900/70 hover:bg-zinc-900 border border-purple-500/30 hover:border-purple-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 transition-all duration-200 group hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/10 cursor-pointer"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wide bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                    1-Click Fast Render
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-bold">4 min read</span>
+                </div>
+                <h3 className="text-base font-extrabold text-white group-hover:text-purple-300 transition-colors leading-snug">
+                  Vizard AI Alternative
+                </h3>
+                <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed">
+                  Faster, Simpler with 1-Click Viral Moments Detection. Zero cluttered timeline bloat.
+                </p>
+              </div>
+              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-bold text-purple-400 group-hover:text-purple-300">
+                <span>View Vizard Comparison</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Article Cards Grid */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         {filteredArticles.length === 0 ? (
@@ -217,24 +361,56 @@ export const BlogPage: React.FC = () => {
                 {/* Content Details */}
                 <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                   <div className="space-y-2">
-                    <h3 className="text-base sm:text-lg font-bold text-white leading-snug group-hover:text-indigo-300 transition-colors">
-                      {article.title}
-                    </h3>
+                    {article.category === 'AI Tool Alternatives' ? (
+                      <Link 
+                        to={`/${article.slug}`}
+                        className="block text-base sm:text-lg font-bold text-white leading-snug hover:text-indigo-300 transition-colors"
+                      >
+                        {article.title}
+                      </Link>
+                    ) : (
+                      <h3 
+                        onClick={() => setActiveArticle(article)}
+                        className="text-base sm:text-lg font-bold text-white leading-snug group-hover:text-indigo-300 transition-colors cursor-pointer"
+                      >
+                        {article.title}
+                      </h3>
+                    )}
                     <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
                       {article.summary}
                     </p>
                   </div>
 
-                  {/* Read Guide Action Button */}
-                  <div className="pt-2 border-t border-zinc-900 flex items-center justify-between">
+                  {/* Action Buttons with Separate Links */}
+                  <div className="pt-2 border-t border-zinc-900 flex items-center justify-between gap-2">
                     <span className="text-[11px] text-zinc-500 font-medium">{article.date}</span>
-                    <button
-                      onClick={() => setActiveArticle(article)}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-400 group-hover:text-indigo-300 group-hover:translate-x-0.5 transition-all cursor-pointer"
-                    >
-                      <span>Read Guide</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {article.category === 'AI Tool Alternatives' ? (
+                        <>
+                          <button
+                            onClick={() => setActiveArticle(article)}
+                            className="text-[11px] font-bold text-zinc-400 hover:text-white px-2 py-1 rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer"
+                          >
+                            Quick View
+                          </button>
+                          <Link
+                            to={`/${article.slug}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 group-hover:translate-x-0.5 transition-all"
+                          >
+                            <span>Open Page</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setActiveArticle(article)}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-400 group-hover:text-indigo-300 group-hover:translate-x-0.5 transition-all cursor-pointer"
+                        >
+                          <span>Read Guide</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </article>
@@ -379,6 +555,75 @@ export const BlogPage: React.FC = () => {
                   </p>
                 </div>
               </div>
+
+              {/* If Competitor Comparison is Present */}
+              {activeArticle.competitorComparison && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between gap-3 border-b border-zinc-900 pb-2">
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-amber-400" />
+                      <span>{activeArticle.competitorComparison.competitorName} vs ViralClip AI</span>
+                    </h3>
+                    <Link
+                      to={`/${activeArticle.slug}`}
+                      className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                    >
+                      <span>Full Dedicated Page</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3.5 rounded-2xl bg-red-950/20 border border-red-500/20 space-y-1">
+                      <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">
+                        {activeArticle.competitorComparison.competitorName} Drawback
+                      </span>
+                      <p className="text-xs text-zinc-300">
+                        {activeArticle.competitorComparison.keyPainPoint}
+                      </p>
+                      <div className="text-[11px] font-extrabold text-red-400 pt-1">
+                        Cost: {activeArticle.competitorComparison.competitorPrice}
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 space-y-1">
+                      <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                        ViralClip AI Solution
+                      </span>
+                      <p className="text-xs text-zinc-300">
+                        {activeArticle.competitorComparison.viralClipSolution}
+                      </p>
+                      <div className="text-[11px] font-extrabold text-emerald-400 pt-1">
+                        Cost: {activeArticle.competitorComparison.viralClipPrice}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Feature comparison table */}
+                  <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden text-xs">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-zinc-800 bg-zinc-900/90 text-zinc-400">
+                            <th className="py-2.5 px-3.5 font-bold">Feature</th>
+                            <th className="py-2.5 px-3.5 font-bold text-zinc-400">{activeArticle.competitorComparison.competitorName}</th>
+                            <th className="py-2.5 px-3.5 font-bold text-indigo-300 bg-indigo-950/30">ViralClip AI</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-850 text-zinc-300">
+                          {activeArticle.competitorComparison.featureComparison.map((f, i) => (
+                            <tr key={i} className="hover:bg-zinc-800/30">
+                              <td className="py-2 px-3.5 font-medium text-white">{f.feature}</td>
+                              <td className="py-2 px-3.5 text-zinc-400">{f.competitor}</td>
+                              <td className="py-2 px-3.5 font-bold text-emerald-300 bg-indigo-950/20">{f.viralClip}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Step by step action guide */}
               <div className="space-y-4 pt-2">

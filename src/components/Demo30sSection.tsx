@@ -132,7 +132,7 @@ export const Demo30sSection: React.FC<Demo30sSectionProps> = ({
             {/* Video Element */}
             <video
               ref={videoRef}
-              src="/demo-sample.mp4?v=2"
+              src="/official-demo.mp4?v=clean"
               className="w-full h-full object-cover cursor-pointer"
               playsInline
               autoPlay

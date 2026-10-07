@@ -36,7 +36,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       handleClose();
     } catch (err: any) {
       if (err?.code === 'auth/popup-closed-by-user') {
-        setError('Sign-in window band ho gaya. Kripya dobara Continue with Google par click karein.');
+        setError('The sign-in popup was closed. Please click Continue with Google again to sign in.');
       } else {
         const rawMessage = err?.code ? `${err.code}: ${err.message}` : (err?.message || String(err));
         setError(rawMessage);
@@ -78,7 +78,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           Sign In with Google
         </h2>
         <p className="text-xs text-zinc-400 mt-1.5 mb-6 leading-relaxed">
-          Viral video create, edit aur bina watermark export karne ke liye apne Google account se sign in karein.
+          Sign in with your Google account to create, edit, and export viral clips without watermarks.
         </p>
 
         {/* Error message */}

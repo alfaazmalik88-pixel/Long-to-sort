@@ -217,8 +217,8 @@ export const AboutUs: React.FC = () => {
 
             <div className="space-y-1">
               <span className="text-zinc-500 font-semibold block">Official Website:</span>
-              <a href="https://viralclipai.in/" className="text-indigo-400 font-bold hover:underline">
-                https://viralclipai.in/
+              <a href="https://viralclipai.pro/" className="text-indigo-400 font-bold hover:underline">
+                https://viralclipai.pro/
               </a>
             </div>
 

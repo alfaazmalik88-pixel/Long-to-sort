@@ -56,6 +56,29 @@ app.post('/api/upload', upload.single('video'), (req, res) => {
   });
 });
 
+// Demo Video Upload Endpoint
+app.post('/api/upload-demo', upload.single('video'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No video file provided.' });
+  }
+  const uploadedPath = req.file.path;
+  const pubBroadcast = path.join(process.cwd(), 'public', 'broadcast-demo.mp4');
+  const pubSample = path.join(process.cwd(), 'public', 'demo-sample.mp4');
+  const distBroadcast = path.join(process.cwd(), 'dist', 'broadcast-demo.mp4');
+  const distSample = path.join(process.cwd(), 'dist', 'demo-sample.mp4');
+  try {
+    fs.copyFileSync(uploadedPath, pubBroadcast);
+    fs.copyFileSync(uploadedPath, pubSample);
+    if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
+      fs.copyFileSync(uploadedPath, distBroadcast);
+      fs.copyFileSync(uploadedPath, distSample);
+    }
+    return res.json({ success: true, url: '/broadcast-demo.mp4?v=' + Date.now() });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Chunked Upload Endpoint
 app.post('/api/upload-chunk', upload.single('chunk'), (req, res) => {
   if (!req.file) {
@@ -437,17 +460,17 @@ app.post('/api/whisper-transcribe', async (req, res) => {
       console.warn('Local Python whisper execution warning:', scriptErr);
     }
 
-    // 3. Fallback if no speech detected or offline: produce viral Hinglish word-level timestamps
+    // 3. Fallback if no speech detected or offline: produce viral English word-level timestamps
     if (subtitles.length === 0) {
       const phrases = [
-        ["YEH", "EK", "SECRET"],
-        ["SAB", "BADAL", "DEGA"],
-        ["APNE", "LONG", "VIDEOS"],
-        ["VIRAL", "SHORTS", "BANAO"],
-        ["SIRF", "KUCH", "SECONDS"],
-        ["END", "TAK", "DEKHO"],
-        ["GROW", "KARO", "FAST"],
-        ["FOLLOW", "ZAROOR", "KARNA"]
+        ["THIS", "IS", "THE", "SECRET"],
+        ["CHANGES", "EVERYTHING", "FOREVER"],
+        ["TURN", "LONG", "VIDEOS"],
+        ["INTO", "VIRAL", "SHORTS"],
+        ["IN", "JUST", "SECONDS"],
+        ["WATCH", "TILL", "END"],
+        ["GROW", "YOUR", "AUDIENCE"],
+        ["FOLLOW", "FOR", "MORE"]
       ];
       const segDuration = 2.0;
       const count = Math.ceil(dur / segDuration);
@@ -571,7 +594,45 @@ const handleTrim = (req: express.Request, res: express.Response) => {
   let command = `"${ffmpegPath}" -y -ss ${startTime || 0} -i "${inputPath}" -t ${duration || 10}`;
 
   const shouldBurnTitle = titleSticker && title && title.trim() !== '';
-  const shouldBurnCaptions = enableCaptions && Array.isArray(subtitles) && subtitles.length > 0;
+  let effectiveSubtitles = Array.isArray(subtitles) && subtitles.length > 0 ? subtitles : [];
+  
+  // If captions enabled but empty subtitles array received, generate viral animated captions
+  if (enableCaptions && effectiveSubtitles.length === 0) {
+    const phrases = [
+      ["THIS", "IS", "THE", "SECRET"],
+      ["CHANGES", "EVERYTHING", "FOREVER"],
+      ["TURN", "LONG", "VIDEOS"],
+      ["INTO", "VIRAL", "SHORTS"],
+      ["IN", "JUST", "SECONDS"],
+      ["WATCH", "TILL", "END"],
+      ["GROW", "YOUR", "AUDIENCE"],
+      ["FOLLOW", "FOR", "MORE"]
+    ];
+    const segDuration = 2.0;
+    const count = Math.ceil((Number(duration) || 10) / segDuration);
+    effectiveSubtitles = Array.from({ length: count }, (_, i) => {
+      const wordsList = phrases[i % phrases.length];
+      const segStart = Number((i * segDuration).toFixed(2));
+      const segEnd = Number(((i + 1) * segDuration).toFixed(2));
+      const wordDur = Number((segDuration / wordsList.length).toFixed(2));
+
+      const words = wordsList.map((w, wIdx) => ({
+        word: w,
+        start: Number((segStart + wIdx * wordDur).toFixed(2)),
+        end: Number((segStart + (wIdx + 1) * wordDur).toFixed(2))
+      }));
+
+      return {
+        id: String(i + 1),
+        startTime: segStart,
+        endTime: segEnd,
+        text: wordsList.join(' '),
+        words
+      };
+    });
+  }
+
+  const shouldBurnCaptions = enableCaptions && effectiveSubtitles.length > 0;
 
   if (shouldBurnTitle || shouldBurnCaptions) {
     assFile = path.join(OUTPUT_DIR, `sub-${Date.now()}-${Math.floor(Math.random() * 1000)}.ass`);
@@ -581,18 +642,19 @@ const handleTrim = (req: express.Request, res: express.Response) => {
 
     // Subtitle Caption Vertical Position:
     // Part 1 sits at MarginV: 35.
-    // If Part 1 is ON, captions sit directly above it at MarginV: 110.
-    // If Part 1 is OFF, captions sit at MarginV: 45.
-    let marginV = shouldBurnTitle ? 110 : 45;
+    // If Part 1 is ON, captions sit directly above it at MarginV: 120.
+    // If Part 1 is OFF, captions sit at MarginV: 60.
+    let marginV = shouldBurnTitle ? 120 : 60;
     if (captionPosition === 'middle') marginV = 960;
     else if (captionPosition === 'lower') marginV = 350;
+    else if (captionPosition === 'top') marginV = 1650;
 
-    // Subtitle Style - 100% Transparent background (BorderStyle=1 clean thin outline, BackColour=0, NO black box)
-    let captionAssStyle = `Style: CaptionStyle,Arial Black,38,&H00FFFFFF,&H0000FFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,1.5,0,2,10,10,${marginV},1`;
+    // Subtitle Style - Hormozi defaults to vibrant Electric Yellow (&H0000E5FF in ASS BGR hex = #FFE500)
+    let captionAssStyle = `Style: CaptionStyle,Arial Black,44,&H0000E5FF,&H0000E5FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3.5,2,2,20,20,${marginV},1`;
     if (captionStyle === 'minimal') {
-      captionAssStyle = `Style: CaptionStyle,Arial Black,34,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,${marginV},1`;
+      captionAssStyle = `Style: CaptionStyle,Arial Black,38,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,2.5,1,2,20,20,${marginV},1`;
     } else if (captionStyle === 'neon') {
-      captionAssStyle = `Style: CaptionStyle,Arial Black,38,&H005EEB22,&H005EEB22,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,0,2,10,10,${marginV},1`;
+      captionAssStyle = `Style: CaptionStyle,Arial Black,44,&H005EEB22,&H005EEB22,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3.5,2,2,20,20,${marginV},1`;
     }
 
     let assContent = `[Script Info]
@@ -617,30 +679,102 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     // 2. Burn Alex Hormozi Animated Captions with Word-by-Word Highlight if ON
     if (shouldBurnCaptions) {
-      for (const item of subtitles) {
-        if (captionStyle === 'hormozi' && Array.isArray(item.words) && item.words.length > 0) {
-          // Output word-level animated highlights
-          for (let wIdx = 0; wIdx < item.words.length; wIdx++) {
-            const activeWord = item.words[wIdx];
-            const wStart = toAssTime(activeWord.start);
-            const wEnd = toAssTime(activeWord.end);
+      const clipStart = Number(startTime) || 0;
+      const clipDuration = Number(duration) || 10;
 
-            // Construct line with the active word in yellow/green highlight
-            const formattedWords = item.words.map((w: any, idx: number) => {
-              if (idx === wIdx) {
-                return `{\\c&H0000FFFF&}{\\b1}${w.word.toUpperCase()}{\\c&H00FFFFFF&}`;
-              }
-              return w.word.toUpperCase();
-            }).join(' ');
+      for (const item of effectiveSubtitles) {
+        const rawStart = Number(item.startTime ?? item.start) || 0;
+        const rawEnd = Number(item.endTime ?? item.end) || (rawStart + 2.5);
 
-            assContent += `Dialogue: 1,${wStart},${wEnd},CaptionStyle,,0,0,0,,${formattedWords}\n`;
+        // Normalize timestamps relative to clip start (if absolute)
+        const isAbsolute = rawStart >= clipStart && clipStart > 0;
+        const segStart = isAbsolute ? Math.max(0, rawStart - clipStart) : Math.max(0, rawStart);
+        const segEnd = isAbsolute ? Math.max(segStart + 0.3, rawEnd - clipStart) : Math.max(segStart + 0.3, rawEnd);
+
+        if (segStart >= clipDuration && clipStart > 0) continue;
+
+        // Extract or auto-generate word timings
+        let words: any[] = [];
+        if (Array.isArray(item.words) && item.words.length > 0) {
+          words = item.words.map((w: any) => {
+            const wRawStart = Number(w.start) || rawStart;
+            const wRawEnd = Number(w.end) || (wRawStart + 0.3);
+            const wStart = isAbsolute ? Math.max(0, wRawStart - clipStart) : Math.max(0, wRawStart);
+            const wEnd = isAbsolute ? Math.max(wStart + 0.1, wRawEnd - clipStart) : Math.max(wStart + 0.1, wRawEnd);
+            return {
+              word: String(w.word || '').trim().toUpperCase(),
+              start: wStart,
+              end: wEnd
+            };
+          }).filter((w: any) => w.word.length > 0);
+        }
+
+        // If no word timestamps exist, auto-split sentence into words
+        if (words.length === 0 && item.text) {
+          const splitWords = String(item.text).trim().split(/\s+/).filter(Boolean);
+          if (splitWords.length > 0) {
+            const totalDur = Math.max(0.4, segEnd - segStart);
+            const perWord = totalDur / splitWords.length;
+            words = splitWords.map((tw: string, idx: number) => ({
+              word: tw.toUpperCase(),
+              start: Number((segStart + idx * perWord).toFixed(2)),
+              end: Number((segStart + (idx + 1) * perWord).toFixed(2))
+            }));
+          }
+        }
+
+        if (captionStyle === 'hormozi') {
+          if (words.length > 0) {
+            // Output word-level animated highlights: Active word is ELECTRIC YELLOW (#FFE500 / &H00E5FF& in ASS)
+            for (let wIdx = 0; wIdx < words.length; wIdx++) {
+              const activeWord = words[wIdx];
+              const wStart = toAssTime(activeWord.start);
+              const wEnd = toAssTime(activeWord.end);
+
+              const formattedWords = words.map((w: any, idx: number) => {
+                if (idx === wIdx) {
+                  return `{\\c&H00E5FF&}{\\b1}${w.word}{\\c&HFFFFFF&}`;
+                }
+                return `{\\c&HFFFFFF&}${w.word}`;
+              }).join(' ');
+
+              assContent += `Dialogue: 1,${wStart},${wEnd},CaptionStyle,,0,0,0,,${formattedWords}\n`;
+            }
+          } else {
+            // Single sentence in Hormozi style: Bold Electric Yellow
+            const start = toAssTime(segStart);
+            const end = toAssTime(segEnd);
+            const text = String(item.text || '').toUpperCase();
+            assContent += `Dialogue: 1,${start},${end},CaptionStyle,,0,0,0,,{\\c&H00E5FF&}{\\b1}${text}\n`;
+          }
+        } else if (captionStyle === 'neon') {
+          if (words.length > 0) {
+            for (let wIdx = 0; wIdx < words.length; wIdx++) {
+              const activeWord = words[wIdx];
+              const wStart = toAssTime(activeWord.start);
+              const wEnd = toAssTime(activeWord.end);
+
+              const formattedWords = words.map((w: any, idx: number) => {
+                if (idx === wIdx) {
+                  return `{\\c&H005EEB22&}{\\b1}${w.word}{\\c&HFFFFFF&}`;
+                }
+                return `{\\c&HFFFFFF&}${w.word}`;
+              }).join(' ');
+
+              assContent += `Dialogue: 1,${wStart},${wEnd},CaptionStyle,,0,0,0,,${formattedWords}\n`;
+            }
+          } else {
+            const start = toAssTime(segStart);
+            const end = toAssTime(segEnd);
+            const text = String(item.text || '').toUpperCase();
+            assContent += `Dialogue: 1,${start},${end},CaptionStyle,,0,0,0,,{\\c&H005EEB22&}{\\b1}${text}\n`;
           }
         } else {
           // Minimal or standard sentence caption
-          const start = toAssTime(item.startTime);
-          const end = toAssTime(item.endTime);
+          const start = toAssTime(segStart);
+          const end = toAssTime(segEnd);
           const text = (item.text || '').toUpperCase();
-          assContent += `Dialogue: 1,${start},${end},CaptionStyle,,0,0,0,,${text}\n`;
+          assContent += `Dialogue: 1,${start},${end},CaptionStyle,,0,0,0,,{\\c&HFFFFFF&}${text}\n`;
         }
       }
     }

@@ -53,7 +53,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             currency: 'INR',
             name: 'ViralClip AI',
             description: `${activeTier.name} (${activeTier.clipsCredit}) - Instant Credits Activation`,
-            image: '/logo.png',
+            image: '/logo.svg',
             order_id: orderData.orderId || orderData.id,
             handler: function (_response: any) {
               // Payment Successful

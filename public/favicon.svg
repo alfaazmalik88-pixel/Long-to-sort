@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" fill="none">
+  <defs>
+    <!-- Background Vibrant Gradient -->
+    <linearGradient id="iconBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="50%" stop-color="#7C3AED" />
+      <stop offset="100%" stop-color="#DB2777" />
+    </linearGradient>
+
+    <!-- Subtle Inner Glow -->
+    <linearGradient id="softGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Rounded Square (Squircle) -->
+  <rect x="5" y="5" width="90" height="90" rx="26" fill="url(#iconBg)" />
+  <rect x="5" y="5" width="90" height="90" rx="26" stroke="url(#softGlow)" stroke-width="2" />
+
+  <!-- Crisp Modern Play Symbol (Video Cutter / Play) -->
+  <path d="M38 30L72 50L38 70V30Z" fill="#FFFFFF" />
+</svg>

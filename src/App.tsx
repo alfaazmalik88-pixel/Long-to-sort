@@ -19,6 +19,7 @@ import { RefundPolicy } from './pages/RefundPolicy';
 import { PricingPage } from './pages/PricingPage';
 import { BlogPage } from './pages/BlogPage';
 import { AboutUs } from './pages/AboutUs';
+import { AlternativePage } from './pages/AlternativePage';
 import { PricingSection } from './components/PricingSection';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAuth } from './context/AuthContext';
@@ -407,7 +408,7 @@ export default function App() {
     
     if (user && user.minutes !== undefined && user.minutes <= 0) {
       setIsPricingOpen(true);
-      alert("Aapke Free Minutes poore ho chuke hain. Mazeed video download karne ke liye please plan upgrade karein.");
+      alert("You have reached your Free Minutes limit. Please upgrade your plan to continue downloading videos.");
       return null;
     }
 
@@ -446,7 +447,7 @@ export default function App() {
   const handleExport = async () => {
     if (user && user.minutes !== undefined && user.minutes <= 0) {
       setIsPricingOpen(true);
-      alert("Aapka One-Time Free Trial (5 Minutes) khatam ho chuka hai. Mazeed videos download karne ke liye please plan (starting ₹49) select karein!");
+      alert("Your free trial limit has been reached. Please choose a plan (starting at $4.99 / ₹49) to export more videos!");
       return;
     }
     const activeClip = videoState.clips.find(c => c.id === selectedClipId);
@@ -470,7 +471,7 @@ export default function App() {
   const handleExportAll = async () => {
     if (user && user.minutes !== undefined && user.minutes <= 0) {
       setIsPricingOpen(true);
-      alert("Aapka One-Time Free Trial (5 Minutes) khatam ho chuka hai. Mazeed videos download karne ke liye please plan (starting ₹49) select karein!");
+      alert("Your free trial limit has been reached. Please choose a plan (starting at $4.99 / ₹49) to export more videos!");
       return;
     }
     if (!videoState.url || videoState.clips.length === 0) return;
@@ -480,7 +481,7 @@ export default function App() {
       const clip = videoState.clips[i];
       if (user && user.minutes !== undefined && user.minutes <= 0) {
         setIsPricingOpen(true);
-        alert("Aapka One-Time Free Trial (5 Minutes) khatam ho chuka hai. Mazeed videos download karne ke liye please plan (starting ₹49) select karein!");
+        alert("Your free trial limit has been reached. Please choose a plan (starting at $4.99 / ₹49) to export more videos!");
         break;
       }
       const url = await processRenderJob(clip);
@@ -557,7 +558,7 @@ export default function App() {
                   }}
                 />
                 <PricingSection onOpenAuth={() => setIsAuthOpen(true)} />
-                <SeoSection onLoadDemo={() => handleAnalyze('/demo-sample.mp4?v=7', 'public/demo-sample.mp4')} />
+                <SeoSection onLoadDemo={() => handleAnalyze('/official-demo.mp4?v=clean_hd', 'public/official-demo.mp4')} />
               </div>
             </div>
           )}
@@ -659,6 +660,10 @@ export default function App() {
       <Route path="/guides" element={<BlogPage />} />
       <Route path="/about" element={<AboutUs />} />
       <Route path="/about-us" element={<AboutUs />} />
+      <Route path="/opus-clip-alternative" element={<AlternativePage tool="opus" />} />
+      <Route path="/submagic-alternative" element={<AlternativePage tool="submagic" />} />
+      <Route path="/klap-alternative" element={<AlternativePage tool="klap" />} />
+      <Route path="/vizard-alternative" element={<AlternativePage tool="vizard" />} />
     </Routes>
   );
 }

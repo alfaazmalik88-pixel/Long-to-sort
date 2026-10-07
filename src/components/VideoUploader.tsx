@@ -151,8 +151,8 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   const handleTryDemo = () => {
     try {
       setIsGeneratingDemo(true);
-      const cacheBustUrl = `/demo-sample.mp4?v=${Date.now()}`;
-      onAnalyze(cacheBustUrl, 'uploads/demo-sample.mp4');
+      const cacheBustUrl = `/official-demo.mp4?v=${Date.now()}`;
+      onAnalyze(cacheBustUrl, 'public/official-demo.mp4');
     } catch (e) {
       console.error(e);
       alert("Unable to generate demo clip. Please upload a video directly.");
@@ -428,6 +428,24 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                 className="hidden"
               />
             </div>
+
+            {/* Quick Demo Video Launcher */}
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <span className="text-xs text-zinc-400">Want to test without uploading?</span>
+              <button
+                type="button"
+                onClick={handleTryDemo}
+                disabled={isGeneratingDemo}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
+              >
+                {isGeneratingDemo ? (
+                  <div className="w-3.5 h-3.5 border-2 border-indigo-300 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                )}
+                <span>Try Demo Video</span>
+              </button>
+            </div>
         </div>
 
         {/* 4K & High-Res Mobile Video Modal */}
@@ -458,7 +476,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
               </h3>
 
               <p className="text-xs text-zinc-400 leading-relaxed mb-5">
-                iPhone (Apple), Samsung aur modern smartphones default me 4K me record karte hain. Aapke current plan (<strong className="text-zinc-200">{user?.planName || 'Free Plan'}</strong>) par 1080p output supported hai.
+                iPhones, Samsung, and modern smartphones record in 4K by default. Your current plan (<strong className="text-zinc-200">{user?.planName || 'Free Plan'}</strong>) supports crisp 1080p Full HD output.
               </p>
 
               <div className="space-y-2.5 mb-4">
@@ -503,7 +521,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
               </div>
 
               <div className="text-[11px] text-zinc-500 leading-normal bg-zinc-900/60 border border-zinc-800/80 p-2.5 rounded-xl">
-                <span>💡 <strong>Tip:</strong> Option 1 bina kisi quality loss ke aapke phone video ko crisp 1080p Full HD me convert kar dega.</span>
+                <span>💡 <strong>Tip:</strong> Option 1 converts your high-res video to crisp 1080p Full HD without any quality loss.</span>
               </div>
             </div>
           </div>

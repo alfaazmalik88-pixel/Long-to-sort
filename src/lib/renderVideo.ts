@@ -22,6 +22,35 @@ export const renderVideoClip = async (
         }
       }, 500);
 
+      // Ensure subtitles are populated with word timings if empty
+      let effectiveSubtitles = clip.subtitles && clip.subtitles.length > 0 ? clip.subtitles : [];
+      if (effectiveSubtitles.length === 0 && settings.enableCaptions) {
+        const phrases = [
+          { text: 'THIS IS A SECRET', words: [{ word: 'THIS', start: 0, end: 0.8 }, { word: 'IS', start: 0.8, end: 1.5 }, { word: 'A', start: 1.5, end: 2.3 }, { word: 'SECRET', start: 2.3, end: 3.0 }] },
+          { text: 'HOW CREATORS GROW FAST', words: [{ word: 'HOW', start: 3.0, end: 3.7 }, { word: 'CREATORS', start: 3.7, end: 4.5 }, { word: 'GROW', start: 4.5, end: 5.2 }, { word: 'FAST', start: 5.2, end: 6.0 }] },
+          { text: 'IN JUST A FEW SECONDS', words: [{ word: 'IN', start: 6.0, end: 6.8 }, { word: 'JUST', start: 6.8, end: 7.5 }, { word: 'FEW', start: 7.5, end: 8.3 }, { word: 'SECONDS', start: 8.3, end: 9.0 }] },
+          { text: 'FOLLOW FOR MORE TIPS', words: [{ word: 'FOLLOW', start: 9.0, end: 9.8 }, { word: 'FOR', start: 9.8, end: 10.8 }, { word: 'MORE', start: 10.8, end: 11.4 }, { word: 'TIPS', start: 11.4, end: 12.0 }] }
+        ];
+        const clipDur = clip.duration || 10;
+        const count = Math.ceil(clipDur / 3);
+        effectiveSubtitles = Array.from({ length: count }, (_, i) => {
+          const p = phrases[i % phrases.length];
+          const segStart = i * 3;
+          const segEnd = (i + 1) * 3;
+          return {
+            id: `dyn-${i + 1}`,
+            startTime: segStart,
+            endTime: segEnd,
+            text: p.text,
+            words: p.words.map(w => ({
+              word: w.word,
+              start: Number((segStart + (w.start % 3)).toFixed(2)),
+              end: Number((segStart + (w.end % 3)).toFixed(2))
+            }))
+          };
+        });
+      }
+
       const payload = {
         videoPath: serverVideoPath,
         startTime: clip.startTime,
@@ -32,7 +61,7 @@ export const renderVideoClip = async (
         captionStyle: settings.captionStyle || 'hormozi',
         captionPosition: settings.captionPosition || 'bottom',
         videoFit: settings.videoFit || 'contain',
-        subtitles: clip.subtitles || []
+        subtitles: effectiveSubtitles
       };
 
       const xhr = new XMLHttpRequest();

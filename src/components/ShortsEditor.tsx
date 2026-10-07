@@ -139,12 +139,12 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
         id: 'dyn-1',
         startTime: 0,
         endTime: 3,
-        text: 'YEH EK SECRET HAI',
+        text: 'THIS IS A SECRET',
         words: [
-          { word: 'YEH', start: 0, end: 0.8 },
-          { word: 'EK', start: 0.8, end: 1.5 },
-          { word: 'SECRET', start: 1.5, end: 2.3 },
-          { word: 'HAI', start: 2.3, end: 3.0 }
+          { word: 'THIS', start: 0, end: 0.8 },
+          { word: 'IS', start: 0.8, end: 1.5 },
+          { word: 'A', start: 1.5, end: 2.3 },
+          { word: 'SECRET', start: 2.3, end: 3.0 }
         ]
       };
     } else if (cycle < 6) {
@@ -152,11 +152,12 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
         id: 'dyn-2',
         startTime: 3,
         endTime: 6,
-        text: 'VIRAL SHORTS BANAO',
+        text: 'HOW CREATORS GROW FAST',
         words: [
-          { word: 'VIRAL', start: 3.0, end: 4.0 },
-          { word: 'SHORTS', start: 4.0, end: 5.0 },
-          { word: 'BANAO', start: 5.0, end: 6.0 }
+          { word: 'HOW', start: 3.0, end: 3.7 },
+          { word: 'CREATORS', start: 3.7, end: 4.5 },
+          { word: 'GROW', start: 4.5, end: 5.2 },
+          { word: 'FAST', start: 5.2, end: 6.0 }
         ]
       };
     } else if (cycle < 9) {
@@ -164,12 +165,12 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
         id: 'dyn-3',
         startTime: 6,
         endTime: 9,
-        text: 'SIRF KUCH SECONDS MEIN',
+        text: 'IN JUST A FEW SECONDS',
         words: [
-          { word: 'SIRF', start: 6.0, end: 6.8 },
-          { word: 'KUCH', start: 6.8, end: 7.5 },
-          { word: 'SECONDS', start: 7.5, end: 8.3 },
-          { word: 'MEIN', start: 8.3, end: 9.0 }
+          { word: 'IN', start: 6.0, end: 6.8 },
+          { word: 'JUST', start: 6.8, end: 7.5 },
+          { word: 'FEW', start: 7.5, end: 8.3 },
+          { word: 'SECONDS', start: 8.3, end: 9.0 }
         ]
       };
     } else {
@@ -177,18 +178,19 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
         id: 'dyn-4',
         startTime: 9,
         endTime: 12,
-        text: 'ABHI FOLLOW KAREIN',
+        text: 'FOLLOW FOR MORE TIPS',
         words: [
-          { word: 'ABHI', start: 9.0, end: 9.8 },
-          { word: 'FOLLOW', start: 9.8, end: 10.8 },
-          { word: 'KAREIN', start: 10.8, end: 12.0 }
+          { word: 'FOLLOW', start: 9.0, end: 9.8 },
+          { word: 'FOR', start: 9.8, end: 10.8 },
+          { word: 'MORE', start: 10.8, end: 11.4 },
+          { word: 'TIPS', start: 11.4, end: 12.0 }
         ]
       };
     }
   }
 
   // Caption Vertical Positioning:
-  // "Sabse niche Kar do Bhai itna super utha Kar rakho part Van dikhna chahie bus"
+  // Position subtitles near bottom with optimal clearance above Part 1 badge
   // Part 1 is at bottom-3 (~12px). We place the caption at bottom-[38px] (just enough clearance so Part 1 is fully visible!)
   const getCaptionPositionStyle = (): React.CSSProperties => {
     switch (settings.captionPosition) {

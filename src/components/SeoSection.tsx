@@ -1,6 +1,195 @@
 import { Link } from 'react-router-dom';
-import React, { useState } from 'react';
-import { ArrowRight, ShieldCheck, FileText, Mail, RotateCcw, Zap, Sparkles, Check, ChevronDown, Flame, Video, Layers, BookOpen } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowRight, ShieldCheck, FileText, Mail, RotateCcw, Zap, Sparkles, Check, ChevronDown, Flame, Video, Layers, BookOpen, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, Radio, CheckCircle2 } from 'lucide-react';
+
+const DemoVideoPlayer: React.FC<{ onLoadDemo?: () => void }> = ({ onLoadDemo }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoSrc] = useState('/official-demo.mp4?v=' + Date.now());
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(10);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+      videoRef.current.load();
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    }
+  }, [videoSrc]);
+
+  const togglePlay = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!videoRef.current) return;
+    if (isPlaying) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!videoRef.current) return;
+    videoRef.current.muted = !isMuted;
+    setIsMuted(!isMuted);
+  };
+
+  const toggleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
+
+  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (!videoRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    const targetTime = pos * (duration || 10);
+    videoRef.current.currentTime = targetTime;
+    setCurrentTime(targetTime);
+  };
+
+  return (
+    <div className="w-full my-6 flex flex-col items-center">
+      {/* Horizontal Video Container (16:9 Widescreen) */}
+      <div 
+        ref={containerRef}
+        className="relative w-full max-w-3xl aspect-video bg-black rounded-2xl sm:rounded-3xl border-2 sm:border-4 border-zinc-800/90 shadow-2xl ring-1 ring-white/10 overflow-hidden flex flex-col justify-between group"
+      >
+        {/* Top Floating Header Bar */}
+        <div className="absolute top-3 left-3 right-3 z-30 flex items-center justify-between gap-2 pointer-events-none">
+          {/* Format Badge */}
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            <span className="bg-black/80 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full border border-white/15 flex items-center gap-1.5 shadow-md">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>16:9 Widescreen Demo</span>
+            </span>
+          </div>
+
+          {/* Sound & Controls */}
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="bg-black/80 hover:bg-black/95 backdrop-blur-md text-zinc-200 text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full border border-white/15 flex items-center gap-1.5 cursor-pointer transition-all shadow-md active:scale-95"
+            >
+              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-zinc-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+              <span>{isMuted ? 'Unmute' : 'Sound On'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Video Element */}
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          className="w-full h-full object-contain bg-black cursor-pointer"
+          playsInline
+          autoPlay
+          muted={isMuted}
+          loop
+          onClick={() => togglePlay()}
+          onTimeUpdate={() => {
+            if (videoRef.current) setCurrentTime(videoRef.current.currentTime);
+          }}
+          onLoadedMetadata={() => {
+            if (videoRef.current) setDuration(videoRef.current.duration || 12);
+          }}
+        />
+
+        {/* Play/Pause Center Indicator when paused */}
+        {!isPlaying && (
+          <div 
+            onClick={() => togglePlay()}
+            className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-pointer z-20 transition-all"
+          >
+            <div className="w-16 h-16 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-xl shadow-indigo-600/50 hover:scale-105 active:scale-95 transition-all">
+              <Play className="w-7 h-7 fill-white translate-x-0.5" />
+            </div>
+            <span className="mt-3 text-xs sm:text-sm font-bold text-white bg-black/85 px-4 py-1 rounded-full border border-white/15 shadow-md">
+              Click to Play
+            </span>
+          </div>
+        )}
+
+        {/* Bottom Floating Controls */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/95 via-black/70 to-transparent z-30 flex flex-col gap-2">
+          {/* Progress Bar (Click to seek) */}
+          <div 
+            onClick={handleProgressBarClick}
+            className="w-full bg-zinc-700/60 hover:bg-zinc-700/80 h-2 rounded-full overflow-hidden cursor-pointer transition-colors relative"
+          >
+            <div 
+              className="bg-indigo-500 h-full rounded-full transition-all duration-150"
+              style={{ width: `${(currentTime / (duration || 12)) * 100}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-white text-xs">
+            <div className="flex items-center gap-3">
+              <button 
+                type="button" 
+                onClick={() => togglePlay()}
+                className="p-1.5 rounded-lg hover:bg-white/10 hover:text-indigo-400 transition-colors cursor-pointer"
+                title={isPlaying ? "Pause" : "Play"}
+              >
+                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </button>
+              
+              <button
+                type="button"
+                onClick={toggleMute}
+                className="p-1.5 rounded-lg hover:bg-white/10 hover:text-emerald-400 transition-colors cursor-pointer"
+                title={isMuted ? "Unmute" : "Mute"}
+              >
+                {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+              </button>
+
+              <span className="font-mono text-[11px] text-zinc-300">
+                {Math.floor(currentTime)}s / {Math.floor(duration)}s
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {onLoadDemo && (
+                <button
+                  type="button"
+                  onClick={onLoadDemo}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer active:scale-95"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-white" />
+                  <span>Open Demo in Studio</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                title="Toggle Fullscreen"
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-zinc-500 text-[11px] sm:text-xs text-center mt-2">
+        Horizontal 16:9 HD demo video preview. Click &quot;Open Demo in Studio&quot; to test auto-framing, viral detection, and Hormozi captions.
+      </p>
+    </div>
+  );
+};
 
 const SocialGif = () => (
   <div className="w-full aspect-[21/9] sm:aspect-[24/9] bg-[#0a0a0a] rounded-2xl overflow-hidden border border-zinc-800/80 relative flex items-center justify-center shadow-lg">
@@ -136,25 +325,8 @@ export const SeoSection: React.FC<SeoSectionProps> = ({ onLoadDemo }) => {
             )}
           </div>
 
-          {/* Interactive Demo Video Player */}
-          <div className="w-full aspect-video bg-zinc-950 rounded-2xl sm:rounded-3xl overflow-hidden border border-zinc-800 mt-4 relative shadow-2xl group">
-            <video 
-              src="/demo-sample.mp4?v=7" 
-              controls 
-              autoPlay 
-              muted 
-              loop 
-              playsInline 
-              className="w-full h-full object-cover rounded-2xl sm:rounded-3xl"
-            />
-            {/* Top Left Floating Badge */}
-            <div className="absolute top-3 left-3 z-20 pointer-events-none">
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-black/85 backdrop-blur-md text-indigo-300 border border-indigo-500/30 shadow-md flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
-                <span>Live Interactive Demo</span>
-              </span>
-            </div>
-          </div>
+          {/* Official Demo Video Player */}
+          <DemoVideoPlayer onLoadDemo={onLoadDemo} />
         </div>
 
         {/* 3-Step Visual Process (Compact 3-Card Grid) */}

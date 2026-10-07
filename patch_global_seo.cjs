@@ -24,30 +24,30 @@ const newHtml = `<!doctype html>
     <meta name="language" content="English" />
     
     <!-- Global Targeting (International SEO) -->
-    <link rel="alternate" hreflang="en-US" href="https://viralclipai.in/" />
-    <link rel="alternate" hreflang="en-GB" href="https://viralclipai.in/" />
-    <link rel="alternate" hreflang="en-CA" href="https://viralclipai.in/" />
-    <link rel="alternate" hreflang="en-AU" href="https://viralclipai.in/" />
-    <link rel="alternate" hreflang="x-default" href="https://viralclipai.in/" />
+    <link rel="alternate" hreflang="en-US" href="https://viralclipai.pro/" />
+    <link rel="alternate" hreflang="en-GB" href="https://viralclipai.pro/" />
+    <link rel="alternate" hreflang="en-CA" href="https://viralclipai.pro/" />
+    <link rel="alternate" hreflang="en-AU" href="https://viralclipai.pro/" />
+    <link rel="alternate" hreflang="x-default" href="https://viralclipai.pro/" />
     
     <!-- Canonical URL -->
-    <link rel="canonical" href="https://viralclipai.in/" />
+    <link rel="canonical" href="https://viralclipai.pro/" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://viralclipai.in/" />
+    <meta property="og:url" content="https://viralclipai.pro/" />
     <meta property="og:title" content="Free AI Shorts Generator | Best Opus Clip Alternative" />
     <meta property="og:description" content="Turn long videos into viral TikToks, Reels, and Shorts for free. No watermarks, auto-captions included." />
-    <meta property="og:image" content="https://viralclipai.in/logo.png" />
+    <meta property="og:image" content="https://viralclipai.pro/logo.svg" />
     <meta property="og:site_name" content="ViralClip AI" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://viralclipai.in/" />
+    <meta property="twitter:url" content="https://viralclipai.pro/" />
     <meta property="twitter:title" content="Free AI Shorts Generator | Best Opus Clip Alternative" />
     <meta property="twitter:description" content="Turn long videos into viral TikToks, Reels, and Shorts for free. No watermarks, auto-captions included." />
-    <meta property="twitter:image" content="https://viralclipai.in/logo.png" />
+    <meta property="twitter:image" content="https://viralclipai.pro/logo.svg" />
     
     <!-- Schema.org Markup -->
     <script type="application/ld+json">
@@ -56,8 +56,8 @@ const newHtml = `<!doctype html>
       "@type": "SoftwareApplication",
       "name": "ViralClip AI",
       "alternateName": "ViralClip Free AI Shorts Generator",
-      "url": "https://viralclipai.in/",
-      "logo": "https://viralclipai.in/logo.png",
+      "url": "https://viralclipai.pro/",
+      "logo": "https://viralclipai.pro/logo.svg",
       "description": "Free AI software to convert long YouTube videos and podcasts into viral short clips for YouTube Shorts, TikTok, and Instagram Reels with auto-captions. A free alternative to Opus Clip.",
       "applicationCategory": "MultimediaApplication",
       "operatingSystem": "Windows, macOS, Android, iOS, ChromeOS",

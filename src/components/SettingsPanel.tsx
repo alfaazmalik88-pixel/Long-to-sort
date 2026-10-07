@@ -179,7 +179,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Type className="w-3.5 h-3.5 text-indigo-400" />
-              Series Tag / Text (Sabse Niche Chhota Sa)
+              Series Tag Badge (Bottom Pill)
             </span>
           </label>
           <div className="relative">
@@ -192,7 +192,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             />
           </div>
           <p className="text-[10px] text-zinc-500">
-            Khali chhodne par automatically sabse niche chhota sa "{activeClip ? activeClip.title.toLowerCase() : 'part 1'}" dikhega.
+            Leave blank to display "{activeClip ? activeClip.title.toLowerCase() : 'part 1'}" automatically.
           </p>
         </div>
 
@@ -254,7 +254,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <Maximize2 className="w-4 h-4 text-emerald-400" />
                 <span className="text-xs font-bold">Fit (No Crop)</span>
               </div>
-              <span className="text-[10px] text-zinc-400">Pura video dikhega, 0% cut</span>
+              <span className="text-[10px] text-zinc-400">Shows full video, 0% cropped</span>
             </button>
 
             <button
@@ -271,7 +271,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <Crop className="w-4 h-4 text-amber-400" />
                 <span className="text-xs font-bold">Fill (Crop 9:16)</span>
               </div>
-              <span className="text-[10px] text-zinc-400">Pura vertical screen bharega</span>
+              <span className="text-[10px] text-zinc-400">Fills vertical 9:16 screen</span>
             </button>
           </div>
         </div>
@@ -336,21 +336,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
         </div>
 
-        {/* Caption Vertical Position Selector (Niche / Middle) */}
+        {/* Caption Vertical Position Selector (Bottom / Middle) */}
         {settings.enableCaptions && (
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-                Caption Position (Niche / Height)
+                Caption Position (Vertical Alignment)
               </span>
               <span className="text-[10px] text-indigo-400 font-semibold">
-                {settings.captionPosition === 'middle' ? 'Center (50%)' : settings.captionPosition === 'lower' ? 'Mid-Low (68%)' : 'Niche / Low (80%)'}
+                {settings.captionPosition === 'middle' ? 'Center (50%)' : settings.captionPosition === 'lower' ? 'Mid-Low (68%)' : 'Bottom (80%)'}
               </span>
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { id: 'bottom', label: 'Niche / Low', sub: '80% (Face Clear)' },
+                { id: 'bottom', label: 'Bottom', sub: '80% (Clear of Face)' },
                 { id: 'lower', label: 'Mid-Low', sub: '68%' },
                 { id: 'middle', label: 'Center', sub: '50%' }
               ].map(pos => {
@@ -486,7 +486,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <span>🚀 Render All {clips.length > 1 ? `${clips.length} Parts` : ''} & Auto-Download</span>
           </button>
           <p className="text-[10px] text-zinc-500 text-center font-medium">
-            1 screen pe setting karo — sab parts render hoke automatically download honge!
+            Configure once — all parts render and download automatically!
           </p>
 
           {clips.length > 1 && (

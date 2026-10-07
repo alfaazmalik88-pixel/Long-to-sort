@@ -63,11 +63,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
       {/* Brand Logo & Plan Badge */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
         <Link to="/" className="flex items-center gap-2 group shrink-0">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-700/60 flex items-center justify-center shrink-0 shadow-lg group-hover:border-indigo-500/50 transition-colors">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl overflow-hidden bg-transparent flex items-center justify-center shrink-0 shadow-lg group-hover:scale-105 transition-transform">
             <img 
-              src="/logo.png" 
+              src="/logo.svg" 
               alt="ViralClip AI Logo" 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           </div>
           <span className="font-black text-sm sm:text-base md:text-lg tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent truncate">
