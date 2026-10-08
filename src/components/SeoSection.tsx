@@ -59,11 +59,40 @@ const DemoVideoPlayer: React.FC<{ onLoadDemo?: () => void }> = ({ onLoadDemo }) 
   };
 
   return (
-    <div className="w-full my-6 flex flex-col items-center">
+    <div className="w-full my-8 flex flex-col items-center">
+      {/* Prominent High-Contrast Highlight Header Bar Above Video */}
+      <div className="w-full max-w-3xl mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-gradient-to-r from-zinc-900 via-indigo-950/40 to-zinc-900 border-2 border-indigo-500/40 p-3.5 sm:p-4 rounded-2xl shadow-xl">
+        <div className="flex items-center gap-2.5">
+          <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+          <div>
+            <h3 className="text-white text-sm sm:text-base font-black tracking-tight flex items-center gap-2">
+              <span>🎬 OFFICIAL 10s DEMO:</span>
+              <span className="text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-lg border border-yellow-400/30">
+                LONG VIDEO → VIRAL SHORTS
+              </span>
+            </h3>
+            <p className="text-zinc-300 text-xs font-medium mt-0.5">
+              Watch how ViralClip AI auto-detects viral moments &amp; formats for 9:16 Reels/TikTok
+            </p>
+          </div>
+        </div>
+
+        {onLoadDemo && (
+          <button
+            type="button"
+            onClick={onLoadDemo}
+            className="w-full sm:w-auto px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-500/30 transition-all cursor-pointer active:scale-95 shrink-0"
+          >
+            <Zap className="w-3.5 h-3.5 fill-white" />
+            <span>TRY THIS DEMO</span>
+          </button>
+        )}
+      </div>
+
       {/* Horizontal Video Container (16:9 Widescreen) */}
       <div 
         ref={containerRef}
-        className="relative w-full max-w-3xl aspect-video bg-black rounded-2xl sm:rounded-3xl border-2 sm:border-4 border-zinc-800/90 shadow-2xl ring-1 ring-white/10 overflow-hidden flex flex-col justify-between group"
+        className="relative w-full max-w-3xl aspect-video bg-black rounded-2xl sm:rounded-3xl border-2 sm:border-4 border-indigo-500/50 shadow-2xl ring-2 ring-indigo-500/20 overflow-hidden flex flex-col justify-between group"
       >
         {/* Top Floating Header Bar */}
         <div className="absolute top-3 left-3 right-3 z-30 flex items-center justify-between gap-2 pointer-events-none">
@@ -184,8 +213,28 @@ const DemoVideoPlayer: React.FC<{ onLoadDemo?: () => void }> = ({ onLoadDemo }) 
         </div>
       </div>
 
-      <p className="text-zinc-500 text-[11px] sm:text-xs text-center mt-2">
-        Horizontal 16:9 HD demo video preview. Click &quot;Open Demo in Studio&quot; to test auto-framing, viral detection, and Hormozi captions.
+      {/* High-Contrast Feature Badges Row Below Video */}
+      <div className="w-full max-w-3xl mt-3 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+        <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+          <span>⚡</span>
+          <span>AI Moment Detection</span>
+        </span>
+        <span className="px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+          <span>🎬</span>
+          <span>Hormozi Animated Subtitles</span>
+        </span>
+        <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+          <span>🛡️</span>
+          <span>100% Clean (Zero Watermark)</span>
+        </span>
+        <span className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+          <span>📐</span>
+          <span>9:16 Vertical Auto-Reframe</span>
+        </span>
+      </div>
+
+      <p className="text-zinc-400 text-xs font-medium text-center mt-2.5 max-w-xl">
+        Watch the 10-second demo above. Click <span className="text-white font-bold">&quot;Open Demo in Studio&quot;</span> or <span className="text-yellow-400 font-bold">&quot;Try This Demo&quot;</span> to analyze clips with AI!
       </p>
     </div>
   );
