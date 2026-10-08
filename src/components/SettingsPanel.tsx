@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { EditorSettings, Clip } from '../types';
-import { Sliders, Clock, List, LayoutTemplate, Type, FileText, Smartphone, Monitor, Square, Cpu, Zap, Sparkles, ChevronRight, Maximize2, Crop } from 'lucide-react';
+import { Sliders, Clock, List, LayoutTemplate, Type, FileText, Smartphone, Monitor, Square, Cpu, Zap, Sparkles, ChevronRight, Maximize2, Crop, Globe } from 'lucide-react';
 import { cn } from '../utils';
 
 interface SettingsPanelProps {
@@ -141,7 +141,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-bold shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1"
                   title="Open Next Part"
                 >
-                  <span>Agla Part</span>
+                  <span>Next Part</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -372,6 +372,64 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </button>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Subtitle Language (Multi-Language Engine: Hindi -> Hinglish, Global & Local native) */}
+        {settings.enableCaptions && (
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                Subtitle Language (Multi-Language)
+              </span>
+              <span className="text-[10px] text-cyan-400 font-semibold">
+                {settings.subtitleLanguage === 'hi'
+                  ? '🇮🇳 Hindi → Hinglish'
+                  : settings.subtitleLanguage === 'en'
+                  ? '🇺🇸 English'
+                  : settings.subtitleLanguage === 'es'
+                  ? '🇪🇸 Spanish'
+                  : settings.subtitleLanguage === 'ar'
+                  ? '🇸🇦 Arabic'
+                  : settings.subtitleLanguage === 'ja'
+                  ? '🇯🇵 Japanese'
+                  : '🌐 Auto Global / Local'}
+              </span>
+            </label>
+            
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'auto', label: 'Auto Detect', sub: 'Global / Local Auto' },
+                { id: 'hi', label: 'Hindi → Hinglish', sub: 'Roman Script Auto' },
+                { id: 'en', label: 'English', sub: 'Global English' },
+                { id: 'es', label: 'Spanish / Español', sub: 'Native Local' },
+                { id: 'ar', label: 'Arabic / العربية', sub: 'Native Local' },
+                { id: 'ja', label: 'Japanese / 日本語', sub: 'Native Local' },
+              ].map(lang => {
+                const isSelected = (settings.subtitleLanguage || 'auto') === lang.id;
+                return (
+                  <button
+                    key={lang.id}
+                    type="button"
+                    onClick={() => setSettings({ ...settings, subtitleLanguage: lang.id })}
+                    className={cn(
+                      "py-2 px-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-center",
+                      isSelected
+                        ? "bg-cyan-500/20 border-cyan-500 text-white font-bold shadow-sm ring-1 ring-cyan-500"
+                        : "bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+                    )}
+                  >
+                    <span className="text-xs font-bold leading-tight">{lang.label}</span>
+                    <span className="text-[9px] text-zinc-500 mt-0.5">{lang.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-800/30 text-[10px] text-cyan-300/90 leading-relaxed">
+              ⚡ <strong>Language Rule:</strong> If the audio is in Hindi, subtitles will automatically be generated in <strong>Hinglish (Roman English alphabet)</strong>. All other global and local languages will remain in their native script.
             </div>
           </div>
         )}

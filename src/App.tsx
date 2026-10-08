@@ -44,6 +44,7 @@ export default function App() {
     audioWaveform: false,
     titleSticker: true, // Part 1, Part 2 series tag toggle (ON by default)
     enableCaptions: true, // Generate Animated Captions (Default: ON)
+    subtitleLanguage: 'auto', // Multi-language: Hindi -> Hinglish, others Global / Local
     exportQuality: '720p',
     customTitle: ''
   });
@@ -288,7 +289,8 @@ export default function App() {
           body: JSON.stringify({
             videoPath: result.path,
             startTime: 0,
-            duration: Math.min(detectedDur, 60)
+            duration: Math.min(detectedDur, 60),
+            language: editorSettings.subtitleLanguage || 'auto'
           })
         })
           .then(res => res.json())
@@ -341,7 +343,12 @@ export default function App() {
         fetch('/api/whisper-transcribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ videoPath: 'public/demo-sample.mp4', startTime: 0, duration: 30 })
+          body: JSON.stringify({ 
+            videoPath: 'public/demo-sample.mp4', 
+            startTime: 0, 
+            duration: 30,
+            language: editorSettings.subtitleLanguage || 'auto'
+          })
         })
           .then(r => r.json())
           .then(data => {

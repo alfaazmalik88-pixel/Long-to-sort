@@ -32,6 +32,7 @@ export interface EditorSettings {
   audioWaveform: boolean;
   titleSticker: boolean; // Part 1 series tag ON/OFF
   enableCaptions: boolean; // Generate Animated Captions ON/OFF (Default: ON)
+  subtitleLanguage?: 'auto' | 'hi' | 'en' | 'es' | 'fr' | 'de' | 'ar' | 'ja' | 'ru' | 'pt' | string; // Language: Hindi -> Hinglish, others Global / Local
   exportQuality?: '480p' | '720p' | '1080p' | '4k'; 
   showTitleSticker?: boolean;
   customTitle?: string;

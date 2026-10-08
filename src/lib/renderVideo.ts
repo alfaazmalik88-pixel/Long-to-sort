@@ -25,7 +25,13 @@ export const renderVideoClip = async (
       // Ensure subtitles are populated with word timings if empty
       let effectiveSubtitles = clip.subtitles && clip.subtitles.length > 0 ? clip.subtitles : [];
       if (effectiveSubtitles.length === 0 && settings.enableCaptions) {
-        const phrases = [
+        const isHindi = settings.subtitleLanguage === 'hi';
+        const phrases = isHindi ? [
+          { text: 'YE EK SECRET HAI', words: [{ word: 'YE', start: 0, end: 0.8 }, { word: 'EK', start: 0.8, end: 1.5 }, { word: 'SECRET', start: 1.5, end: 2.3 }, { word: 'HAI', start: 2.3, end: 3.0 }] },
+          { text: 'CREATORS GROW KAISE KAREIN', words: [{ word: 'CREATORS', start: 3.0, end: 3.7 }, { word: 'GROW', start: 3.7, end: 4.5 }, { word: 'KAISE', start: 4.5, end: 5.2 }, { word: 'KAREIN', start: 5.2, end: 6.0 }] },
+          { text: 'BAS KUCH HI SECONDS MEIN', words: [{ word: 'BAS', start: 6.0, end: 6.6 }, { word: 'KUCH', start: 6.6, end: 7.2 }, { word: 'HI', start: 7.2, end: 7.8 }, { word: 'SECONDS', start: 7.8, end: 8.4 }, { word: 'MEIN', start: 8.4, end: 9.0 }] },
+          { text: 'FOLLOW KARO AUR TIPS KE LIYE', words: [{ word: 'FOLLOW', start: 9.0, end: 9.8 }, { word: 'KARO', start: 9.8, end: 10.5 }, { word: 'AUR', start: 10.5, end: 11.2 }, { word: 'TIPS', start: 11.2, end: 12.0 }] }
+        ] : [
           { text: 'THIS IS A SECRET', words: [{ word: 'THIS', start: 0, end: 0.8 }, { word: 'IS', start: 0.8, end: 1.5 }, { word: 'A', start: 1.5, end: 2.3 }, { word: 'SECRET', start: 2.3, end: 3.0 }] },
           { text: 'HOW CREATORS GROW FAST', words: [{ word: 'HOW', start: 3.0, end: 3.7 }, { word: 'CREATORS', start: 3.7, end: 4.5 }, { word: 'GROW', start: 4.5, end: 5.2 }, { word: 'FAST', start: 5.2, end: 6.0 }] },
           { text: 'IN JUST A FEW SECONDS', words: [{ word: 'IN', start: 6.0, end: 6.8 }, { word: 'JUST', start: 6.8, end: 7.5 }, { word: 'FEW', start: 7.5, end: 8.3 }, { word: 'SECONDS', start: 8.3, end: 9.0 }] },

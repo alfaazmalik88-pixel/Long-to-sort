@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Clip, EditorSettings } from '../types';
 import { Smartphone, Eye, EyeOff, ChevronRight, ChevronLeft, Crop, Maximize2, Play, Pause } from 'lucide-react';
 
@@ -128,64 +128,70 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
   const relTime = Math.max(0, currentTime - (clip.startTime || 0));
 
   // Find active Whisper subtitle segment (absolute or relative)
-  let activeSubtitle = clip.subtitles?.find(s => currentTime >= s.startTime && currentTime <= s.endTime)
-    || clip.subtitles?.find(s => relTime >= s.startTime && relTime <= s.endTime);
+  let activeSubtitle = clip.subtitles?.find((s: any) => {
+    const start = Number(s.startTime !== undefined ? s.startTime : s.start);
+    const end = Number(s.endTime !== undefined ? s.endTime : s.end);
+    return (currentTime >= start && currentTime <= end) || (relTime >= start && relTime <= end);
+  });
 
-  // If no subtitles exist yet, generate dynamic synchronized captions based on playback
-  if (!activeSubtitle) {
-    const cycle = relTime % 12;
-    if (cycle < 3) {
-      activeSubtitle = {
-        id: 'dyn-1',
-        startTime: 0,
-        endTime: 3,
-        text: 'THIS IS A SECRET',
-        words: [
-          { word: 'THIS', start: 0, end: 0.8 },
-          { word: 'IS', start: 0.8, end: 1.5 },
-          { word: 'A', start: 1.5, end: 2.3 },
-          { word: 'SECRET', start: 2.3, end: 3.0 }
-        ]
-      };
-    } else if (cycle < 6) {
-      activeSubtitle = {
-        id: 'dyn-2',
-        startTime: 3,
-        endTime: 6,
-        text: 'HOW CREATORS GROW FAST',
-        words: [
-          { word: 'HOW', start: 3.0, end: 3.7 },
-          { word: 'CREATORS', start: 3.7, end: 4.5 },
-          { word: 'GROW', start: 4.5, end: 5.2 },
-          { word: 'FAST', start: 5.2, end: 6.0 }
-        ]
-      };
-    } else if (cycle < 9) {
-      activeSubtitle = {
-        id: 'dyn-3',
-        startTime: 6,
-        endTime: 9,
-        text: 'IN JUST A FEW SECONDS',
-        words: [
-          { word: 'IN', start: 6.0, end: 6.8 },
-          { word: 'JUST', start: 6.8, end: 7.5 },
-          { word: 'FEW', start: 7.5, end: 8.3 },
-          { word: 'SECONDS', start: 8.3, end: 9.0 }
-        ]
-      };
-    } else {
-      activeSubtitle = {
-        id: 'dyn-4',
-        startTime: 9,
-        endTime: 12,
-        text: 'FOLLOW FOR MORE TIPS',
-        words: [
-          { word: 'FOLLOW', start: 9.0, end: 9.8 },
-          { word: 'FOR', start: 9.8, end: 10.8 },
-          { word: 'MORE', start: 10.8, end: 11.4 },
-          { word: 'TIPS', start: 11.4, end: 12.0 }
-        ]
-      };
+  // Audio speed ke saath natural match ke liye buffer if not found immediately
+  if (!activeSubtitle && clip.subtitles && clip.subtitles.length > 0) {
+    activeSubtitle = clip.subtitles.find((s: any) => {
+      const start = Number(s.start !== undefined ? s.start : s.startTime);
+      const end = Number(s.end !== undefined ? s.end : s.endTime);
+      // Audio speed ke saath natural match ke liye buffer
+      const naturalEnd = Math.max(end, start + 0.6);
+      return (currentTime >= start && currentTime <= naturalEnd) || (relTime >= start && relTime <= naturalEnd);
+    });
+  }
+
+  // If no subtitles exist in clip.subtitles, activeSubtitle remains undefined (no hardcoded fallback)
+  const subtitleWords = useMemo(() => {
+    if (!activeSubtitle) return [];
+    if (activeSubtitle.words && activeSubtitle.words.length > 0) {
+      return activeSubtitle.words;
+    }
+    const textStr = (activeSubtitle.text || '').trim();
+    if (!textStr) return [];
+    const parts = textStr.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return [];
+    const segStart = Number(activeSubtitle.startTime !== undefined ? activeSubtitle.startTime : (activeSubtitle as any).start || 0);
+    const segEnd = Number(activeSubtitle.endTime !== undefined ? activeSubtitle.endTime : (activeSubtitle as any).end || (segStart + 2.5));
+    const totalDuration = Math.max(0.4, segEnd - segStart);
+    const perWord = totalDuration / parts.length;
+    return parts.map((w, idx) => ({
+      word: w,
+      start: Number((segStart + idx * perWord).toFixed(2)),
+      end: Number((segStart + (idx + 1) * perWord).toFixed(2))
+    }));
+  }, [activeSubtitle]);
+
+  // Timing resolution for word highlighting directly synced with currentTime
+  const currentCheckTime = currentTime;
+  const relCheckTime = relTime;
+
+  // Determine active word index with natural audio speed matching
+  let activeWordIndex = subtitleWords.findIndex((w) => {
+    const wStart = Number(w.start);
+    const wEnd = Number(w.end);
+    const naturalEnd = Math.max(wEnd, wStart + 0.35);
+    return (
+      (currentCheckTime >= wStart && currentCheckTime <= naturalEnd) ||
+      (relCheckTime >= wStart && relCheckTime <= naturalEnd)
+    );
+  });
+
+  // If between syllables or slight audio pauses, lock to the current reached word so text is ALWAYS highlighted
+  if (activeWordIndex === -1 && subtitleWords.length > 0) {
+    for (let i = subtitleWords.length - 1; i >= 0; i--) {
+      const wStart = Number(subtitleWords[i].start);
+      if (currentCheckTime >= wStart || relCheckTime >= wStart) {
+        activeWordIndex = i;
+        break;
+      }
+    }
+    if (activeWordIndex === -1) {
+      activeWordIndex = 0;
     }
   }
 
@@ -328,50 +334,52 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
           </div>
         )}
 
-        {/* Dynamic Alex Hormozi Animated Captions Overlay */}
+        {/* Dynamic Alex Hormozi Animated Captions Overlay (Side flow, No upward jump, Zero black shadow) */}
         {settings.enableCaptions && activeSubtitle && (
           <div 
             style={getCaptionPositionStyle()}
-            className="absolute left-0 right-0 flex items-center justify-center pointer-events-none z-20 px-3 sm:px-6 text-center animate-in fade-in duration-100"
+            className="absolute left-0 right-0 flex items-center justify-center pointer-events-none z-20 px-2 sm:px-4 text-center overflow-hidden"
           >
             {settings.captionStyle === 'minimal' ? (
-              /* Minimal: Clean white subtitle - 100% Transparent, No Black Box */
+              /* Minimal: Clean white subtitle - 100% Transparent, Zero Black Shadow */
               <div 
-                className="text-white font-black text-sm sm:text-lg md:text-2xl uppercase tracking-wider bg-transparent p-0 border-none shadow-none"
+                className="text-white font-black text-sm sm:text-lg md:text-2xl uppercase tracking-wider bg-transparent p-0 border-none shadow-none whitespace-nowrap select-none animate-in fade-in slide-in-from-right-3 duration-150"
                 style={{
                   background: 'transparent',
                   backgroundColor: 'transparent',
-                  WebkitTextStroke: '1.2px #000',
-                  paintOrder: 'stroke fill',
-                  textShadow: '2.5px 2.5px 0 #000, -2.5px -2.5px 0 #000, 2.5px -2.5px 0 #000, -2.5px 2.5px 0 #000, 0 3px 6px rgba(0,0,0,0.9)'
+                  WebkitTextStroke: 'none',
+                  textShadow: 'none'
                 }}
               >
                 {activeSubtitle.text}
               </div>
             ) : (
-              /* Hormozi: 100% Transparent background (no box, no colored glow), floating bold uppercase text, active word in pure yellow */
-              <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[96%] bg-transparent p-0 border-none shadow-none">
-                {activeSubtitle.words && activeSubtitle.words.length > 0 ? (
-                  activeSubtitle.words.map((w, idx) => {
-                    const isActive = (currentTime >= w.start && currentTime <= w.end) 
-                      || (relTime >= w.start && relTime <= w.end);
+              /* Hormozi / Kinetic: 100% Transparent, Runs smoothly from the side horizontally, No upward jumping, Zero black shadow */
+              <div 
+                key={activeSubtitle.id || activeSubtitle.startTime || activeSubtitle.text}
+                className="flex flex-nowrap whitespace-nowrap items-center justify-center gap-2 sm:gap-3 max-w-[96%] bg-transparent p-0 border-none shadow-none overflow-x-hidden animate-in fade-in slide-in-from-right-4 duration-150"
+              >
+                {subtitleWords && subtitleWords.length > 0 ? (
+                  subtitleWords.map((w, idx) => {
+                    const isActive = idx === activeWordIndex;
+                    const highlightColor = '#FFE600';
                     
                     return (
                       <span
                         key={idx}
-                        className={`text-base sm:text-xl md:text-3xl font-black uppercase tracking-wider transition-all duration-75 select-none bg-transparent ${
+                        className={`text-lg sm:text-2xl md:text-4xl font-extrabold uppercase tracking-wide transition-all duration-100 select-none bg-transparent inline-block ${
                           isActive
-                            ? 'text-[#FFE500] scale-110 -rotate-1'
-                            : 'text-white'
+                            ? 'scale-110 z-10'
+                            : 'text-white opacity-95'
                         }`}
                         style={{
+                          color: isActive ? highlightColor : '#FFFFFF',
                           background: 'transparent',
                           backgroundColor: 'transparent',
-                          WebkitTextStroke: isActive ? '1.2px #000' : '1px #000',
-                          paintOrder: 'stroke fill',
-                          textShadow: isActive
-                            ? '1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000'
-                            : '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000'
+                          WebkitTextStroke: 'none',
+                          textShadow: isActive 
+                            ? '0 0 16px rgba(255, 230, 0, 0.8), 0 0 32px rgba(255, 230, 0, 0.4)' 
+                            : 'none'
                         }}
                       >
                         {w.word}
@@ -380,13 +388,13 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                   })
                 ) : (
                   <span 
-                    className="text-base sm:text-xl md:text-3xl font-black uppercase text-[#FFE500] tracking-wider select-none bg-transparent"
+                    className="text-lg sm:text-2xl md:text-4xl font-extrabold uppercase text-[#FFE600] tracking-wide select-none bg-transparent whitespace-nowrap inline-block animate-in fade-in slide-in-from-right-3 duration-150"
                     style={{
+                      color: '#FFE600',
                       background: 'transparent',
                       backgroundColor: 'transparent',
-                      WebkitTextStroke: '1.2px #000',
-                      paintOrder: 'stroke fill',
-                      textShadow: '1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000'
+                      WebkitTextStroke: 'none',
+                      textShadow: '0 0 16px rgba(255, 230, 0, 0.8), 0 0 32px rgba(255, 230, 0, 0.4)'
                     }}
                   >
                     {activeSubtitle.text}
@@ -397,7 +405,7 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
           </div>
         )}
 
-        {/* Part 1 / Series Tag Badge (Bottom Center) */}
+        {/* Part 1 / Series Tag Badge (Bottom Center, Zero black shadow) */}
         {settings.titleSticker && displayTitle !== '' && (
           <div className="absolute bottom-2.5 sm:bottom-3 left-0 right-0 flex flex-col items-center justify-center pointer-events-none z-20 px-3">
             <span 
@@ -405,9 +413,8 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
               style={{
                 background: 'transparent',
                 backgroundColor: 'transparent',
-                WebkitTextStroke: '1px #000',
-                paintOrder: 'stroke fill',
-                textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 5px rgba(0,0,0,0.9)'
+                WebkitTextStroke: 'none',
+                textShadow: 'none'
               }}
             >
               {displayTitle}
