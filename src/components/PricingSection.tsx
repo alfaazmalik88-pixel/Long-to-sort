@@ -25,11 +25,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
     if (tier.id === 'free') {
       return;
     }
-    // Strict lock on Global paid plans so users cannot click and activate credits without payment
-    if (currency === 'USD') {
-      alert("🔒 Global payment integration (PayPal & International Cards) is in setup. Global paid plans are locked to prevent unauthorized credit activation. Please use your One-Time 5 Mins Free Trial or pay via India (INR) UPI/Cards!");
-      return;
-    }
     setSelectedTier(tier);
     setIsCheckoutOpen(true);
   };
@@ -72,34 +67,17 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
                 <span>🇮🇳 India (INR ₹)</span>
               </button>
 
-              {isIndia ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    alert("🔒 Global payment is locked for India users. Please use India (INR ₹) UPI/Cards or enjoy the Free 10 Mins/Day (50 Mins Total) Trial!");
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold text-zinc-500 hover:text-zinc-400 cursor-not-allowed bg-zinc-900/40 transition-all"
-                  title="Global payments locked for India users"
-                >
-                  <Lock className="w-3.5 h-3.5 text-zinc-500" />
-                  <span>🌐 Global (USD $)</span>
-                  <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-zinc-800 text-amber-400/90 border border-zinc-700/60">
-                    Locked
-                  </span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setCurrency('USD')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 cursor-pointer ${
-                    currency === 'USD'
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  <span>🌐 Global (USD $)</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setCurrency('USD')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                  currency === 'USD'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <span>🌐 Global (USD $)</span>
+              </button>
             </div>
           </div>
 
@@ -141,18 +119,11 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
                     </div>
                   </div>
 
-                  {/* Price + Dollar/INR Add-on */}
+                  {/* Price */}
                   <div className="mb-2">
                     <div className="flex items-baseline gap-1">
                       <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">{tier.price}</span>
                       <span className="text-[10px] text-zinc-400 font-medium">/{tier.period}</span>
-                    </div>
-
-                    {/* Dollar / INR Dual-Currency Addon Pill */}
-                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md shadow-xs">
-                        {currency === 'INR' ? `≈ ${tier.usdEquivalent}` : `≈ ${tier.inrEquivalent}`}
-                      </span>
                     </div>
 
                     {/* Minutes Badge */}
@@ -175,38 +146,25 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
 
                 {/* Action CTA: Compact button */}
                 <div className="pt-2.5 border-t border-zinc-900">
-                  {currency === 'USD' && tier.id !== 'free' ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        alert("🔒 Global payment integration is currently in setup. Global paid plans are locked to prevent unauthorized credit activation. Please use your Free 10 Mins/Day (50 Mins Total) Trial or switch to India (INR)!");
-                      }}
-                      className="w-full py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all bg-zinc-900/80 border border-zinc-800 text-zinc-500 cursor-not-allowed hover:border-zinc-700"
-                    >
-                      <Lock className="w-3 h-3 text-amber-500/80" />
-                      <span className="truncate">Locked (Setup in Progress)</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleSelectPlan(tier)}
-                      className={`w-full py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer shadow-sm ${
-                        isCurrent && tier.id === 'free'
-                          ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
-                          : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 active:scale-[0.98]'
-                      }`}
-                    >
-                      <span className="truncate">{isCurrent && tier.id === 'free' ? 'Current Free' : tier.ctaText}</span>
-                      <ArrowRight className="w-3 h-3 shrink-0" />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPlan(tier)}
+                    className={`w-full py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer shadow-sm ${
+                      isCurrent && tier.id === 'free'
+                        ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
+                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 active:scale-[0.98]'
+                    }`}
+                  >
+                    <span className="truncate">{isCurrent && tier.id === 'free' ? 'Current Free' : tier.ctaText}</span>
+                    <ArrowRight className="w-3 h-3 shrink-0" />
+                  </button>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Global Currency Lock Notice */}
+        {/* Payment Gateways Active Notice */}
         <div className="bg-zinc-950/90 border border-zinc-800/80 rounded-2xl p-3 flex flex-wrap items-center justify-between text-xs text-zinc-400 gap-2">
           <div className="flex items-center gap-2">
             <span className="text-base">🇮🇳</span>
@@ -215,9 +173,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-amber-400 font-semibold text-[11px] sm:text-xs flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-amber-400" />
-              Global USD Payments: Locked (Setup in Progress) • Pay via India (INR) UPI/Cards
+            <span className="text-base">🌐</span>
+            <span className="text-zinc-300 font-semibold text-[11px] sm:text-xs">
+              Global Gateway Active: Pay in $ USD via Polar.sh (International Cards, Apple Pay, Google Pay)
             </span>
           </div>
         </div>

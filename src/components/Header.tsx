@@ -115,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
           className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 cursor-pointer shadow-sm active:scale-95 shrink-0"
         >
           <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-          <span>Plans (₹49)</span>
+          <span>{currency === 'INR' ? 'Plans (₹49)' : 'Plans ($4.99)'}</span>
         </button>
       </div>
 

@@ -282,8 +282,8 @@ export default function App() {
           setActiveTab('editor');
         }, 400);
 
-        // Fetch Whisper AI captions in background
-        fetch('/api/whisper-transcribe', {
+        // Fetch Gemini 1.5 Flash AI captions in background
+        fetch('/api/gemini-transcribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -305,7 +305,7 @@ export default function App() {
               }));
             }
           })
-          .catch(e => console.warn('Whisper background transcription error:', e));
+          .catch(e => console.warn('Gemini background transcription error:', e));
 
       } catch (err) {
         console.error("Upload error:", err);
@@ -339,8 +339,8 @@ export default function App() {
         });
         setSelectedClipId(generatedClips[0]?.id || null);
 
-        // Call Whisper AI transcription for demo video to enable animated captions
-        fetch('/api/whisper-transcribe', {
+        // Call Gemini 1.5 Flash AI transcription for demo video to enable animated captions
+        fetch('/api/gemini-transcribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -362,7 +362,7 @@ export default function App() {
               }));
             }
           })
-          .catch(e => console.warn('Whisper demo transcription error:', e));
+          .catch(e => console.warn('Gemini demo transcription error:', e));
 
         setTimeout(() => {
           setIsServerUploading(false);
@@ -619,6 +619,13 @@ export default function App() {
                     videoUrl={videoState.url} 
                     clips={videoState.clips}
                     onSelectClip={setSelectedClipId}
+                    serverPath={videoState.serverPath}
+                    onUpdateClipSubtitles={(clipId, subtitles) => {
+                      setVideoState(prev => ({
+                        ...prev,
+                        clips: prev.clips.map(c => c.id === clipId ? { ...c, subtitles } : c)
+                      }));
+                    }}
                   />
                 </div>
                 <div className={`w-full md:w-80 lg:w-96 flex flex-col flex-1 md:flex-none h-full min-h-0 overflow-hidden shrink-0 ${mobileEditorTab === 'controls' ? 'flex' : 'hidden md:flex'}`}>

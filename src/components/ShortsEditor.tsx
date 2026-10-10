@@ -9,6 +9,8 @@ interface ShortsEditorProps {
   videoUrl: string | null;
   clips?: Clip[];
   onSelectClip?: (id: string) => void;
+  serverPath?: string | null;
+  onUpdateClipSubtitles?: (clipId: string, subtitles: any[]) => void;
 }
 
 export const ShortsEditor: React.FC<ShortsEditorProps> = ({ 
@@ -17,13 +19,58 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
   setSettings,
   videoUrl,
   clips = [],
-  onSelectClip 
+  onSelectClip,
+  serverPath,
+  onUpdateClipSubtitles
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const bgVideoRef = useRef<HTMLVideoElement>(null);
   const [showSafeZones, setShowSafeZones] = useState(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isFetchingSubtitles, setIsFetchingSubtitles] = useState(false);
+
+  // Automatically fetch subtitles from /api/gemini-transcribe if selected clip doesn't have subtitles yet
+  useEffect(() => {
+    if (!clip) return;
+    if (clip.subtitles && clip.subtitles.length > 0) return;
+
+    let isMounted = true;
+    setIsFetchingSubtitles(true);
+
+    const targetVideoPath = serverPath || 'public/demo-sample.mp4';
+    fetch('/api/gemini-transcribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        videoPath: targetVideoPath,
+        startTime: clip.startTime || 0,
+        duration: clip.duration || (clip.endTime - clip.startTime) || 60,
+        language: settings.subtitleLanguage || 'auto'
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (!isMounted) return;
+        setIsFetchingSubtitles(false);
+        if (data && data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
+          if (onUpdateClipSubtitles) {
+            onUpdateClipSubtitles(clip.id, data.subtitles);
+          } else {
+            // Locally attach if callback not provided
+            clip.subtitles = data.subtitles;
+          }
+        }
+      })
+      .catch(err => {
+        if (isMounted) setIsFetchingSubtitles(false);
+        console.warn('Subtitles fetch error:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [clip?.id, serverPath, settings.subtitleLanguage]);
 
   const isCoverFit = settings.videoFit === 'cover';
 
@@ -127,7 +174,7 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
   // Time relative to clip start
   const relTime = Math.max(0, currentTime - (clip.startTime || 0));
 
-  // Find active Whisper subtitle segment (absolute or relative)
+  // Find active Gemini subtitle segment (absolute or relative)
   let activeSubtitle = clip.subtitles?.find((s: any) => {
     const start = Number(s.startTime !== undefined ? s.startTime : s.start);
     const end = Number(s.endTime !== undefined ? s.endTime : s.end);
@@ -165,6 +212,18 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
       end: Number((segStart + (idx + 1) * perWord).toFixed(2))
     }));
   }, [activeSubtitle]);
+
+  // 2-3 words windowing for viral shorts (TikTok/Reels dynamic Hormozi style)
+  const displayWordsWindow = useMemo(() => {
+    if (!subtitleWords || subtitleWords.length === 0) return [];
+    if (subtitleWords.length <= 4) return subtitleWords;
+
+    // Window of 2-3 words around active word
+    const windowSize = 3;
+    const currentIdx = Math.max(0, activeWordIndex);
+    const chunkStart = Math.floor(currentIdx / windowSize) * windowSize;
+    return subtitleWords.slice(chunkStart, chunkStart + windowSize);
+  }, [subtitleWords, activeWordIndex]);
 
   // Timing resolution for word highlighting directly synced with currentTime
   const currentCheckTime = currentTime;
@@ -359,18 +418,20 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                 key={activeSubtitle.id || activeSubtitle.startTime || activeSubtitle.text}
                 className="flex flex-nowrap whitespace-nowrap items-center justify-center gap-2 sm:gap-3 max-w-[96%] bg-transparent p-0 border-none shadow-none overflow-x-hidden animate-in fade-in slide-in-from-right-4 duration-150"
               >
-                {subtitleWords && subtitleWords.length > 0 ? (
-                  subtitleWords.map((w, idx) => {
-                    const isActive = idx === activeWordIndex;
+                {displayWordsWindow && displayWordsWindow.length > 0 ? (
+                  displayWordsWindow.map((w, idx) => {
+                    // Check if current word in window matches activeWord
+                    const activeWordObj = subtitleWords[activeWordIndex];
+                    const isActive = activeWordObj ? (w.word === activeWordObj.word && w.start === activeWordObj.start) : (idx === 0);
                     const highlightColor = '#FFE600';
                     
                     return (
                       <span
-                        key={idx}
-                        className={`text-lg sm:text-2xl md:text-4xl font-extrabold uppercase tracking-wide transition-all duration-100 select-none bg-transparent inline-block ${
+                        key={`${w.start}-${w.word}-${idx}`}
+                        className={`text-base sm:text-xl md:text-2xl font-black uppercase tracking-wide transition-all duration-100 select-none bg-transparent inline-block ${
                           isActive
-                            ? 'scale-110 z-10'
-                            : 'text-white opacity-95'
+                            ? 'scale-105 z-10'
+                            : 'text-white opacity-90'
                         }`}
                         style={{
                           color: isActive ? highlightColor : '#FFFFFF',
@@ -378,7 +439,7 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                           backgroundColor: 'transparent',
                           WebkitTextStroke: 'none',
                           textShadow: isActive 
-                            ? '0 0 16px rgba(255, 230, 0, 0.8), 0 0 32px rgba(255, 230, 0, 0.4)' 
+                            ? '0 0 12px rgba(255, 230, 0, 0.75), 0 0 24px rgba(255, 230, 0, 0.35)' 
                             : 'none'
                         }}
                       >
@@ -388,13 +449,13 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                   })
                 ) : (
                   <span 
-                    className="text-lg sm:text-2xl md:text-4xl font-extrabold uppercase text-[#FFE600] tracking-wide select-none bg-transparent whitespace-nowrap inline-block animate-in fade-in slide-in-from-right-3 duration-150"
+                    className="text-base sm:text-xl md:text-2xl font-black uppercase text-[#FFE600] tracking-wide select-none bg-transparent whitespace-nowrap inline-block animate-in fade-in slide-in-from-right-3 duration-150"
                     style={{
                       color: '#FFE600',
                       background: 'transparent',
                       backgroundColor: 'transparent',
                       WebkitTextStroke: 'none',
-                      textShadow: '0 0 16px rgba(255, 230, 0, 0.8), 0 0 32px rgba(255, 230, 0, 0.4)'
+                      textShadow: '0 0 12px rgba(255, 230, 0, 0.75), 0 0 24px rgba(255, 230, 0, 0.35)'
                     }}
                   >
                     {activeSubtitle.text}

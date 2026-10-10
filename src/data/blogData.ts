@@ -82,8 +82,8 @@ export const BLOG_ARTICLES: BlogArticle[] = [
         {
           stepNumber: 3,
           title: 'Auto-Generate Word-Level Timestamps',
-          description: 'Click "Auto Subtitles" or "Whisper AI". The engine extracts precise millisecond word timings so each word glows exactly as spoken.',
-          tip: 'Supports English and multilingual speech recognition out of the box.'
+          description: 'Click "Auto Subtitles" or "Gemini AI". The engine extracts precise millisecond word timings so each word glows exactly as spoken.',
+          tip: 'Supports English, Hindi (Hinglish), and multilingual speech recognition out of the box.'
         },
         {
           stepNumber: 4,

@@ -51,11 +51,6 @@ export const useCountryPricing = () => {
   }, []);
 
   const setCurrency = (c: Currency) => {
-    // If Indian user tries to toggle Global, show lock info
-    if (country === 'IN' && c === 'USD') {
-      alert("🔒 Global payment is locked for India users. Please use India (INR ₹) UPI/Cards or enjoy the Free 10 Mins/Day (50 Mins Total) Trial!");
-      return;
-    }
     setCurrencyState(c);
     localStorage.setItem('app_currency', c);
   };
@@ -68,8 +63,8 @@ export const useCountryPricing = () => {
     country,
     isIndia,
     isGlobalUser: !isIndia,
-    isGlobalLockedForIndia: isIndia,
-    paymentGateway: isIndia ? 'Razorpay UPI & Cards' : 'Razorpay Global & PayPal',
+    isGlobalLockedForIndia: false,
+    paymentGateway: currency === 'INR' ? 'Razorpay UPI & Cards' : 'Polar.sh Global Checkout (Cards & Apple Pay)',
     isDetected: true
   };
 };

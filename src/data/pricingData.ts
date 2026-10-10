@@ -3,8 +3,6 @@ export interface PricingTier {
   name: string;
   price: string;
   numericPrice: number;
-  usdEquivalent?: string;
-  inrEquivalent?: string;
   period: string;
   badge?: string;
   popular?: boolean;
@@ -22,7 +20,6 @@ export const PRICING_INR: PricingTier[] = [
     name: 'Free Trial',
     price: '₹0',
     numericPrice: 0,
-    usdEquivalent: '$0 USD',
     period: 'one-time',
     badge: 'One-Time',
     clipsCredit: '5 Free Mins',
@@ -41,7 +38,6 @@ export const PRICING_INR: PricingTier[] = [
     name: 'Starter Pack',
     price: '₹49',
     numericPrice: 49,
-    usdEquivalent: '$4.99 USD',
     period: 'one-time',
     clipsCredit: '30 Minutes',
     totalExport: '30 Mins Video Processing',
@@ -58,7 +54,6 @@ export const PRICING_INR: PricingTier[] = [
     name: 'Creator Pack',
     price: '₹99',
     numericPrice: 99,
-    usdEquivalent: '$9.99 USD',
     period: 'one-time',
     popular: true,
     badge: 'Popular',
@@ -77,7 +72,6 @@ export const PRICING_INR: PricingTier[] = [
     name: 'Pro Pack',
     price: '₹199',
     numericPrice: 199,
-    usdEquivalent: '$19.99 USD',
     period: 'one-time',
     badge: '4K Upload',
     supports4K: true,
@@ -96,7 +90,6 @@ export const PRICING_INR: PricingTier[] = [
     name: 'Agency Pack',
     price: '₹499',
     numericPrice: 499,
-    usdEquivalent: '$39.99 USD',
     period: 'one-time',
     badge: 'VIP Agency',
     supports4K: true,
@@ -123,7 +116,6 @@ export const PRICING_USD: PricingTier[] = [
     name: 'Free Trial',
     price: '$0',
     numericPrice: 0,
-    inrEquivalent: '₹0 INR',
     period: 'one-time',
     badge: 'One-Time',
     clipsCredit: '5 Free Mins',
@@ -142,7 +134,6 @@ export const PRICING_USD: PricingTier[] = [
     name: 'Starter Pack',
     price: '$4.99',
     numericPrice: 4.99,
-    inrEquivalent: '₹49 INR',
     period: 'one-time',
     clipsCredit: '30 Minutes',
     totalExport: '30 Mins Video Processing',
@@ -159,7 +150,6 @@ export const PRICING_USD: PricingTier[] = [
     name: 'Creator Pack',
     price: '$9.99',
     numericPrice: 9.99,
-    inrEquivalent: '₹99 INR',
     period: 'one-time',
     popular: true,
     badge: 'Popular',
@@ -178,7 +168,6 @@ export const PRICING_USD: PricingTier[] = [
     name: 'Pro Pack',
     price: '$19.99',
     numericPrice: 19.99,
-    inrEquivalent: '₹199 INR',
     period: 'one-time',
     badge: '4K Upload',
     supports4K: true,
@@ -197,7 +186,6 @@ export const PRICING_USD: PricingTier[] = [
     name: 'Agency Pack',
     price: '$39.99',
     numericPrice: 39.99,
-    inrEquivalent: '₹499 INR',
     period: 'one-time',
     badge: 'VIP Agency',
     supports4K: true,
