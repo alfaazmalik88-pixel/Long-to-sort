@@ -64,7 +64,7 @@ export const useCountryPricing = () => {
     isIndia,
     isGlobalUser: !isIndia,
     isGlobalLockedForIndia: false,
-    paymentGateway: currency === 'INR' ? 'Razorpay UPI & Cards' : 'Polar.sh Global Checkout (Cards & Apple Pay)',
+    paymentGateway: currency === 'INR' ? 'Razorpay UPI & Cards' : 'Whop Global Checkout (Cards, Apple Pay, Google Pay)',
     isDetected: true
   };
 };

@@ -78,6 +78,7 @@ export const PRICING_INR: PricingTier[] = [
     clipsCredit: '160m (1080p) / 50m (4K)',
     totalExport: '160 Mins 1080p OR 50 Mins 4K',
     features: [
+      '4K Video Upload Support',
       '160 Mins 1080p / 50 Mins 4K',
       '1080p Full HD • Zero Watermark',
       'VIP High-Speed Render',
@@ -91,14 +92,14 @@ export const PRICING_INR: PricingTier[] = [
     price: '₹499',
     numericPrice: 499,
     period: 'one-time',
-    badge: 'VIP Agency',
+    badge: '4K Upload • Agency',
     supports4K: true,
     clipsCredit: '500 Minutes',
     totalExport: '500 Mins Video Processing',
     features: [
       '500 Minutes Processing',
+      '4K Video Upload Enabled',
       '1080p Full HD • Zero Watermark',
-      '4K Upload • Crisp 1080p Render',
       'VIP Priority Pipeline'
     ],
     ctaText: 'Pay ₹499 INR'
@@ -132,8 +133,8 @@ export const PRICING_USD: PricingTier[] = [
   {
     id: 'starter',
     name: 'Starter Pack',
-    price: '$4.99',
-    numericPrice: 4.99,
+    price: '$5',
+    numericPrice: 5,
     period: 'one-time',
     clipsCredit: '30 Minutes',
     totalExport: '30 Mins Video Processing',
@@ -143,7 +144,7 @@ export const PRICING_USD: PricingTier[] = [
       'Part 1, Part 2 Series Tags',
       'Credits Never Expire'
     ],
-    ctaText: 'Pay $4.99 USD'
+    ctaText: 'Pay $5 USD'
   },
   {
     id: 'creator',
@@ -174,6 +175,7 @@ export const PRICING_USD: PricingTier[] = [
     clipsCredit: '160m (1080p) / 50m (4K)',
     totalExport: '160 Mins 1080p OR 50 Mins 4K',
     features: [
+      '4K Video Upload Support',
       '160 Mins 1080p / 50 Mins 4K',
       '1080p Full HD • Zero Watermark',
       'VIP High-Speed Render',
@@ -187,14 +189,14 @@ export const PRICING_USD: PricingTier[] = [
     price: '$39.99',
     numericPrice: 39.99,
     period: 'one-time',
-    badge: 'VIP Agency',
+    badge: '4K Upload • Agency',
     supports4K: true,
     clipsCredit: '500 Minutes',
     totalExport: '500 Mins Video Processing',
     features: [
       '500 Minutes Processing',
+      '4K Video Upload Enabled',
       '1080p Full HD • Zero Watermark',
-      '4K Upload • Crisp 1080p Render',
       'VIP Priority Pipeline'
     ],
     ctaText: 'Pay $39.99 USD'

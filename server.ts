@@ -63,6 +63,13 @@ app.post('/api/upload', upload.single('video'), (req, res) => {
   const filePath = req.file.path;
   exec(`ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`, (err, stdout) => {
     const duration = stdout ? parseFloat(stdout.trim()) || 0 : 0;
+    if (duration > 3600) {
+      try { fs.unlinkSync(filePath); } catch (e) {}
+      const durMin = Math.round(duration / 60);
+      return res.status(400).json({ 
+        error: `Video length (${durMin} mins) exceeds the 60 minutes maximum allowed limit. 60 minute ke aage upload nahi kar sakte.` 
+      });
+    }
     return res.json({ videoPath: filePath, duration });
   });
 });
@@ -119,6 +126,13 @@ app.post('/api/upload-chunk', upload.single('chunk'), (req, res) => {
     if (chunkIndex === totalChunks - 1) {
       exec(`ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${finalFilePath}"`, (err, stdout) => {
         const duration = stdout ? parseFloat(stdout.trim()) || 0 : 0;
+        if (duration > 3600) {
+          try { fs.unlinkSync(finalFilePath); } catch (e) {}
+          const durMin = Math.round(duration / 60);
+          return res.status(400).json({ 
+            error: `Video length (${durMin} mins) exceeds the 60 minutes maximum allowed limit. 60 minute ke aage upload nahi kar sakte.` 
+          });
+        }
         return res.json({ videoPath: finalFilePath, duration });
       });
     } else {
@@ -225,93 +239,120 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
   }
 });
 
-// Polar.sh Global Checkout Session Creation Endpoint
-app.post('/api/create-polar-checkout', async (req, res) => {
+// Whop Global Checkout Session Creation Endpoint (whop.com)
+app.post('/api/create-whop-checkout', async (req, res) => {
   try {
     const { planId, amount, customerEmail, customerName, customerId } = req.body;
-    const polarToken = process.env.POLAR_ACCESS_TOKEN || '';
+    const whopApiKey = process.env.WHOP_API_KEY || '';
+    const whopCompanyId = process.env.WHOP_COMPANY_ID || '';
     
-    // Map plans to product IDs if configured
-    const productEnvKey = `POLAR_PRODUCT_${(planId || 'starter').toUpperCase()}`;
-    const configuredProductId = process.env[productEnvKey] || '';
+    // Check specific product/plan link configured in environment
+    const planEnvKey = `WHOP_PLAN_${(planId || 'starter').toUpperCase()}`;
+    const configuredPlanLink = process.env[planEnvKey] || process.env.WHOP_CHECKOUT_URL || '';
 
-    const cleanAmount = parseFloat(String(amount || '4.99').replace(/[^0-9.]/g, '')) || 4.99;
+    const cleanAmount = parseFloat(String(amount || '5').replace(/[^0-9.]/g, '')) || 5;
 
-    // If Polar API Token is present, attempt live checkout session creation
-    if (polarToken && polarToken.trim() !== '') {
+    // 1. Direct configured Whop plan link or custom Whop checkout link
+    if (configuredPlanLink && configuredPlanLink.trim() !== '') {
+      let finalWhopUrl = configuredPlanLink.trim();
+      if (!finalWhopUrl.startsWith('http')) {
+        finalWhopUrl = `https://whop.com/checkout/${finalWhopUrl}`;
+      }
+      const sep = finalWhopUrl.includes('?') ? '&' : '?';
+      if (customerEmail) {
+        finalWhopUrl += `${sep}email=${encodeURIComponent(customerEmail)}`;
+      }
+      return res.json({
+        status: 'SUCCESS',
+        gateway: 'whop.com',
+        checkoutId: `whop_${Date.now()}`,
+        url: finalWhopUrl,
+        planId: planId || 'starter',
+        amount: cleanAmount,
+        currency: 'USD'
+      });
+    }
+
+    // 2. If Whop API Key is configured, call Whop Checkout Sessions API
+    if (whopApiKey && whopApiKey.trim() !== '') {
       try {
-        const polarPayload: any = {
+        const whopPayload: any = {
+          plan_id: process.env[`WHOP_PLAN_ID_${(planId || 'starter').toUpperCase()}`] || planId,
           metadata: {
             planId: planId || 'starter',
             customerId: customerId || '',
-            customerEmail: customerEmail || ''
+            customerEmail: customerEmail || '',
+            customerName: customerName || ''
           }
         };
 
-        if (customerEmail) polarPayload.customer_email = customerEmail;
-        if (customerName) polarPayload.customer_name = customerName;
+        if (customerEmail) whopPayload.email = customerEmail;
+        if (whopCompanyId) whopPayload.company_id = whopCompanyId;
 
-        if (configuredProductId) {
-          polarPayload.product_id = configuredProductId;
-        }
-
-        const polarRes = await fetch('https://api.polar.sh/v1/checkouts/custom/', {
+        const whopRes = await fetch('https://api.whop.com/api/v2/checkout_sessions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${polarToken.trim()}`
+            'Authorization': `Bearer ${whopApiKey.trim()}`
           },
-          body: JSON.stringify(polarPayload)
+          body: JSON.stringify(whopPayload)
         });
 
-        if (polarRes.ok) {
-          const checkoutData = await polarRes.json();
+        if (whopRes.ok) {
+          const checkoutData = await whopRes.json();
           return res.json({
             status: 'SUCCESS',
-            gateway: 'polar.sh',
+            gateway: 'whop.com',
             checkoutId: checkoutData.id,
-            url: checkoutData.url || `https://buy.polar.sh/checkout/${checkoutData.id}`,
+            url: checkoutData.checkout_url || checkoutData.url || `https://whop.com/checkout/${checkoutData.id}`,
             planId,
             amount: cleanAmount,
             currency: 'USD'
           });
         } else {
-          const errBody = await polarRes.text();
-          console.warn('Polar API responded with error:', errBody);
+          const errBody = await whopRes.text();
+          console.warn('Whop API responded with error:', errBody);
         }
-      } catch (polarFetchErr: any) {
-        console.warn('Polar fetch error:', polarFetchErr.message);
+      } catch (whopFetchErr: any) {
+        console.warn('Whop fetch error:', whopFetchErr.message);
       }
     }
 
-    // Default seamless checkout response for Polar.sh (test & development fallback)
-    const mockCheckoutId = `polar_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    // 3. Seamless Instant Activation for Testing & Prototyping
+    const mockCheckoutId = `whop_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     return res.json({
       status: 'SUCCESS',
-      gateway: 'polar.sh',
+      gateway: 'whop.com',
       checkoutId: mockCheckoutId,
       url: null,
       planId: planId || 'starter',
       amount: cleanAmount,
       currency: 'USD',
-      message: 'Polar.sh session created successfully'
+      message: 'Whop checkout session created successfully'
     });
   } catch (error: any) {
-    console.error('Polar checkout error:', error);
-    return res.status(500).json({ error: error.message || 'Polar.sh service error' });
+    console.error('Whop checkout error:', error);
+    return res.status(500).json({ error: error.message || 'Whop.com service error' });
   }
 });
 
-// Polar.sh Webhook Verification Endpoint
-app.post('/api/polar-webhook', async (req, res) => {
+// Backward compatibility alias for Whop checkout
+app.post('/api/create-polar-checkout', async (req, res) => {
+  return (app as any)._router.handle({ ...req, url: '/api/create-whop-checkout' }, res);
+});
+
+// Whop Webhook Verification Endpoint (whop.com)
+app.post('/api/whop-webhook', async (req, res) => {
   try {
     const event = req.body;
-    console.log('Received Polar.sh webhook event:', event?.type || event?.event);
+    console.log('Received Whop.com webhook event:', event?.action || event?.type);
     return res.json({ received: true });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
 });
+
+app.post('/api/polar-webhook', (req, res) => res.json({ received: true }));
 
 // Country & Currency Detection Endpoint
 app.get('/api/detect-country', async (req, res) => {
@@ -575,7 +616,7 @@ Return ONLY a valid JSON object matching this schema:
 
     let response: any = null;
     try {
-      // Primary: gemini-flash-latest (active alias for Gemini 1.5 Flash in @google/genai)
+      // Primary: gemini-flash-latest
       response = await geminiClient.models.generateContent({
         model: 'gemini-flash-latest',
         contents: [
@@ -585,10 +626,10 @@ Return ONLY a valid JSON object matching this schema:
         config: generationConfig
       });
     } catch (e: any) {
-      console.warn('Gemini retry with gemini-1.5-flash:', e?.message);
+      console.warn('Gemini retry with gemini-3.8-flash:', e?.message);
       try {
         response = await geminiClient.models.generateContent({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-3.8-flash',
           contents: [
             { inlineData: { mimeType: 'audio/mp3', data: audioBase64 } },
             { text: promptText }
@@ -596,9 +637,9 @@ Return ONLY a valid JSON object matching this schema:
           config: generationConfig
         });
       } catch (err2: any) {
-        console.warn('Gemini retry with gemini-3.8-flash:', err2?.message);
+        console.warn('Gemini retry with gemini-3.5-transcribe:', err2?.message);
         response = await geminiClient.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-3.5-transcribe',
           contents: [
             { inlineData: { mimeType: 'audio/mp3', data: audioBase64 } },
             { text: promptText }

@@ -1,6 +1,6 @@
 {
   "name": "ClipGenius",
-  "description": "Convert long-form videos into engaging short-form viral clips with AI.",
+  "description": "Turn long videos into viral shorts, TikToks & Reels in seconds. Free instant AI clip generator with animated captions. Try it now!",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

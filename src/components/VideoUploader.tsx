@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, Sparkles, Zap, Flame, Shield, ArrowRight, Play, Film, CheckCircle2, Lock, LogIn, AlertCircle, X, Crown, AlertTriangle, Clock } from 'lucide-react';
+import { Upload, Sparkles, Zap, Flame, Shield, ArrowRight, Play, Film, CheckCircle2, Lock, LogIn, AlertCircle, X, Crown, AlertTriangle, Clock, HardDrive } from 'lucide-react';
 import { VideoState } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { isPlan4KSupported } from '../data/pricingData';
@@ -42,34 +42,45 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       const objectUrl = URL.createObjectURL(file);
       video.src = objectUrl;
 
+      let resolved = false;
       const cleanup = () => {
         try { URL.revokeObjectURL(objectUrl); } catch (_) {}
       };
 
-      video.onloadedmetadata = () => {
-        const width = video.videoWidth || 0;
-        const height = video.videoHeight || 0;
-        const duration = video.duration || 0;
+      const finish = (w: number, h: number, dur: number) => {
+        if (resolved) return;
+        resolved = true;
         cleanup();
-        // 1080p maximum limits:
-        // Landscape: 1920x1080
-        // Vertical (9:16 Shorts/Reels): 1080x1920
-        // Square: 1080x1080
-        // Any video where max(width, height) > 1920 or (width > 1080 and height > 1080) exceeds 1080p (e.g. 1440p 2K, 4K)
-        const isExceeding1080p = width > 1920 || height > 1920 || (width > 1080 && height > 1080);
-        const is4K = width >= 3840 || height >= 2160 || (width >= 2160 && height >= 2160);
-        resolve({ width, height, duration, isExceeding1080p, is4K });
+        const isExceeding1080p = w > 1920 || h > 1920 || (w > 1080 && h > 1080);
+        const is4K = w >= 3840 || h >= 2160 || (w >= 2160 && h >= 2160);
+        resolve({ width: w, height: h, duration: dur, isExceeding1080p, is4K });
+      };
+
+      video.onloadedmetadata = () => {
+        let dur = video.duration || 0;
+        if (!isFinite(dur) || dur === 0) {
+          video.currentTime = Number.MAX_SAFE_INTEGER;
+          video.ontimeupdate = () => {
+            video.ontimeupdate = null;
+            dur = video.duration || video.currentTime || 0;
+            video.currentTime = 0;
+            finish(video.videoWidth || 0, video.videoHeight || 0, dur);
+          };
+          setTimeout(() => {
+            finish(video.videoWidth || 0, video.videoHeight || 0, video.duration || 0);
+          }, 1500);
+          return;
+        }
+        finish(video.videoWidth || 0, video.videoHeight || 0, dur);
       };
 
       video.onerror = () => {
-        cleanup();
-        resolve({ width: 0, height: 0, duration: 0, isExceeding1080p: false, is4K: false });
+        finish(0, 0, 0);
       };
 
       setTimeout(() => {
-        cleanup();
-        resolve({ width: 0, height: 0, duration: 0, isExceeding1080p: false, is4K: false });
-      }, 4000);
+        finish(video.videoWidth || 0, video.videoHeight || 0, video.duration || 0);
+      }, 10000);
     });
   };
 
@@ -88,7 +99,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     if (file.size > MAX_FILE_SIZE_BYTES) {
       const sizeGB = (file.size / (1024 * 1024 * 1024)).toFixed(2);
       setResolutionWarning(
-        `File size (${sizeGB} GB) exceeds the 5GB maximum upload limit. Please select a video file under 5GB.`
+        `File size (${sizeGB} GB) exceeds the 5GB maximum upload limit! 5GB ke upar video upload nahi kar sakte. Please select a video under 5GB.`
       );
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
@@ -107,7 +118,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
         setIsCheckingVideo(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
         const durMin = Math.round(duration / 60);
-        setResolutionWarning(`Video length (${durMin} mins) exceeds the 60 minutes maximum allowed limit. Please select a video up to 60 minutes long.`);
+        setResolutionWarning(`Video length (${durMin} mins) exceeds the 60 minutes maximum allowed limit. 60 minute ke aage video upload nahi kar sakte.`);
         return;
       }
 
@@ -191,8 +202,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-medium text-zinc-300 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
             <span>AI Neural Splitter v3.0 Active</span>
-            <span className="text-zinc-600">·</span>
-            <span className="text-indigo-400 font-semibold">4K Upload • 1080p Full HD Render</span>
           </div>
 
           <div className="space-y-3">
@@ -209,18 +218,14 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
           </div>
 
           {/* Quick Specs Ticker */}
-          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 pt-1 text-xs text-zinc-400">
+          <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5 pt-1 text-xs text-zinc-400">
             <div className="flex items-center gap-1.5 bg-zinc-900/60 border border-zinc-800 px-2.5 py-1 rounded-lg">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
               <span>Zero Watermark</span>
             </div>
             <div className="flex items-center gap-1.5 bg-zinc-900/60 border border-zinc-800 px-2.5 py-1 rounded-lg">
-              <Clock className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Max Length: <strong>60 Minutes</strong></span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-zinc-900/60 border border-zinc-800 px-2.5 py-1 rounded-lg">
               <Crown className="w-3.5 h-3.5 text-amber-400" />
-              <span>4K Upload • 1080p Render (Pro & Agency)</span>
+              <span>Pro & Agency: 4K Upload • 1080p Render</span>
             </div>
           </div>
         </div>
@@ -378,7 +383,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                     )}
                   </div>
 
-                  <div className="space-y-1.5 mb-4">
+                  <div className="space-y-1.5 mb-3">
                     {!isAuthenticated ? (
                       <>
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold mb-1 shadow-sm">
@@ -388,8 +393,8 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                         <p className="text-white font-bold text-base md:text-lg group-hover:text-indigo-200 transition-colors">
                           Click here to Login & Upload
                         </p>
-                        <p className="text-zinc-400 text-xs md:text-sm">
-                          Free account includes export credits • Up to 60 mins video length
+                        <p className="text-zinc-400 text-xs">
+                          Drag & drop or click video
                         </p>
                       </>
                     ) : (
@@ -397,24 +402,24 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                         <p className="text-white font-bold text-base md:text-lg group-hover:text-indigo-200 transition-colors">
                           Click to upload or drag & drop video
                         </p>
-                        <p className="text-zinc-400 text-xs md:text-sm">
-                          MP4, MOV or WebM • Up to 60 Mins Length • 4K Upload & 1080p Render
+                        <p className="text-zinc-400 text-xs">
+                          MP4, MOV, WebM supported
                         </p>
                       </>
                     )}
                   </div>
 
-                  {/* Plan Specs Badge */}
-                  <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
-                    <span className="text-[11px] font-semibold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-lg">
-                      Max Length: <strong className="text-white">60 Minutes</strong>
+                  {/* Drag & Drop small limits pill */}
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <span className="text-[11px] text-zinc-400 bg-zinc-900/90 border border-zinc-800 px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                      <span>Max 5 GB • 60 Min</span>
                     </span>
-                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${
+                    <span className={`text-[11px] px-2.5 py-1 rounded-lg border ${
                       isPlan4KSupported(user?.plan) 
-                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' 
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 font-medium' 
                         : 'bg-zinc-900 border-zinc-800 text-zinc-400'
                     }`}>
-                      {isPlan4KSupported(user?.plan) ? '✨ 4K Upload Active (Render: 1080p Full HD)' : 'Regular Plans: Max 1080p Upload (4K requires Pro/Agency)'}
+                      {isPlan4KSupported(user?.plan) ? '✨ 4K Upload Active (Pro/Agency)' : 'Pro & Agency: 4K Upload'}
                     </span>
                   </div>
                 </div>
@@ -476,7 +481,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
               </h3>
 
               <p className="text-xs text-zinc-400 leading-relaxed mb-5">
-                iPhones, Samsung, and modern smartphones record in 4K by default. Your current plan (<strong className="text-zinc-200">{user?.planName || 'Free Plan'}</strong>) supports crisp 1080p Full HD output.
+                iPhones, Samsung, and modern smartphones record in 4K by default. 4K upload is included with <strong className="text-amber-300">Pro Pack</strong> and <strong className="text-amber-300">Agency Pack</strong>. Your current plan is <strong className="text-zinc-200">{user?.planName || 'Free Plan'}</strong> (1080p).
               </p>
 
               <div className="space-y-2.5 mb-4">
@@ -502,7 +507,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                     className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-extrabold text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer active:scale-95"
                   >
                     <Crown className="w-4 h-4" />
-                    <span>Keep Native 4K UHD (Upgrade Plan)</span>
+                    <span>Unlock 4K Upload (Pro / Agency Plan)</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 )}

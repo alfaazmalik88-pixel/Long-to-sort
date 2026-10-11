@@ -432,10 +432,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <div>
                 ⚡ <strong>Multi-Language Rule:</strong> Automatic language detection active. Hindi audio is automatically transcribed into <strong>Hinglish (Roman English script)</strong> in 3-4 word viral chunks; all other global and local languages are preserved in their authentic native script.
               </div>
-              <div className="flex items-center gap-1.5 pt-1 border-t border-cyan-800/20 text-cyan-400 font-semibold">
-                <Sparkles className="w-3 h-3 text-amber-400" />
-                <span>Powered by Gemini 1.5 Flash (temperature: 0.0 • 3-4 word subtitle chunks)</span>
-              </div>
             </div>
           </div>
         )}

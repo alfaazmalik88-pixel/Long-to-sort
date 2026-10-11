@@ -91,7 +91,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                   Select Your Plan
                 </h2>
                 <p className="text-[10px] sm:text-xs text-zinc-400 truncate">
-                  Zero Watermark • 4K Upload • 1080p Full HD Render
+                  Zero Watermark • 4K Upload (Pro & Agency) • 1080p Full HD Render
                 </p>
               </div>
             </div>
@@ -159,17 +159,6 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                 🌐 $ USD
               </button>
             </div>
-          </div>
-
-          {/* No Auto-Debit Guarantee Banner in English */}
-          <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 text-emerald-300 font-semibold text-[11px] sm:text-xs">
-              <Shield className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>100% One-Time Payment • No Auto-Debit • No Hidden Recurring Charges</span>
-            </div>
-            <span className="hidden sm:inline text-[10px] text-zinc-400 font-medium">
-              Never automatically deducted
-            </span>
           </div>
         </div>
 
@@ -275,7 +264,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
             </div>
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{currency === 'INR' ? 'Razorpay UPI & Cards' : 'Polar.sh Global Checkout'}</span>
+              <span>{currency === 'INR' ? 'Razorpay UPI & Cards' : 'Whop Global Checkout'}</span>
             </div>
           </div>
         </div>

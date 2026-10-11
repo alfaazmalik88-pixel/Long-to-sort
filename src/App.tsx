@@ -97,7 +97,7 @@ export default function App() {
     return new Promise(async (resolve, reject) => {
       // Strict 5GB upload safety check
       if (file.size > 5 * 1024 * 1024 * 1024) {
-        return reject(new Error("File size exceeds 5GB maximum upload limit."));
+        return reject(new Error("File size exceeds 5GB maximum upload limit. 5GB ke upar upload nahi kar sakte."));
       }
 
       // Fallback direct upload if small or chunked fails
@@ -115,13 +115,22 @@ export default function App() {
           if (xhr.status === 200) {
             try {
               const data = JSON.parse(xhr.responseText);
+              if (data.duration && data.duration > 3600) {
+                const durMin = Math.round(data.duration / 60);
+                return reject(new Error(`Video duration (${durMin} mins) exceeds 60 minutes limit. 60 minute ke aage upload nahi kar sakte.`));
+              }
               onProgress(100);
               resolve({ path: data.videoPath, duration: data.duration });
             } catch (err) {
               reject(err);
             }
           } else {
-            reject(new Error(`Direct upload failed with status ${xhr.status}`));
+            try {
+              const errData = JSON.parse(xhr.responseText);
+              reject(new Error(errData.error || `Direct upload failed with status ${xhr.status}`));
+            } catch (_) {
+              reject(new Error(`Direct upload failed with status ${xhr.status}`));
+            }
           }
         };
         xhr.onerror = () => reject(new Error('Direct upload network error'));
@@ -172,11 +181,22 @@ export default function App() {
             } else {
               try {
                 const data = JSON.parse(xhr.responseText);
+                if (data.duration && data.duration > 3600) {
+                  const durMin = Math.round(data.duration / 60);
+                  return reject(new Error(`Video duration (${durMin} mins) exceeds 60 minutes limit. 60 minute ke aage upload nahi kar sakte.`));
+                }
                 onProgress(100);
                 resolve({ path: data.videoPath, duration: data.duration });
               } catch (err) {
                 reject(err);
               }
+            }
+          } else if (xhr.status === 400) {
+            try {
+              const errData = JSON.parse(xhr.responseText);
+              reject(new Error(errData.error || "Upload rejected: limits exceeded."));
+            } catch (_) {
+              reject(new Error("Upload rejected: limits exceeded."));
             }
           } else {
             if (retry < 2) {
@@ -263,6 +283,13 @@ export default function App() {
         });
 
         const detectedDur = result.duration && result.duration > 0 ? result.duration : (video.duration || 60);
+        if (detectedDur > 3600) {
+          setIsServerUploading(false);
+          const durMin = Math.round(detectedDur / 60);
+          alert(`Video length (${durMin} mins) exceeds the 60 minutes maximum allowed limit. 60 minute ke aage upload nahi kar sakte.`);
+          return;
+        }
+
         const is4K = (video.videoWidth >= 3840 || video.videoHeight >= 2160 || (video.videoWidth >= 2160 && video.videoHeight >= 2160));
         const generatedClips = generateClips(detectedDur, editorSettings.clipDuration);
 
@@ -307,10 +334,10 @@ export default function App() {
           })
           .catch(e => console.warn('Gemini background transcription error:', e));
 
-      } catch (err) {
+      } catch (err: any) {
         console.error("Upload error:", err);
         setIsServerUploading(false);
-        alert("Failed to upload video to server. Please try again.");
+        alert(err?.message || "Failed to upload video to server. Please try again.");
       }
     } else {
       // Demo sample video: show fast smooth progress then open editor

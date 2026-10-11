@@ -115,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
           className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 cursor-pointer shadow-sm active:scale-95 shrink-0"
         >
           <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-          <span>{currency === 'INR' ? 'Plans (₹49)' : 'Plans ($4.99)'}</span>
+          <span>Plans (₹49 / $5)</span>
         </button>
       </div>
 
@@ -128,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
           className="sm:hidden flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-bold active:scale-95 transition-all shadow-sm cursor-pointer shrink-0"
         >
           <Zap className="w-3 h-3 fill-amber-400" />
-          <span>{currency === 'INR' ? 'Plans (₹49)' : 'Plans ($5)'}</span>
+          <span>Plans (₹49 / $5)</span>
         </button>
 
         {isAuthenticated && user ? (

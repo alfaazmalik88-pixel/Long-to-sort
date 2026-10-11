@@ -80,12 +80,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
               </button>
             </div>
           </div>
-
-          {/* No Auto-Debit Guarantee */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 text-zinc-400 text-xs font-medium">
-            <Shield className="w-3.5 h-3.5 text-indigo-400" />
-            <span>100% One-Time Payment • No Auto-Debit • Never Automatically Deducted</span>
-          </div>
         </div>
 
         {/* Pricing Cards Grid (5 Tiers - Compact, Sleek & Smaller) */}
@@ -175,7 +169,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
           <div className="flex items-center gap-2">
             <span className="text-base">🌐</span>
             <span className="text-zinc-300 font-semibold text-[11px] sm:text-xs">
-              Global Gateway Active: Pay in $ USD via Polar.sh (International Cards, Apple Pay, Google Pay)
+              Global Gateway Active: Pay in $ USD via Whop Payments (International Cards, Apple Pay, Google Pay)
             </span>
           </div>
         </div>

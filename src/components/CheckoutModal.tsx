@@ -33,15 +33,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     e.preventDefault();
     setProcessing(true);
 
-    // Global Checkout via Polar.sh (Merchant of Record)
+    // Global Checkout via Whop (whop.com)
     if (currency === 'USD') {
       try {
-        const res = await fetch('/api/create-polar-checkout', {
+        const res = await fetch('/api/create-whop-checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             planId: activeTier.id,
-            amount: activeTier.numericPrice || 4.99,
+            amount: activeTier.numericPrice || 5,
             customerEmail: user?.email || '',
             customerName: user?.name || 'Creator',
             customerId: user?.id || `cust_${Date.now()}`
@@ -50,7 +50,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         const data = await res.json();
         if (data && data.url) {
-          // Live Polar Checkout Session redirect
+          // Live Whop Checkout Session redirect
           window.location.href = data.url;
           return;
         }
@@ -64,11 +64,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             onSuccess(activeTier);
             onClose();
             setCompleted(false);
-          }, 1500);
-        }, 1200);
+          }, 1200);
+        }, 1000);
         return;
-      } catch (polarErr) {
-        console.warn('Polar checkout error, activating directly:', polarErr);
+      } catch (whopErr) {
+        console.warn('Whop checkout error, activating directly:', whopErr);
         upgradePlan(activeTier.id, 'USD');
         setProcessing(false);
         setCompleted(true);
@@ -76,7 +76,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           onSuccess(activeTier);
           onClose();
           setCompleted(false);
-        }, 1500);
+        }, 1200);
         return;
       }
     }
@@ -182,7 +182,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <div>
               <h3 className="font-bold text-white text-sm sm:text-base">{activeTier.name}</h3>
               <p className="text-[11px] text-zinc-400">
-                {currency === 'INR' ? '🇮🇳 Pay in Indian Rupees (INR ₹)' : '🌐 Pay in US Dollars via Polar.sh'}
+                {currency === 'INR' ? '🇮🇳 Pay in Indian Rupees (INR ₹)' : '🌐 Pay in US Dollars (USD $)'}
               </p>
             </div>
           </div>
@@ -195,17 +195,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </button>
         </div>
 
-        {/* Currency Banner */}
-        <div className="px-4 sm:px-6 pt-3 pb-1 bg-zinc-950">
+        {/* Top Gateway Banner */}
+        <div className="px-4 sm:px-5 pt-3.5 pb-1 bg-zinc-950">
           <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-xl py-2 px-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-base">{currency === 'INR' ? '🇮🇳' : '🌐'}</span>
               <span className="text-xs font-bold text-emerald-300">
-                {currency === 'INR' ? 'Official Razorpay UPI & Cards Gateway' : 'Official Polar.sh Global Gateway'}
+                {currency === 'INR' ? 'Official Razorpay UPI & Cards Gateway' : 'Official Whop Global Gateway'}
               </span>
             </div>
             <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-              {currency === 'INR' ? '100% INR (₹)' : 'Polar.sh • 100% USD ($)'}
+              {currency === 'INR' ? '100% INR (₹)' : '100% USD ($)'}
             </span>
           </div>
         </div>
@@ -217,7 +217,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
             <h3 className="text-2xl font-bold text-white">Payment Successful!</h3>
             <p className="text-sm text-zinc-400">
-              <span className="text-indigo-400 font-semibold">{activeTier.name}</span> plan is activated via {currency === 'INR' ? 'Razorpay INR (₹)' : 'Polar.sh USD ($)'}. Your export minutes are added!
+              <span className="text-indigo-400 font-semibold">{activeTier.name}</span> plan is activated via {currency === 'INR' ? 'Razorpay INR (₹)' : 'Whop Payments USD ($)'}. Your export minutes have been added!
             </p>
           </div>
         ) : (
@@ -244,23 +244,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <div className="text-right">
                 <div className="text-2xl sm:text-3xl font-black text-white">{activeTier.price}</div>
                 <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
-                  {currency === 'INR' ? 'INR (₹)' : 'Polar USD ($)'}
+                  {currency === 'INR' ? 'INR (₹)' : 'USD ($)'}
                 </div>
               </div>
             </div>
 
-            {/* Payment Method Badge */}
+            {/* Payment Method Card */}
             <div className="bg-zinc-900/70 border border-zinc-800 rounded-xl p-3 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">
-                  {currency === 'INR' ? '₹' : 'P'}
+                  {currency === 'INR' ? '₹' : 'W'}
                 </div>
                 <div>
                   <p className="font-bold text-white text-[11px] sm:text-xs">
-                    {currency === 'INR' ? 'Razorpay Payments • UPI & Cards' : 'Polar.sh Checkout • Cards & Apple Pay'}
+                    {currency === 'INR' ? 'Razorpay Payments • UPI & Cards' : 'Whop Payments • Global Checkout'}
                   </p>
                   <p className="text-[10px] text-zinc-400">
-                    {currency === 'INR' ? 'UPI (Google Pay, PhonePe, Paytm, BHIM), RuPay & Cards' : 'Merchant of Record • Visa, Mastercard, Apple Pay, Google Pay'}
+                    {currency === 'INR'
+                      ? 'UPI (Google Pay, PhonePe, Paytm, BHIM), RuPay & Cards'
+                      : 'Apple Pay, Google Pay, Credit/Debit Cards & Crypto'}
                   </p>
                 </div>
               </div>
@@ -290,12 +292,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {processing ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Connecting to {currency === 'INR' ? 'Razorpay UPI & Cards' : 'Polar.sh Global Checkout'}...</span>
+                    <span>Connecting to {currency === 'INR' ? 'Razorpay UPI & Cards' : 'Whop Global Checkout'}...</span>
                   </>
                 ) : (
                   <>
                     <Lock className="w-4 h-4 text-indigo-200" />
-                    <span>{currency === 'INR' ? `Pay ${activeTier.price} INR` : `Pay ${activeTier.price} USD with Polar.sh`}</span>
+                    <span>{currency === 'INR' ? `Pay ${activeTier.price} INR` : `Pay ${activeTier.price} USD`}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -309,7 +311,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <span className="text-zinc-500 text-[9px] text-center">
                   {currency === 'INR'
                     ? '100% Safe Payment via Razorpay UPI (PhonePe, GPay, Paytm) & Cards (SSL Encrypted)'
-                    : '100% Safe Global Payment via Polar.sh Merchant of Record (256-bit SSL Encrypted)'}
+                    : '100% Safe Global Payment via Whop Payments (256-bit SSL Encrypted)'}
                 </span>
               </div>
             </form>

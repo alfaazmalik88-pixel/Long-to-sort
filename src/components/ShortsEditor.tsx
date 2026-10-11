@@ -213,6 +213,40 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
     }));
   }, [activeSubtitle]);
 
+  // Timing resolution for word highlighting directly synced with currentTime
+  const currentCheckTime = currentTime;
+  const relCheckTime = relTime;
+
+  // Determine active word index with natural audio speed matching
+  const activeWordIndex = useMemo(() => {
+    if (!subtitleWords || subtitleWords.length === 0) return 0;
+    
+    let idx = subtitleWords.findIndex((w) => {
+      const wStart = Number(w.start);
+      const wEnd = Number(w.end);
+      const naturalEnd = Math.max(wEnd, wStart + 0.35);
+      return (
+        (currentCheckTime >= wStart && currentCheckTime <= naturalEnd) ||
+        (relCheckTime >= wStart && relCheckTime <= naturalEnd)
+      );
+    });
+
+    // If between syllables or slight audio pauses, lock to the current reached word so text is ALWAYS highlighted
+    if (idx === -1 && subtitleWords.length > 0) {
+      for (let i = subtitleWords.length - 1; i >= 0; i--) {
+        const wStart = Number(subtitleWords[i].start);
+        if (currentCheckTime >= wStart || relCheckTime >= wStart) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx === -1) {
+        idx = 0;
+      }
+    }
+    return idx;
+  }, [subtitleWords, currentCheckTime, relCheckTime]);
+
   // 2-3 words windowing for viral shorts (TikTok/Reels dynamic Hormozi style)
   const displayWordsWindow = useMemo(() => {
     if (!subtitleWords || subtitleWords.length === 0) return [];
@@ -224,35 +258,6 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
     const chunkStart = Math.floor(currentIdx / windowSize) * windowSize;
     return subtitleWords.slice(chunkStart, chunkStart + windowSize);
   }, [subtitleWords, activeWordIndex]);
-
-  // Timing resolution for word highlighting directly synced with currentTime
-  const currentCheckTime = currentTime;
-  const relCheckTime = relTime;
-
-  // Determine active word index with natural audio speed matching
-  let activeWordIndex = subtitleWords.findIndex((w) => {
-    const wStart = Number(w.start);
-    const wEnd = Number(w.end);
-    const naturalEnd = Math.max(wEnd, wStart + 0.35);
-    return (
-      (currentCheckTime >= wStart && currentCheckTime <= naturalEnd) ||
-      (relCheckTime >= wStart && relCheckTime <= naturalEnd)
-    );
-  });
-
-  // If between syllables or slight audio pauses, lock to the current reached word so text is ALWAYS highlighted
-  if (activeWordIndex === -1 && subtitleWords.length > 0) {
-    for (let i = subtitleWords.length - 1; i >= 0; i--) {
-      const wStart = Number(subtitleWords[i].start);
-      if (currentCheckTime >= wStart || relCheckTime >= wStart) {
-        activeWordIndex = i;
-        break;
-      }
-    }
-    if (activeWordIndex === -1) {
-      activeWordIndex = 0;
-    }
-  }
 
   // Caption Vertical Positioning:
   // Position subtitles near bottom with optimal clearance above Part 1 badge
