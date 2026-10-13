@@ -6,7 +6,7 @@ const DemoVideoPlayer: React.FC<{ onLoadDemo?: () => void }> = ({ onLoadDemo }) 
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoSrc] = useState('/official-demo.mp4?v=' + Date.now());
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(10);
@@ -15,8 +15,6 @@ const DemoVideoPlayer: React.FC<{ onLoadDemo?: () => void }> = ({ onLoadDemo }) 
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.muted = isMuted;
-      videoRef.current.load();
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
   }, [videoSrc]);
 
@@ -102,9 +100,7 @@ const DemoVideoPlayer: React.FC<{ onLoadDemo?: () => void }> = ({ onLoadDemo }) 
           src={videoSrc}
           className="w-full h-full object-contain bg-black cursor-pointer"
           playsInline
-          autoPlay
           muted={isMuted}
-          loop
           onClick={() => togglePlay()}
           onTimeUpdate={() => {
             if (videoRef.current) setCurrentTime(videoRef.current.currentTime);

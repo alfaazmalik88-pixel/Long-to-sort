@@ -7,7 +7,7 @@ import { isPlan4KSupported } from '../data/pricingData';
 interface VideoUploaderProps {
   onAnalyze: (file: File | string, serverPath?: string) => void;
   status: VideoState['status'];
-  onOpenAuth: () => void;
+  onOpenAuth?: () => void;
   onOpenPricing?: () => void;
   isUploading?: boolean;
   uploadProgress?: number;
@@ -20,7 +20,6 @@ const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB = 5,368,709,120 byte
 export const VideoUploader: React.FC<VideoUploaderProps> = ({ 
   onAnalyze, 
   status, 
-  onOpenAuth,
   onOpenPricing,
   isUploading = false,
   uploadProgress = 0,
@@ -85,11 +84,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   };
 
   const processFile = async (file: File) => {
-    if (!isAuthenticated) {
-      onOpenAuth();
-      return;
-    }
-
     if (!file.type.startsWith('video/') && !file.name.match(/\.(mp4|mov|webm|avi|mkv|m4v|3gp|flv|wmv)$/i)) {
       setResolutionWarning("Please upload a valid video file (e.g. .mp4, .mov, .webm).");
       return;
@@ -173,21 +167,12 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   };
 
   const handleUploadClick = () => {
-    if (!isAuthenticated) {
-      onOpenAuth();
-      return;
-    }
     fileInputRef.current?.click();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!isAuthenticated) {
-        onOpenAuth();
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        return;
-      }
       processFile(file);
     }
   };
@@ -332,7 +317,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="font-bold text-white text-base font-mono tracking-tight">
-                        {(uploadProgress || 0).toFixed(1)}%
+                        {Math.round(uploadProgress || 0)}%
                       </span>
                     </div>
                   </div>
@@ -365,10 +350,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                   onDrop={(e) => {
                     e.preventDefault();
                     e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-950/20');
-                    if (!isAuthenticated) {
-                      onOpenAuth();
-                      return;
-                    }
                     const file = e.dataTransfer.files?.[0];
                     if (file) processFile(file);
                   }}
@@ -376,37 +357,16 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                 >
                   {/* Upload Icon with Soft Glowing Hover Aura */}
                   <div className="w-16 h-16 bg-zinc-900 group-hover:bg-indigo-600/20 group-hover:border-indigo-500/40 border border-zinc-800 transition-all rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-                    {isAuthenticated ? (
-                      <Upload className="w-7 h-7 text-zinc-400 group-hover:text-indigo-400 transition-colors" />
-                    ) : (
-                      <Lock className="w-7 h-7 text-amber-400 group-hover:text-amber-300 transition-colors" />
-                    )}
+                    <Upload className="w-7 h-7 text-zinc-400 group-hover:text-indigo-400 transition-colors" />
                   </div>
 
                   <div className="space-y-1.5 mb-3">
-                    {!isAuthenticated ? (
-                      <>
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold mb-1 shadow-sm">
-                          <LogIn className="w-3.5 h-3.5" />
-                          <span>Login Required to Upload</span>
-                        </div>
-                        <p className="text-white font-bold text-base md:text-lg group-hover:text-indigo-200 transition-colors">
-                          Click here to Login & Upload
-                        </p>
-                        <p className="text-zinc-400 text-xs">
-                          Drag & drop or click video
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-white font-bold text-base md:text-lg group-hover:text-indigo-200 transition-colors">
-                          Click to upload or drag & drop video
-                        </p>
-                        <p className="text-zinc-400 text-xs">
-                          MP4, MOV, WebM supported
-                        </p>
-                      </>
-                    )}
+                    <p className="text-white font-bold text-base md:text-lg group-hover:text-indigo-200 transition-colors">
+                      Click to upload or drag & drop video
+                    </p>
+                    <p className="text-zinc-400 text-xs">
+                      MP4, MOV, WebM supported
+                    </p>
                   </div>
 
                   {/* Drag & Drop small limits pill */}

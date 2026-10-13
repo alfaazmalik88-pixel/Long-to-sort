@@ -62,15 +62,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       onScroll={handleFastScroll}
       className="w-full lg:w-96 bg-zinc-950/95 border-t lg:border-t-0 lg:border-l border-zinc-800/80 flex flex-col h-full min-h-0 flex-1 overflow-y-auto custom-scrollbar shrink-0 backdrop-blur-xl relative overscroll-y-contain"
     >
-      {/* Fast Side Scroll Line */}
-      <div className="absolute top-0 right-0 bottom-0 w-[3px] bg-zinc-900/30 pointer-events-none z-30">
-        <div 
-          ref={sideScrollIndicatorRef}
-          className="w-full bg-gradient-to-b from-indigo-500 via-indigo-400 to-cyan-400 shadow-[0_0_8px_rgba(99,102,241,0.9)] rounded-full will-change-[height]"
-          style={{ height: '4%' }}
-        />
-      </div>
-      
       {/* Panel Header */}
       <div className="p-4 md:p-5 border-b border-zinc-800/80 flex items-center justify-between shrink-0 sticky top-0 bg-zinc-950/95 backdrop-blur z-20">
         <div className="flex items-center gap-2.5">
@@ -291,15 +282,15 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             {[
               { 
                 id: 'hormozi', 
-                name: 'Hormozi Style (Transparent)', 
-                desc: '100% Transparent floating bold text, active spoken word in glowing yellow',
-                preview: 'bg-transparent text-[#FFE500] font-black uppercase text-[11px] drop-shadow-[0_2px_4px_rgba(0,0,0,1)]' 
+                name: 'Hormozi (Bada & Transparent)', 
+                desc: 'Bada floating text, 100% transparent background, glowing yellow word highlight',
+                preview: 'bg-transparent text-[#FFE500] font-black uppercase text-xs tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]' 
               },
               { 
                 id: 'minimal', 
-                name: 'Minimal Style', 
-                desc: 'Clean white subtitle with subtle black background',
-                preview: 'bg-black/80 border border-white/20 text-white font-bold px-2 py-0.5 rounded text-[10px]' 
+                name: 'Black Box Highlight (Kala Background)', 
+                desc: 'Piche solid black background box, maximum highlight & contrast on any video',
+                preview: 'bg-black/95 border border-white/20 text-[#FFE500] font-black uppercase text-[11px] px-2.5 py-1 rounded-lg shadow-lg' 
               }
             ].map(style => {
               const isSelected = settings.captionStyle === style.id;
@@ -391,10 +382,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   ? '🇺🇸 English'
                   : settings.subtitleLanguage === 'es'
                   ? '🇪🇸 Spanish'
+                  : settings.subtitleLanguage === 'fr'
+                  ? '🇫🇷 French'
+                  : settings.subtitleLanguage === 'de'
+                  ? '🇩🇪 German'
                   : settings.subtitleLanguage === 'ar'
                   ? '🇸🇦 Arabic'
                   : settings.subtitleLanguage === 'ja'
                   ? '🇯🇵 Japanese'
+                  : settings.subtitleLanguage === 'pt'
+                  ? '🇧🇷 Portuguese'
                   : '🌐 Auto Global / Local'}
               </span>
             </label>
@@ -405,6 +402,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 { id: 'hi', label: 'Hindi → Hinglish', sub: 'Roman Script Auto' },
                 { id: 'en', label: 'English', sub: 'Global English' },
                 { id: 'es', label: 'Spanish / Español', sub: 'Native Local' },
+                { id: 'fr', label: 'French / Français', sub: 'Native Local' },
+                { id: 'de', label: 'German / Deutsch', sub: 'Native Local' },
                 { id: 'ar', label: 'Arabic / العربية', sub: 'Native Local' },
                 { id: 'ja', label: 'Japanese / 日本語', sub: 'Native Local' },
               ].map(lang => {
@@ -430,7 +429,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
             <div className="p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-800/30 text-[10px] text-cyan-300/90 leading-relaxed flex flex-col gap-1.5">
               <div>
-                ⚡ <strong>Multi-Language Rule:</strong> Automatic language detection active. Hindi audio is automatically transcribed into <strong>Hinglish (Roman English script)</strong> in 3-4 word viral chunks; all other global and local languages are preserved in their authentic native script.
+                ⚡ <strong>Multi-Language Rule:</strong> Automatic language detection active. Hindi audio is strictly transcribed into <strong>Hinglish (Roman English script)</strong> in 3-4 word viral chunks; all other global and local languages are preserved in their authentic native script.
               </div>
             </div>
           </div>

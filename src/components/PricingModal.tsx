@@ -13,8 +13,7 @@ interface PricingModalProps {
 
 export const PricingModal: React.FC<PricingModalProps> = ({
   isOpen,
-  onClose,
-  onOpenAuth
+  onClose
 }) => {
   const { currency, setCurrency, isIndia, paymentGateway } = useCountryPricing();
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
@@ -40,11 +39,6 @@ export const PricingModal: React.FC<PricingModalProps> = ({
   const tiers = currency === 'INR' ? PRICING_INR : PRICING_USD;
 
   const handleSelectPlan = (tier: PricingTier) => {
-    if (!user && onOpenAuth) {
-      onClose();
-      onOpenAuth();
-      return;
-    }
     if (tier.id === 'free') {
       onClose();
       return;
@@ -162,17 +156,8 @@ export const PricingModal: React.FC<PricingModalProps> = ({
           </div>
         </div>
 
-        {/* Scrollable Container with Fast Side Line Indicator */}
+        {/* Scrollable Container */}
         <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
-          {/* Ultra-Fast Responsive Side Scroll Line Indicator */}
-          <div className="absolute top-0 right-0 bottom-0 w-[4px] bg-zinc-900/30 pointer-events-none z-30">
-            <div 
-              ref={sideScrollIndicatorRef}
-              className="w-full bg-gradient-to-b from-indigo-500 via-indigo-400 to-cyan-400 shadow-[0_0_10px_rgba(99,102,241,0.9)] rounded-full will-change-[height]"
-              style={{ height: '4%' }}
-            />
-          </div>
-
           <div 
             onScroll={handleFastScroll}
             className="p-3 sm:p-5 overflow-y-auto flex-1 space-y-4 custom-scrollbar overscroll-contain pt-3 pb-24 sm:pb-8"

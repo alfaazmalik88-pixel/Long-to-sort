@@ -25,36 +25,80 @@ export const renderVideoClip = async (
       // Ensure subtitles are populated with word timings if empty
       let effectiveSubtitles = clip.subtitles && clip.subtitles.length > 0 ? clip.subtitles : [];
       if (effectiveSubtitles.length === 0 && settings.enableCaptions) {
-        const isHindi = settings.subtitleLanguage === 'hi';
-        const phrases = isHindi ? [
-          { text: 'YE EK SECRET HAI', words: [{ word: 'YE', start: 0, end: 0.8 }, { word: 'EK', start: 0.8, end: 1.5 }, { word: 'SECRET', start: 1.5, end: 2.3 }, { word: 'HAI', start: 2.3, end: 3.0 }] },
-          { text: 'CREATORS GROW KAISE KAREIN', words: [{ word: 'CREATORS', start: 3.0, end: 3.7 }, { word: 'GROW', start: 3.7, end: 4.5 }, { word: 'KAISE', start: 4.5, end: 5.2 }, { word: 'KAREIN', start: 5.2, end: 6.0 }] },
-          { text: 'BAS KUCH HI SECONDS MEIN', words: [{ word: 'BAS', start: 6.0, end: 6.6 }, { word: 'KUCH', start: 6.6, end: 7.2 }, { word: 'HI', start: 7.2, end: 7.8 }, { word: 'SECONDS', start: 7.8, end: 8.4 }, { word: 'MEIN', start: 8.4, end: 9.0 }] },
-          { text: 'FOLLOW KARO AUR TIPS KE LIYE', words: [{ word: 'FOLLOW', start: 9.0, end: 9.8 }, { word: 'KARO', start: 9.8, end: 10.5 }, { word: 'AUR', start: 10.5, end: 11.2 }, { word: 'TIPS', start: 11.2, end: 12.0 }] }
-        ] : [
-          { text: 'THIS IS A SECRET', words: [{ word: 'THIS', start: 0, end: 0.8 }, { word: 'IS', start: 0.8, end: 1.5 }, { word: 'A', start: 1.5, end: 2.3 }, { word: 'SECRET', start: 2.3, end: 3.0 }] },
-          { text: 'HOW CREATORS GROW FAST', words: [{ word: 'HOW', start: 3.0, end: 3.7 }, { word: 'CREATORS', start: 3.7, end: 4.5 }, { word: 'GROW', start: 4.5, end: 5.2 }, { word: 'FAST', start: 5.2, end: 6.0 }] },
-          { text: 'IN JUST A FEW SECONDS', words: [{ word: 'IN', start: 6.0, end: 6.8 }, { word: 'JUST', start: 6.8, end: 7.5 }, { word: 'FEW', start: 7.5, end: 8.3 }, { word: 'SECONDS', start: 8.3, end: 9.0 }] },
-          { text: 'FOLLOW FOR MORE TIPS', words: [{ word: 'FOLLOW', start: 9.0, end: 9.8 }, { word: 'FOR', start: 9.8, end: 10.8 }, { word: 'MORE', start: 10.8, end: 11.4 }, { word: 'TIPS', start: 11.4, end: 12.0 }] }
-        ];
+        const langKey = (settings.subtitleLanguage || 'auto').toLowerCase();
+        const multiPhrases: Record<string, Array<{ text: string; words: string[] }>> = {
+          hi: [
+            { text: 'YEH EK SECRET HAI', words: ['YEH', 'EK', 'SECRET', 'HAI'] },
+            { text: 'FOLLOW KARO AUR', words: ['FOLLOW', 'KARO', 'AUR'] },
+            { text: 'VIRAL HO JAO', words: ['VIRAL', 'HO', 'JAO'] },
+            { text: 'INSTAGRAM REELS MEIN', words: ['INSTAGRAM', 'REELS', 'MEIN'] },
+            { text: 'MILLIONS OF VIEWS', words: ['MILLIONS', 'OF', 'VIEWS'] },
+            { text: 'KAISE GROW KAREIN', words: ['KAISE', 'GROW', 'KAREIN'] }
+          ],
+          en: [
+            { text: 'THIS IS A SECRET', words: ['THIS', 'IS', 'A', 'SECRET'] },
+            { text: 'HOW CREATORS GROW FAST', words: ['HOW', 'CREATORS', 'GROW', 'FAST'] },
+            { text: 'CREATE VIRAL SHORTS', words: ['CREATE', 'VIRAL', 'SHORTS'] },
+            { text: 'IN JUST FEW SECONDS', words: ['IN', 'JUST', 'FEW', 'SECONDS'] },
+            { text: 'FOLLOW FOR MORE TIPS', words: ['FOLLOW', 'FOR', 'MORE', 'TIPS'] }
+          ],
+          es: [
+            { text: 'ESTE ES UN SECRETO', words: ['ESTE', 'ES', 'UN', 'SECRETO'] },
+            { text: 'CÓMO CRECER RÁPIDO', words: ['CÓMO', 'CRECER', 'RÁPIDO'] },
+            { text: 'EN TIKTOK Y REELS', words: ['EN', 'TIKTOK', 'Y', 'REELS'] }
+          ],
+          fr: [
+            { text: 'VOICI LE GRAND SECRET', words: ['VOICI', 'LE', 'GRAND', 'SECRET'] },
+            { text: 'POUR DEVENIR VIRAL', words: ['POUR', 'DEVENIR', 'VIRAL'] },
+            { text: 'SUR LES RÉSEAUX SOCIAUX', words: ['SUR', 'LES', 'RÉSEAUX', 'SOCIAUX'] }
+          ],
+          de: [
+            { text: 'DAS IST EIN GEHEIMNIS', words: ['DAS', 'IST', 'EIN', 'GEHEIMNIS'] },
+            { text: 'WIE MAN SCHNELL WÄCHST', words: ['WIE', 'MAN', 'SCHNELL', 'WÄCHST'] },
+            { text: 'AUF SOCIAL MEDIA', words: ['AUF', 'SOCIAL', 'MEDIA'] }
+          ],
+          ar: [
+            { text: 'هذا هو السر الحقيقي', words: ['هذا', 'هو', 'السر', 'الحقيقي'] },
+            { text: 'كيف تنتشر بسرعة', words: ['كيف', 'تنتشر', 'بسرعة'] },
+            { text: 'على وسائل التواصل', words: ['على', 'وسائل', 'التواصل'] }
+          ],
+          ja: [
+            { text: 'これがバイラルの秘密', words: ['これが', 'バイラルの', '秘密'] },
+            { text: 'SNSでバズる方法', words: ['SNSで', 'バズる', '方法'] },
+            { text: '今すぐフォローしてね', words: ['今すぐ', 'フォロー', 'してね'] }
+          ],
+          pt: [
+            { text: 'ESSE É O SEGREDO', words: ['ESSE', 'É', 'O', 'SEGREDO'] },
+            { text: 'COMO CRESCER RÁPIDO', words: ['COMO', 'CRESCER', 'RÁPIDO'] },
+            { text: 'NO INSTAGRAM E TIKTOK', words: ['NO', 'INSTAGRAM', 'E', 'TIKTOK'] }
+          ]
+        };
+        const phrases = multiPhrases[langKey] || multiPhrases.hi;
         const clipDur = clip.duration || 10;
-        const count = Math.ceil(clipDur / 3);
-        effectiveSubtitles = Array.from({ length: count }, (_, i) => {
-          const p = phrases[i % phrases.length];
-          const segStart = i * 3;
-          const segEnd = (i + 1) * 3;
-          return {
-            id: `dyn-${i + 1}`,
+        effectiveSubtitles = [];
+        let curTime = 0;
+        let idx = 0;
+        while (curTime < clipDur) {
+          const p = phrases[idx % phrases.length];
+          const wordsCount = p.words.length;
+          const perW = 0.38;
+          const cDur = Number((wordsCount * perW).toFixed(2));
+          const segStart = Number(curTime.toFixed(2));
+          const segEnd = Number((curTime + cDur).toFixed(2));
+          effectiveSubtitles.push({
+            id: `dyn-${idx + 1}`,
             startTime: segStart,
             endTime: segEnd,
             text: p.text,
-            words: p.words.map(w => ({
-              word: w.word,
-              start: Number((segStart + (w.start % 3)).toFixed(2)),
-              end: Number((segStart + (w.end % 3)).toFixed(2))
+            words: p.words.map((w, wIdx) => ({
+              word: w,
+              start: Number((segStart + wIdx * perW).toFixed(2)),
+              end: Number((segStart + (wIdx + 1) * perW).toFixed(2))
             }))
-          };
-        });
+          });
+          curTime += cDur;
+          idx++;
+        }
       }
 
       const payload = {

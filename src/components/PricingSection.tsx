@@ -9,7 +9,7 @@ interface PricingSectionProps {
   onOpenAuth?: () => void;
 }
 
-export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) => {
+export const PricingSection: React.FC<PricingSectionProps> = () => {
   const { currency, setCurrency, isIndia } = useCountryPricing();
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -18,10 +18,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
   const tiers = currency === 'INR' ? PRICING_INR : PRICING_USD;
 
   const handleSelectPlan = (tier: PricingTier) => {
-    if (!user && onOpenAuth) {
-      onOpenAuth();
-      return;
-    }
     if (tier.id === 'free') {
       return;
     }

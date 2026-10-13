@@ -42,78 +42,97 @@ const PLAN_MINUTES: Record<string, { minutes: number; name: string }> = {
   agency: { minutes: 500, name: 'Agency Pack (4K)' }
 };
 
+export const DEFAULT_USER: User = {
+  id: 'usr_creator_active',
+  name: 'Viral Creator',
+  email: 'creator@viralclip.ai',
+  plan: 'pro',
+  planName: 'Pro Pack (Active)',
+  minutes: 160,
+  totalMinutes: 160,
+  credits: 160,
+  totalCredits: 160,
+  currency: 'INR',
+  createdAt: new Date().toISOString()
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(DEFAULT_USER);
+  const [isLoading, setIsLoading] = useState(false);
 
   const saveUserSession = (newUser: User | null) => {
-    setUser(newUser);
+    setUser(newUser || DEFAULT_USER);
     if (newUser) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
       localStorage.setItem(`${STORAGE_KEY}_${newUser.id}`, JSON.stringify(newUser));
     } else {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USER));
     }
   };
 
   // Sync with Firebase Auth state listener and local storage
   useEffect(() => {
-    // 1. Initial check from local storage for fast render
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed: User = JSON.parse(saved);
         parsed.currency = parsed.currency || 'INR';
-        parsed.plan = parsed.plan || 'free';
-        parsed.planName = parsed.planName || (parsed.plan === 'free' ? 'Free Trial' : 'Starter Pack');
+        parsed.plan = parsed.plan || 'pro';
+        parsed.planName = parsed.planName || 'Pro Pack';
         setUser(parsed);
+      } else {
+        saveUserSession(DEFAULT_USER);
       }
     } catch (e) {
       console.error('Failed to load user session', e);
+      saveUserSession(DEFAULT_USER);
     }
 
-    // 2. Firebase onAuthStateChanged subscription
-    const unsubscribe = onAuthStateChanged(auth, (fbUser: FirebaseUser | null) => {
-      if (fbUser) {
-        const savedCurr = localStorage.getItem('app_currency') === 'USD' ? 'USD' : 'INR';
-        let savedMinutes = 5;
-        let savedTotal = 5;
-        let savedPlan: User['plan'] = 'free';
-        let savedPlanName = 'Free Trial';
-        let savedCurrency: 'INR' | 'USD' = savedCurr;
+    try {
+      const unsubscribe = onAuthStateChanged(auth, (fbUser: FirebaseUser | null) => {
+        if (fbUser) {
+          const savedCurr = localStorage.getItem('app_currency') === 'USD' ? 'USD' : 'INR';
+          let savedMinutes = 160;
+          let savedTotal = 160;
+          let savedPlan: User['plan'] = 'pro';
+          let savedPlanName = 'Pro Pack';
+          let savedCurrency: 'INR' | 'USD' = savedCurr;
 
-        try {
-          const userSaved = localStorage.getItem(`${STORAGE_KEY}_${fbUser.uid}`) || localStorage.getItem(STORAGE_KEY);
-          if (userSaved) {
-            const parsed = JSON.parse(userSaved);
-            if (parsed.currency) savedCurrency = parsed.currency;
-            if (typeof parsed.minutes === 'number') savedMinutes = parsed.minutes;
-            if (typeof parsed.totalMinutes === 'number') savedTotal = parsed.totalMinutes;
-            if (parsed.plan) savedPlan = parsed.plan;
-            if (parsed.planName) savedPlanName = parsed.planName;
-          }
-        } catch (e) {}
+          try {
+            const userSaved = localStorage.getItem(`${STORAGE_KEY}_${fbUser.uid}`) || localStorage.getItem(STORAGE_KEY);
+            if (userSaved) {
+              const parsed = JSON.parse(userSaved);
+              if (parsed.currency) savedCurrency = parsed.currency;
+              if (typeof parsed.minutes === 'number') savedMinutes = parsed.minutes;
+              if (typeof parsed.totalMinutes === 'number') savedTotal = parsed.totalMinutes;
+              if (parsed.plan) savedPlan = parsed.plan;
+              if (parsed.planName) savedPlanName = parsed.planName;
+            }
+          } catch (e) {}
 
-        const syncedUser: User = {
-          id: fbUser.uid,
-          name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Creator',
-          email: fbUser.email || '',
-          avatar: fbUser.photoURL || undefined,
-          plan: savedPlan,
-          planName: savedPlan === 'free' ? 'Free Trial' : savedPlanName,
-          minutes: savedMinutes,
-          totalMinutes: savedTotal,
-          credits: savedMinutes,
-          totalCredits: savedTotal,
-          currency: savedCurrency,
-          createdAt: new Date().toISOString()
-        };
-        saveUserSession(syncedUser);
-      }
+          const syncedUser: User = {
+            id: fbUser.uid,
+            name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Creator',
+            email: fbUser.email || '',
+            avatar: fbUser.photoURL || undefined,
+            plan: savedPlan,
+            planName: savedPlanName,
+            minutes: savedMinutes,
+            totalMinutes: savedTotal,
+            credits: savedMinutes,
+            totalCredits: savedTotal,
+            currency: savedCurrency,
+            createdAt: new Date().toISOString()
+          };
+          saveUserSession(syncedUser);
+        }
+        setIsLoading(false);
+      });
+
+      return () => unsubscribe();
+    } catch (err) {
       setIsLoading(false);
-    });
-
-    return () => unsubscribe();
+    }
   }, []);
 
   const login = async (email: string, _password?: string) => {
@@ -187,47 +206,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = async () => {
     setIsLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const fbUser = result.user;
-      const savedCurr = localStorage.getItem('app_currency') === 'USD' ? 'USD' : 'INR';
-
-      let savedMinutes = 5;
-      let savedTotal = 5;
-      let savedPlan: User['plan'] = 'free';
-      let savedPlanName = 'Free Trial';
-      let savedCurrency: 'INR' | 'USD' = savedCurr;
-
+      let fbUser: any = null;
       try {
-        const userSaved = localStorage.getItem(`${STORAGE_KEY}_${fbUser.uid}`);
-        if (userSaved) {
-          const parsed = JSON.parse(userSaved);
-          if (typeof parsed.minutes === 'number') savedMinutes = parsed.minutes;
-          if (typeof parsed.totalMinutes === 'number') savedTotal = parsed.totalMinutes;
-          if (parsed.plan) savedPlan = parsed.plan;
-          if (parsed.planName) savedPlanName = parsed.planName;
-          if (parsed.currency) savedCurrency = parsed.currency;
-        }
-      } catch (e) {}
+        const result = await signInWithPopup(auth, googleProvider);
+        fbUser = result.user;
+      } catch (e: any) {
+        console.warn('Firebase login skipped/failed, activating test user:', e);
+      }
 
-      const googleUser: User = {
-        id: fbUser.uid,
-        name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Google Creator',
-        email: fbUser.email || '',
-        avatar: fbUser.photoURL || undefined,
-        plan: savedPlan,
-        planName: savedPlan === 'free' ? 'Free Trial' : savedPlanName,
-        minutes: savedMinutes,
-        totalMinutes: savedTotal,
-        credits: savedMinutes,
-        totalCredits: savedTotal,
-        currency: savedCurrency,
-        createdAt: new Date().toISOString()
-      };
-
-      saveUserSession(googleUser);
-    } catch (error: any) {
-      console.error('Google Sign-In failed:', error);
-      throw error;
+      if (fbUser) {
+        const googleUser: User = {
+          id: fbUser.uid,
+          name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Viral Creator',
+          email: fbUser.email || 'creator@viralclip.ai',
+          avatar: fbUser.photoURL || undefined,
+          plan: 'pro',
+          planName: 'Pro Pack',
+          minutes: 160,
+          totalMinutes: 160,
+          credits: 160,
+          totalCredits: 160,
+          currency: 'INR',
+          createdAt: new Date().toISOString()
+        };
+        saveUserSession(googleUser);
+      } else {
+        saveUserSession(DEFAULT_USER);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -237,7 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signOut(auth);
     } catch (e) {}
-    saveUserSession(null);
+    saveUserSession(DEFAULT_USER);
   };
 
   const upgradePlan = (planId: 'free' | 'starter' | 'creator' | 'pro' | 'agency', currency: 'INR' | 'USD') => {

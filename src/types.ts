@@ -21,6 +21,7 @@ export interface Clip {
   transcript?: string;
   viralityScore?: number;
   subtitles?: SubtitleItem[];
+  subtitleLanguage?: string;
 }
 
 export interface EditorSettings {

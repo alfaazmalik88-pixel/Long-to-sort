@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Clip, EditorSettings } from '../types';
-import { Smartphone, Eye, EyeOff, ChevronRight, ChevronLeft, Crop, Maximize2, Play, Pause } from 'lucide-react';
+import { Smartphone, Eye, EyeOff, ChevronRight, ChevronLeft, Crop, Maximize2, Play, Pause, Sparkles } from 'lucide-react';
+import { DEMO_PRELOADED_SUBTITLES } from '../data/demoSubtitles';
 
 interface ShortsEditorProps {
   clip: Clip | null;
@@ -10,7 +11,26 @@ interface ShortsEditorProps {
   clips?: Clip[];
   onSelectClip?: (id: string) => void;
   serverPath?: string | null;
-  onUpdateClipSubtitles?: (clipId: string, subtitles: any[]) => void;
+  onUpdateClipSubtitles?: (clipId: string, subtitles: any[], lang?: string) => void;
+}
+
+export function parseTimeToSeconds(val: any): number {
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  if (typeof val === 'string') {
+    const s = val.trim();
+    if (!isNaN(Number(s))) return Number(s);
+    const parts = s.replace(',', '.').split(':');
+    if (parts.length === 3) {
+      return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+    }
+    if (parts.length === 2) {
+      return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+    }
+    const parsed = parseFloat(s);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
 }
 
 export const ShortsEditor: React.FC<ShortsEditorProps> = ({ 
@@ -29,16 +49,80 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFetchingSubtitles, setIsFetchingSubtitles] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const animFrameRef = useRef<number | null>(null);
+  const lastLanguageRef = useRef<string>(settings.subtitleLanguage || 'auto');
 
-  // Automatically fetch subtitles from /api/gemini-transcribe if selected clip doesn't have subtitles yet
+  const isDemoSample = useMemo(() => {
+    return !serverPath || serverPath.includes('demo') || (videoUrl ? videoUrl.includes('demo') : false);
+  }, [serverPath, videoUrl]);
+
+  // High-speed subtitle loading & live multi-language switching
   useEffect(() => {
     if (!clip) return;
-    if (clip.subtitles && clip.subtitles.length > 0) return;
+    const currentLang = (settings.subtitleLanguage || 'auto').toLowerCase();
+    const isLangChanged = lastLanguageRef.current !== currentLang;
+    lastLanguageRef.current = currentLang;
 
     let isMounted = true;
-    setIsFetchingSubtitles(true);
 
-    const targetVideoPath = serverPath || 'public/demo-sample.mp4';
+    // 1. For demo video: Instant 0ms switch to authentic preloaded subtitles in the selected language
+    if (isDemoSample) {
+      const demoSubs = DEMO_PRELOADED_SUBTITLES[currentLang] || DEMO_PRELOADED_SUBTITLES.hi;
+      if (onUpdateClipSubtitles) {
+        onUpdateClipSubtitles(clip.id, demoSubs, currentLang);
+      } else {
+        clip.subtitles = demoSubs;
+        clip.subtitleLanguage = currentLang;
+      }
+      return;
+    }
+
+    // 2. For user-uploaded video:
+    // If clip already has subtitles and user switched language: FAST TRANSLATION via /api/translate-subtitles
+    if (clip.subtitles && clip.subtitles.length > 0 && isLangChanged) {
+      setIsTranslating(true);
+      fetch('/api/translate-subtitles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subtitles: clip.subtitles,
+          targetLanguage: currentLang
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (!isMounted) return;
+          setIsTranslating(false);
+          if (data && data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
+            if (onUpdateClipSubtitles) {
+              onUpdateClipSubtitles(clip.id, data.subtitles, currentLang);
+            } else {
+              clip.subtitles = data.subtitles;
+              clip.subtitleLanguage = currentLang;
+            }
+          }
+        })
+        .catch(err => {
+          if (isMounted) setIsTranslating(false);
+          console.warn('Translate subtitles error:', err);
+        });
+      return;
+    }
+
+    // If clip already has subtitles and language hasn't changed, nothing to do
+    if (clip.subtitles && clip.subtitles.length > 0 && !isLangChanged) {
+      return;
+    }
+
+    // If clip has no subtitles yet: fetch real Gemini speech-to-text transcription
+    setIsFetchingSubtitles(true);
+    const targetVideoPath = serverPath || (videoUrl && !videoUrl.startsWith('blob:') ? videoUrl : '');
+    if (!targetVideoPath) {
+      setIsFetchingSubtitles(false);
+      return;
+    }
+
     fetch('/api/gemini-transcribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -46,7 +130,7 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
         videoPath: targetVideoPath,
         startTime: clip.startTime || 0,
         duration: clip.duration || (clip.endTime - clip.startTime) || 60,
-        language: settings.subtitleLanguage || 'auto'
+        language: currentLang
       })
     })
       .then(res => res.json())
@@ -55,10 +139,10 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
         setIsFetchingSubtitles(false);
         if (data && data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
           if (onUpdateClipSubtitles) {
-            onUpdateClipSubtitles(clip.id, data.subtitles);
+            onUpdateClipSubtitles(clip.id, data.subtitles, currentLang);
           } else {
-            // Locally attach if callback not provided
             clip.subtitles = data.subtitles;
+            clip.subtitleLanguage = currentLang;
           }
         }
       })
@@ -70,7 +154,30 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [clip?.id, serverPath, settings.subtitleLanguage]);
+  }, [clip?.id, serverPath, settings.subtitleLanguage, isDemoSample, onUpdateClipSubtitles]);
+
+  // 60 FPS requestAnimationFrame loop for ultra-precise, frame-accurate audio & caption synchronization
+  useEffect(() => {
+    const loop = () => {
+      if (videoRef.current && !videoRef.current.paused) {
+        const curr = videoRef.current.currentTime;
+        setCurrentTime(curr);
+        if (bgVideoRef.current && Math.abs(bgVideoRef.current.currentTime - curr) > 0.15) {
+          bgVideoRef.current.currentTime = curr;
+        }
+        if (clip && clip.endTime && curr >= clip.endTime) {
+          videoRef.current.currentTime = clip.startTime || 0;
+          setCurrentTime(clip.startTime || 0);
+        }
+      }
+      animFrameRef.current = requestAnimationFrame(loop);
+    };
+
+    animFrameRef.current = requestAnimationFrame(loop);
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, [clip?.startTime, clip?.endTime]);
 
   const isCoverFit = settings.videoFit === 'cover';
 
@@ -112,7 +219,7 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
     if (videoRef.current && clip && clip.endTime) {
       const curr = videoRef.current.currentTime;
       setCurrentTime(curr);
-      if (bgVideoRef.current && Math.abs(bgVideoRef.current.currentTime - curr) > 0.3) {
+      if (bgVideoRef.current && Math.abs(bgVideoRef.current.currentTime - curr) > 0.2) {
         bgVideoRef.current.currentTime = curr;
       }
       if (curr >= clip.endTime) {
@@ -174,78 +281,122 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
   // Time relative to clip start
   const relTime = Math.max(0, currentTime - (clip.startTime || 0));
 
-  // Find active Gemini subtitle segment (absolute or relative)
-  let activeSubtitle = clip.subtitles?.find((s: any) => {
-    const start = Number(s.startTime !== undefined ? s.startTime : s.start);
-    const end = Number(s.endTime !== undefined ? s.endTime : s.end);
-    return (currentTime >= start && currentTime <= end) || (relTime >= start && relTime <= end);
-  });
+  // Multi-language contiguous phrases for instant live language switching and exact reel cadence
+  const selectedLang = (settings.subtitleLanguage || 'auto').toLowerCase();
 
-  // Audio speed ke saath natural match ke liye buffer if not found immediately
-  if (!activeSubtitle && clip.subtitles && clip.subtitles.length > 0) {
-    activeSubtitle = clip.subtitles.find((s: any) => {
-      const start = Number(s.start !== undefined ? s.start : s.startTime);
-      const end = Number(s.end !== undefined ? s.end : s.endTime);
-      // Audio speed ke saath natural match ke liye buffer
-      const naturalEnd = Math.max(end, start + 0.6);
-      return (currentTime >= start && currentTime <= naturalEnd) || (relTime >= start && relTime <= naturalEnd);
+  const effectiveSubtitles = useMemo(() => {
+    // 1. Demo video: Instant authentic preloaded subtitles in the user's selected language
+    if (isDemoSample) {
+      return DEMO_PRELOADED_SUBTITLES[selectedLang] || DEMO_PRELOADED_SUBTITLES.hi;
+    }
+
+    // 2. User-uploaded video: Real transcribed speech attached to the clip
+    if (clip?.subtitles && clip.subtitles.length > 0) {
+      return clip.subtitles;
+    }
+
+    // 3. User video without speech or while transcribing: clean empty array (zero fake dummy phrases)
+    return [];
+  }, [clip?.subtitles, isDemoSample, selectedLang]);
+
+  // Determine whether subtitle timestamps are absolute to video start or relative to clip start
+  const isSubtitleAbsolute = useMemo(() => {
+    if (!effectiveSubtitles || effectiveSubtitles.length === 0 || !clip?.startTime || clip.startTime <= 1) return false;
+    const firstStart = parseTimeToSeconds(effectiveSubtitles[0].startTime ?? effectiveSubtitles[0].start);
+    return firstStart >= clip.startTime - 1;
+  }, [effectiveSubtitles, clip?.startTime]);
+
+  // Unified synchronized playback timescale strictly matching the active subtitle format
+  const targetPlaybackTime = isSubtitleAbsolute ? currentTime : Math.max(0, currentTime - (clip?.startTime || 0));
+
+  // 40ms acoustic lead anticipation for instant speech-to-highlight synchronization
+  const syncPlaybackTime = Math.max(0, targetPlaybackTime + 0.04);
+
+  // Find active subtitle segment strictly on the unified timescale
+  const activeSubtitle = useMemo(() => {
+    if (!effectiveSubtitles || effectiveSubtitles.length === 0) return null;
+    
+    // Direct match within active chunk
+    let found = effectiveSubtitles.find((s: any) => {
+      const start = parseTimeToSeconds(s.startTime !== undefined ? s.startTime : s.start);
+      const end = parseTimeToSeconds(s.endTime !== undefined ? s.endTime : s.end);
+      return syncPlaybackTime >= start && syncPlaybackTime < end;
     });
-  }
+    if (found) return found;
 
-  // If no subtitles exist in clip.subtitles, activeSubtitle remains undefined (no hardcoded fallback)
+    // Transition smoothing: nearest chunk within micro-gap of 0.08s
+    for (let i = 0; i < effectiveSubtitles.length; i++) {
+      const s = effectiveSubtitles[i];
+      const start = parseTimeToSeconds(s.startTime !== undefined ? s.startTime : s.start);
+      const end = parseTimeToSeconds(s.endTime !== undefined ? s.endTime : s.end);
+      if (syncPlaybackTime >= start - 0.05 && syncPlaybackTime <= end + 0.08) {
+        return s;
+      }
+    }
+    return effectiveSubtitles[0];
+  }, [effectiveSubtitles, syncPlaybackTime]);
+
+  // Parse words array with sanitized boundaries
   const subtitleWords = useMemo(() => {
     if (!activeSubtitle) return [];
-    if (activeSubtitle.words && activeSubtitle.words.length > 0) {
-      return activeSubtitle.words;
+    const segStart = parseTimeToSeconds(activeSubtitle.startTime !== undefined ? activeSubtitle.startTime : (activeSubtitle as any).start || 0);
+    const segEnd = parseTimeToSeconds(activeSubtitle.endTime !== undefined ? activeSubtitle.endTime : (activeSubtitle as any).end || (segStart + 1.4));
+
+    if (activeSubtitle.words && Array.isArray(activeSubtitle.words) && activeSubtitle.words.length > 0) {
+      return activeSubtitle.words.map((w: any, idx: number, arr: any[]) => {
+        let wStart = parseTimeToSeconds(w.start);
+        let wEnd = parseTimeToSeconds(w.end);
+        if (isNaN(wStart) || wStart < segStart) wStart = segStart + (idx * (segEnd - segStart)) / arr.length;
+        if (isNaN(wEnd) || wEnd <= wStart) wEnd = segStart + ((idx + 1) * (segEnd - segStart)) / arr.length;
+        const cleanW = String(w.word || w.text || '').replace(/[।|/\\—–_]+/g, '').trim().toUpperCase();
+        return {
+          word: cleanW,
+          start: Number(wStart.toFixed(2)),
+          end: Number(wEnd.toFixed(2))
+        };
+      }).filter((w: any) => w.word.length > 0);
     }
-    const textStr = (activeSubtitle.text || '').trim();
+
+    const textStr = (activeSubtitle.text || '')
+      .replace(/[|।/\\—–_\-·•*|]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
     if (!textStr) return [];
     const parts = textStr.split(/\s+/).filter(Boolean);
     if (parts.length === 0) return [];
-    const segStart = Number(activeSubtitle.startTime !== undefined ? activeSubtitle.startTime : (activeSubtitle as any).start || 0);
-    const segEnd = Number(activeSubtitle.endTime !== undefined ? activeSubtitle.endTime : (activeSubtitle as any).end || (segStart + 2.5));
     const totalDuration = Math.max(0.4, segEnd - segStart);
     const perWord = totalDuration / parts.length;
-    return parts.map((w, idx) => ({
-      word: w,
+    return parts.map((w: string, idx: number) => ({
+      word: w
+        .replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '')
+        .replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '')
+        .trim().toUpperCase(),
       start: Number((segStart + idx * perWord).toFixed(2)),
       end: Number((segStart + (idx + 1) * perWord).toFixed(2))
-    }));
+    })).filter((w: any) => w.word.length > 0);
   }, [activeSubtitle]);
 
-  // Timing resolution for word highlighting directly synced with currentTime
-  const currentCheckTime = currentTime;
-  const relCheckTime = relTime;
-
-  // Determine active word index with natural audio speed matching
+  // Determine active word index with 100% exact verbatim timing (never jumps ahead or lags)
   const activeWordIndex = useMemo(() => {
     if (!subtitleWords || subtitleWords.length === 0) return 0;
     
-    let idx = subtitleWords.findIndex((w) => {
-      const wStart = Number(w.start);
-      const wEnd = Number(w.end);
-      const naturalEnd = Math.max(wEnd, wStart + 0.35);
-      return (
-        (currentCheckTime >= wStart && currentCheckTime <= naturalEnd) ||
-        (relCheckTime >= wStart && relCheckTime <= naturalEnd)
-      );
+    // 1. Exact match within spoken word bounds
+    let idx = subtitleWords.findIndex((w: any) => {
+      return syncPlaybackTime >= w.start && syncPlaybackTime < w.end;
     });
 
-    // If between syllables or slight audio pauses, lock to the current reached word so text is ALWAYS highlighted
-    if (idx === -1 && subtitleWords.length > 0) {
+    // 2. Continuous fallback between syllables: keep current spoken word active
+    if (idx === -1) {
       for (let i = subtitleWords.length - 1; i >= 0; i--) {
-        const wStart = Number(subtitleWords[i].start);
-        if (currentCheckTime >= wStart || relCheckTime >= wStart) {
+        if (syncPlaybackTime >= subtitleWords[i].start) {
           idx = i;
           break;
         }
       }
-      if (idx === -1) {
-        idx = 0;
-      }
     }
-    return idx;
-  }, [subtitleWords, currentCheckTime, relCheckTime]);
+
+    return idx === -1 ? 0 : idx;
+  }, [subtitleWords, syncPlaybackTime]);
 
   // 2-3 words windowing for viral shorts (TikTok/Reels dynamic Hormozi style)
   const displayWordsWindow = useMemo(() => {
@@ -260,18 +411,17 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
   }, [subtitleWords, activeWordIndex]);
 
   // Caption Vertical Positioning:
-  // Position subtitles near bottom with optimal clearance above Part 1 badge
-  // Part 1 is at bottom-3 (~12px). We place the caption at bottom-[38px] (just enough clearance so Part 1 is fully visible!)
+  // Strictly positioned above the "Part 1" badge ("Part 1 se uper rkho bus")
   const getCaptionPositionStyle = (): React.CSSProperties => {
     switch (settings.captionPosition) {
       case 'middle':
         return { top: '50%', transform: 'translateY(-50%)' };
       case 'lower':
-        return { bottom: '20%' };
+        return { bottom: settings.titleSticker ? '18%' : '12%' };
       case 'bottom':
       default:
-        // Positioned at the absolute bottom, right above Part 1 badge
-        return { bottom: settings.titleSticker ? '38px' : '14px' };
+        // Clean clearance directly above Part 1 (at bottom ~12px + badge height)
+        return { bottom: settings.titleSticker ? (settings.audioWaveform ? '54px' : '44px') : '14px' };
     }
   };
 
@@ -348,16 +498,16 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
           />
         )}
 
-        {/* Video Element - Fit mode shows 100% video without cropping! */}
+        {/* Video Element - Fit mode shows 100% video without cropping! Clean click-to-play with zero black browser controls bar */}
         <video
           ref={videoRef}
           src={videoUrl}
-          className={`w-full h-full relative z-10 transition-all ${
+          className={`w-full h-full relative z-10 transition-all cursor-pointer ${
             isCoverFit ? 'object-cover' : 'object-contain'
           }`}
-          controls
           playsInline
           preload="auto"
+          onClick={togglePlay}
           onLoadedMetadata={handleLoadedMetadata}
           onTimeUpdate={handleTimeUpdate}
           onPlay={() => setIsPlaying(true)}
@@ -398,45 +548,92 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
           </div>
         )}
 
-        {/* Dynamic Alex Hormozi Animated Captions Overlay (Side flow, No upward jump, Zero black shadow) */}
+        {/* If fetching AI captions or translating for video, show sleek pulsating indicator */}
+        {settings.enableCaptions && (isFetchingSubtitles || isTranslating) && !activeSubtitle && (
+          <div 
+            style={getCaptionPositionStyle()}
+            className="absolute left-0 right-0 flex items-center justify-center pointer-events-none z-20 px-3 sm:px-5 text-center"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-950/80 border border-indigo-500/40 text-indigo-300 text-xs font-semibold backdrop-blur-md shadow-lg">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+              <span>{isTranslating ? '🌐 Translating Captions...' : '✨ Syncing AI Captions...'}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Dynamic Alex Hormozi Animated Captions Overlay (Zero side clipping, natural word wrap, zero black dandi/shadow) */}
         {settings.enableCaptions && activeSubtitle && (
           <div 
             style={getCaptionPositionStyle()}
-            className="absolute left-0 right-0 flex items-center justify-center pointer-events-none z-20 px-2 sm:px-4 text-center overflow-hidden"
+            className="absolute left-0 right-0 flex items-center justify-center pointer-events-none z-20 px-3 sm:px-5 text-center"
           >
             {settings.captionStyle === 'minimal' ? (
-              /* Minimal: Clean white subtitle - 100% Transparent, Zero Black Shadow */
+              /* Minimal / Black Box Highlight: Solid black background box for maximum contrast & pop */
               <div 
-                className="text-white font-black text-sm sm:text-lg md:text-2xl uppercase tracking-wider bg-transparent p-0 border-none shadow-none whitespace-nowrap select-none animate-in fade-in slide-in-from-right-3 duration-150"
-                style={{
-                  background: 'transparent',
-                  backgroundColor: 'transparent',
-                  WebkitTextStroke: 'none',
-                  textShadow: 'none'
-                }}
-              >
-                {activeSubtitle.text}
-              </div>
-            ) : (
-              /* Hormozi / Kinetic: 100% Transparent, Runs smoothly from the side horizontally, No upward jumping, Zero black shadow */
-              <div 
-                key={activeSubtitle.id || activeSubtitle.startTime || activeSubtitle.text}
-                className="flex flex-nowrap whitespace-nowrap items-center justify-center gap-2 sm:gap-3 max-w-[96%] bg-transparent p-0 border-none shadow-none overflow-x-hidden animate-in fade-in slide-in-from-right-4 duration-150"
+                key={`box-${activeSubtitle.id || activeSubtitle.startTime || activeSubtitle.text}`}
+                className="inline-flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[92%] bg-black/95 border border-white/20 px-3.5 sm:px-5 py-1.5 sm:py-2.5 rounded-2xl shadow-2xl backdrop-blur-md text-center break-words animate-in fade-in duration-100"
               >
                 {displayWordsWindow && displayWordsWindow.length > 0 ? (
                   displayWordsWindow.map((w, idx) => {
-                    // Check if current word in window matches activeWord
                     const activeWordObj = subtitleWords[activeWordIndex];
                     const isActive = activeWordObj ? (w.word === activeWordObj.word && w.start === activeWordObj.start) : (idx === 0);
                     const highlightColor = '#FFE600';
+                    const cleanW = w.word.replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '').replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '');
                     
                     return (
                       <span
-                        key={`${w.start}-${w.word}-${idx}`}
-                        className={`text-base sm:text-xl md:text-2xl font-black uppercase tracking-wide transition-all duration-100 select-none bg-transparent inline-block ${
+                        key={`box-${w.start}-${cleanW}-${idx}`}
+                        className={`text-base sm:text-lg md:text-xl font-black uppercase tracking-wide transition-all duration-100 select-none inline-block ${
                           isActive
                             ? 'scale-105 z-10'
                             : 'text-white opacity-90'
+                        }`}
+                        style={{
+                          color: isActive ? highlightColor : '#FFFFFF',
+                          textShadow: isActive 
+                            ? '0 0 10px rgba(255, 230, 0, 0.8), 0 0 20px rgba(255, 230, 0, 0.35)' 
+                            : 'none'
+                        }}
+                      >
+                        {cleanW}
+                      </span>
+                    );
+                  })
+                ) : (
+                  <span 
+                    className="text-base sm:text-lg md:text-xl font-black uppercase text-[#FFE600] tracking-wide select-none inline-block animate-in fade-in duration-100 break-words"
+                    style={{
+                      color: '#FFE600',
+                      textShadow: '0 0 10px rgba(255, 230, 0, 0.8), 0 0 20px rgba(255, 230, 0, 0.35)'
+                    }}
+                  >
+                    {activeSubtitle.text
+                      .replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '')
+                      .replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '')
+                      .trim()}
+                  </span>
+                )}
+              </div>
+            ) : (
+              /* Hormozi: 100% Transparent, BADA Text, Zero black box, Zero black dandi/line/shadow, Zero side cut-off */
+              <div 
+                key={`hormozi-${activeSubtitle.id || activeSubtitle.startTime || activeSubtitle.text}`}
+                className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[92%] px-2 text-center bg-transparent p-0 border-none shadow-none break-words animate-in fade-in duration-100"
+              >
+                {displayWordsWindow && displayWordsWindow.length > 0 ? (
+                  displayWordsWindow.map((w, idx) => {
+                    const activeWordObj = subtitleWords[activeWordIndex];
+                    const isActive = activeWordObj ? (w.word === activeWordObj.word && w.start === activeWordObj.start) : (idx === 0);
+                    const highlightColor = '#FFE600';
+                    const cleanW = w.word.replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '').replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '');
+                    
+                    return (
+                      <span
+                        key={`hormozi-${w.start}-${cleanW}-${idx}`}
+                        className={`text-base sm:text-xl md:text-2xl font-black uppercase tracking-wide transition-all duration-100 select-none bg-transparent inline-block ${
+                          isActive
+                            ? 'scale-105 z-10'
+                            : 'text-white opacity-95'
                         }`}
                         style={{
                           color: isActive ? highlightColor : '#FFFFFF',
@@ -444,26 +641,29 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                           backgroundColor: 'transparent',
                           WebkitTextStroke: 'none',
                           textShadow: isActive 
-                            ? '0 0 12px rgba(255, 230, 0, 0.75), 0 0 24px rgba(255, 230, 0, 0.35)' 
+                            ? '0 0 14px rgba(255, 230, 0, 0.85), 0 0 28px rgba(255, 230, 0, 0.45)' 
                             : 'none'
                         }}
                       >
-                        {w.word}
+                        {cleanW}
                       </span>
                     );
                   })
                 ) : (
                   <span 
-                    className="text-base sm:text-xl md:text-2xl font-black uppercase text-[#FFE600] tracking-wide select-none bg-transparent whitespace-nowrap inline-block animate-in fade-in slide-in-from-right-3 duration-150"
+                    className="text-base sm:text-xl md:text-2xl font-black uppercase text-[#FFE600] tracking-wide select-none bg-transparent inline-block animate-in fade-in duration-100 break-words"
                     style={{
                       color: '#FFE600',
                       background: 'transparent',
                       backgroundColor: 'transparent',
                       WebkitTextStroke: 'none',
-                      textShadow: '0 0 12px rgba(255, 230, 0, 0.75), 0 0 24px rgba(255, 230, 0, 0.35)'
+                      textShadow: '0 0 14px rgba(255, 230, 0, 0.85), 0 0 28px rgba(255, 230, 0, 0.45)'
                     }}
                   >
-                    {activeSubtitle.text}
+                    {activeSubtitle.text
+                      .replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '')
+                      .replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '')
+                      .trim()}
                   </span>
                 )}
               </div>

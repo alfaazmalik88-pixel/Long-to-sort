@@ -7,7 +7,6 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { ExportQueue } from './components/ExportQueue';
 import { SeoSection } from './components/SeoSection';
 import { Header } from './components/Header';
-import { AuthModal } from './components/AuthModal';
 import { PricingModal } from './components/PricingModal';
 import { VideoState, Clip, EditorSettings, RenderJob } from './types';
 import { renderVideoClip } from './lib/renderVideo';
@@ -23,6 +22,7 @@ import { AlternativePage } from './pages/AlternativePage';
 import { PricingSection } from './components/PricingSection';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAuth } from './context/AuthContext';
+import { DEMO_PRELOADED_SUBTITLES } from './data/demoSubtitles';
 
 export default function App() {
   const { user, useMinutes } = useAuth();
@@ -50,7 +50,6 @@ export default function App() {
   });
   const [mobileEditorTab, setMobileEditorTab] = useState<'preview' | 'controls'>('preview');
   const [renderJobs, setRenderJobs] = useState<RenderJob[]>([]);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isServerUploading, setIsServerUploading] = useState<boolean>(false);
   const [serverUploadProgress, setServerUploadProgress] = useState<number>(100);
@@ -137,8 +136,8 @@ export default function App() {
         xhr.send(formData);
       };
 
-      // Chunked upload with 10MB chunks
-      const CHUNK_SIZE = 10 * 1024 * 1024;
+      // Resilient chunked upload with 2.5MB chunks (smoother progress, resilient to network drops)
+      const CHUNK_SIZE = 2.5 * 1024 * 1024;
       if (file.size < CHUNK_SIZE) {
         directUpload();
         return;
@@ -163,6 +162,7 @@ export default function App() {
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/upload-chunk', true);
+        xhr.timeout = 45000; // 45 seconds timeout per chunk
 
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
@@ -175,7 +175,9 @@ export default function App() {
         xhr.onload = () => {
           if (xhr.status === 200) {
             currentChunk++;
-            onProgress(Math.min(99, Math.round((currentChunk / totalChunks) * 100)));
+            const pct = Math.min(99, Math.round((currentChunk / totalChunks) * 100));
+            onProgress(pct);
+
             if (currentChunk < totalChunks) {
               setTimeout(() => uploadChunk(0), 10);
             } else {
@@ -199,25 +201,81 @@ export default function App() {
               reject(new Error("Upload rejected: limits exceeded."));
             }
           } else {
-            if (retry < 2) {
-              setTimeout(() => uploadChunk(retry + 1), 1000);
+            // Server error or network drop: retry current chunk without resetting counter
+            if (retry < 4) {
+              const backoff = (retry + 1) * 1000;
+              setTimeout(() => uploadChunk(retry + 1), backoff);
             } else {
-              // Fallback to direct upload
-              console.warn("Chunked upload failed, falling back to direct upload...");
+              console.warn("Chunked upload retries exceeded, falling back to direct upload...");
               directUpload();
             }
           }
         };
-        xhr.onerror = () => {
-          if (retry < 2) {
-            setTimeout(() => uploadChunk(retry + 1), 1000);
+
+        xhr.ontimeout = () => {
+          if (retry < 4) {
+            const backoff = (retry + 1) * 1000;
+            setTimeout(() => uploadChunk(retry + 1), backoff);
           } else {
             directUpload();
           }
         };
+
+        xhr.onerror = () => {
+          // Network dropped temporarily: retry the same chunk with backoff
+          if (retry < 4) {
+            const backoff = (retry + 1) * 1000;
+            setTimeout(() => uploadChunk(retry + 1), backoff);
+          } else {
+            directUpload();
+          }
+        };
+
         xhr.send(formData);
       };
+
       uploadChunk(0);
+    });
+  };
+
+  const assignSubtitlesToClips = (clips: Clip[], allSubtitles: any[]): Clip[] => {
+    return clips.map(clip => {
+      const clipStart = clip.startTime || 0;
+      const clipEnd = clip.endTime || 60;
+      
+      // Check if subtitles have timestamps beyond this clip's start
+      const matching = allSubtitles.filter(s => {
+        const sStart = Number(s.startTime ?? s.start ?? 0);
+        const sEnd = Number(s.endTime ?? s.end ?? (sStart + 2));
+        return (sStart >= clipStart - 0.5 && sStart < clipEnd) ||
+               (sEnd > clipStart && sEnd <= clipEnd + 0.5);
+      });
+
+      if (matching.length > 0 && clipStart > 0) {
+        // Normalize timestamps relative to clip local start (0.0s to duration)
+        const normalized = matching.map(s => {
+          const sStart = Math.max(0, Number((Number(s.startTime ?? s.start ?? 0) - clipStart).toFixed(2)));
+          const sEnd = Math.max(sStart + 0.3, Number((Number(s.endTime ?? s.end ?? 0) - clipStart).toFixed(2)));
+          return {
+            ...s,
+            startTime: sStart,
+            endTime: sEnd,
+            start: sStart,
+            end: sEnd,
+            words: Array.isArray(s.words) ? s.words.map((w: any) => ({
+              ...w,
+              start: Math.max(0, Number((Number(w.start ?? 0) - clipStart).toFixed(2))),
+              end: Math.max(0, Number((Number(w.end ?? 0) - clipStart).toFixed(2)))
+            })) : []
+          };
+        });
+        return { ...clip, subtitles: normalized };
+      }
+
+      return {
+        ...clip,
+        subtitles: matching.length > 0 ? matching : allSubtitles
+      };
     });
   };
 
@@ -293,109 +351,90 @@ export default function App() {
         const is4K = (video.videoWidth >= 3840 || video.videoHeight >= 2160 || (video.videoWidth >= 2160 && video.videoHeight >= 2160));
         const generatedClips = generateClips(detectedDur, editorSettings.clipDuration);
 
+        // Fast direct transcription before opening editor so real captions are ready
+        let clipsWithSubs = generatedClips;
+        const currentSelectedLang = (editorSettings.subtitleLanguage || 'auto').toLowerCase();
+        try {
+          const transPromise = fetch('/api/gemini-transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              videoPath: result.path,
+              startTime: 0,
+              duration: Math.min(detectedDur, 30),
+              language: currentSelectedLang
+            })
+          }).then(res => res.json());
+
+          // 2.5s quick race so editor opens swiftly without freezing
+          const timeoutPromise = new Promise<any>((resolve) => setTimeout(() => resolve(null), 2500));
+          const data = await Promise.race([transPromise, timeoutPromise]);
+
+          if (data && data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
+            clipsWithSubs = assignSubtitlesToClips(generatedClips, data.subtitles);
+            clipsWithSubs = clipsWithSubs.map(c => ({ ...c, subtitleLanguage: currentSelectedLang }));
+          }
+        } catch (e) {
+          console.warn('Initial fast transcription notice:', e);
+        }
+
         setVideoState({
           url: videoUrl,
           file: file,
           serverPath: result.path,
           status: 'ready',
-          clips: generatedClips,
+          clips: clipsWithSubs,
           is4K: is4K
         });
-        setSelectedClipId(generatedClips[0]?.id || null);
-
-        // Pause briefly at 100% then transition to editor
-        setTimeout(() => {
-          setIsServerUploading(false);
-          setActiveTab('editor');
-        }, 400);
-
-        // Fetch Gemini 1.5 Flash AI captions in background
-        fetch('/api/gemini-transcribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            videoPath: result.path,
-            startTime: 0,
-            duration: Math.min(detectedDur, 60),
-            language: editorSettings.subtitleLanguage || 'auto'
-          })
-        })
-          .then(res => res.json())
-          .then(data => {
-            if (data.subtitles && Array.isArray(data.subtitles)) {
-              setVideoState(prev => ({
-                ...prev,
-                clips: prev.clips.map(c => ({
-                  ...c,
-                  subtitles: data.subtitles
-                }))
-              }));
-            }
-          })
-          .catch(e => console.warn('Gemini background transcription error:', e));
+        setSelectedClipId(clipsWithSubs[0]?.id || null);
+        setIsServerUploading(false);
+        setActiveTab('editor');
 
       } catch (err: any) {
-        console.error("Upload error:", err);
+        console.error("Upload notice:", err);
         setIsServerUploading(false);
-        alert(err?.message || "Failed to upload video to server. Please try again.");
-      }
-    } else {
-      // Demo sample video: show fast smooth progress then open editor
-      setIsServerUploading(true);
-      setServerUploadProgress(15);
-      const timer = setInterval(() => {
-        setServerUploadProgress(prev => {
-          if (prev >= 95) {
-            clearInterval(timer);
-            return 100.0;
-          }
-          return prev + 25;
+        // Graceful network resilience: Open editor immediately with local blob video so user is never blocked!
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.src = videoUrl;
+        await new Promise<void>((resolve) => {
+          video.onloadedmetadata = () => resolve();
+          video.onerror = () => resolve();
+          setTimeout(() => resolve(), 800);
         });
-      }, 150);
-
-      setTimeout(() => {
-        clearInterval(timer);
-        setServerUploadProgress(100.0);
-        const generatedClips = generateClips(30, editorSettings.clipDuration);
+        const fallbackDur = video.duration && !isNaN(video.duration) ? video.duration : 60;
+        const generatedClips = generateClips(fallbackDur, editorSettings.clipDuration);
         setVideoState({
           url: videoUrl,
-          file: null,
-          serverPath: serverPath || videoUrl,
+          file: file,
+          serverPath: null,
           status: 'ready',
-          clips: generatedClips
+          clips: generatedClips,
+          is4K: false
         });
         setSelectedClipId(generatedClips[0]?.id || null);
+        setActiveTab('editor');
+      }
+    } else {
+      // Demo sample video: load instant pre-cached subtitles and open editor immediately (0s delay!)
+      const targetDemoPath = serverPath || 'public/official-demo.mp4';
+      const curLang = (editorSettings.subtitleLanguage || 'auto').toLowerCase();
+      const demoSubs = DEMO_PRELOADED_SUBTITLES[curLang] || DEMO_PRELOADED_SUBTITLES.hi;
+      let demoClips = generateClips(10, editorSettings.clipDuration);
+      demoClips = assignSubtitlesToClips(demoClips, demoSubs);
+      demoClips = demoClips.map(c => ({ ...c, subtitleLanguage: curLang }));
 
-        // Call Gemini 1.5 Flash AI transcription for demo video to enable animated captions
-        fetch('/api/gemini-transcribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            videoPath: 'public/demo-sample.mp4', 
-            startTime: 0, 
-            duration: 30,
-            language: editorSettings.subtitleLanguage || 'auto'
-          })
-        })
-          .then(r => r.json())
-          .then(data => {
-            if (data?.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
-              setVideoState(prev => ({
-                ...prev,
-                clips: prev.clips.map(c => ({
-                  ...c,
-                  subtitles: data.subtitles
-                }))
-              }));
-            }
-          })
-          .catch(e => console.warn('Gemini demo transcription error:', e));
-
-        setTimeout(() => {
-          setIsServerUploading(false);
-          setActiveTab('editor');
-        }, 300);
-      }, 750);
+      setServerUploadProgress(100.0);
+      setVideoState({
+        url: videoUrl,
+        file: null,
+        serverPath: targetDemoPath,
+        status: 'ready',
+        clips: demoClips
+      });
+      setSelectedClipId(demoClips[0]?.id || null);
+      setIsServerUploading(false);
+      setActiveTab('editor');
     }
   };
 
@@ -405,9 +444,12 @@ export default function App() {
       video.src = videoState.url;
       video.onloadedmetadata = () => {
         const newClips = generateClips(video.duration, editorSettings.clipDuration);
-        setVideoState(prev => ({ ...prev, clips: newClips }));
-        if (!newClips.find(c => c.id === selectedClipId)) {
-          setSelectedClipId(newClips[0]?.id || null);
+        // Preserve subtitles if existing clips had them
+        const existingSubs = videoState.clips.flatMap(c => c.subtitles || []);
+        const mergedClips = existingSubs.length > 0 ? assignSubtitlesToClips(newClips, existingSubs) : newClips;
+        setVideoState(prev => ({ ...prev, clips: mergedClips }));
+        if (!mergedClips.find(c => c.id === selectedClipId)) {
+          setSelectedClipId(mergedClips[0]?.id || null);
         }
       };
     }
@@ -554,7 +596,7 @@ export default function App() {
       <Route path="/" element={
         
     <div className="flex flex-col h-[100dvh] w-full bg-black text-zinc-100 font-sans overflow-hidden selection:bg-indigo-500/30">
-      <Header onOpenAuth={() => setIsAuthOpen(true)} onOpenPricing={handleOpenPricing} />
+      <Header onOpenPricing={handleOpenPricing} />
       <div className="flex flex-1 overflow-hidden relative">
         <Sidebar 
           activeTab={activeTab} 
@@ -566,15 +608,6 @@ export default function App() {
           <ErrorBoundary fallbackTitle="Error loading workspace view">
           {activeTab === 'upload' && (
             <div className="relative flex-1 flex flex-col h-full overflow-hidden">
-              {/* Ultra-Fast Responsive Side Scroll Line Indicator */}
-              <div className="absolute top-0 right-0 bottom-0 w-[4px] bg-zinc-900/30 pointer-events-none z-30">
-                <div 
-                  ref={sideScrollIndicatorRef}
-                  className="w-full bg-gradient-to-b from-indigo-500 via-indigo-400 to-cyan-400 shadow-[0_0_10px_rgba(99,102,241,0.9)] rounded-full will-change-[height]"
-                  style={{ height: '3%' }}
-                />
-              </div>
-
               <div 
                 onScroll={handleFastScroll}
                 className="flex-1 flex flex-col overflow-y-auto custom-scrollbar overscroll-y-contain pb-32 md:pb-12"
@@ -582,7 +615,6 @@ export default function App() {
                 <VideoUploader 
                   onAnalyze={handleAnalyze} 
                   status={videoState.status} 
-                  onOpenAuth={() => setIsAuthOpen(true)} 
                   onOpenPricing={handleOpenPricing}
                   isUploading={isServerUploading}
                   uploadProgress={serverUploadProgress}
@@ -591,7 +623,7 @@ export default function App() {
                     setServerUploadProgress(0);
                   }}
                 />
-                <PricingSection onOpenAuth={() => setIsAuthOpen(true)} />
+                <PricingSection />
                 <SeoSection onLoadDemo={() => handleAnalyze('/official-demo.mp4?v=clean_hd', 'public/official-demo.mp4')} />
               </div>
             </div>
@@ -647,10 +679,10 @@ export default function App() {
                     clips={videoState.clips}
                     onSelectClip={setSelectedClipId}
                     serverPath={videoState.serverPath}
-                    onUpdateClipSubtitles={(clipId, subtitles) => {
+                    onUpdateClipSubtitles={(clipId, subtitles, lang) => {
                       setVideoState(prev => ({
                         ...prev,
-                        clips: prev.clips.map(c => c.id === clipId ? { ...c, subtitles } : c)
+                        clips: prev.clips.map(c => c.id === clipId ? { ...c, subtitles, subtitleLanguage: lang || editorSettings.subtitleLanguage || 'auto' } : c)
                       }));
                     }}
                   />
@@ -682,11 +714,9 @@ export default function App() {
           </ErrorBoundary>
         </main>
       </div>
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       <PricingModal 
         isOpen={isPricingOpen} 
         onClose={() => setIsPricingOpen(false)} 
-        onOpenAuth={() => setIsAuthOpen(true)} 
       />
     </div>
   

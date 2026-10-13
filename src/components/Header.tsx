@@ -6,12 +6,12 @@ import { formatMinutesAndSeconds } from '../utils/formatTime';
 import { Link, useLocation } from 'react-router-dom';
 
 interface HeaderProps {
-  onOpenAuth: () => void;
+  onOpenAuth?: () => void;
   onOpenPricing?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => {
-  const { user, isAuthenticated, logout, loginWithGoogle } = useAuth();
+export const Header: React.FC<HeaderProps> = ({ onOpenPricing }) => {
+  const { user, isAuthenticated, logout } = useAuth();
   const { currency } = useCountryPricing();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -219,33 +219,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
                     <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
                     <span>Viral Guides & Tutorials</span>
                   </Link>
-
-                  <button
-                    onClick={() => {
-                      logout();
-                      setDropdownOpen(false);
-                    }}
-                    className="w-full px-4 py-2 text-left text-xs font-medium text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    Sign Out
-                  </button>
                 </div>
               </div>
             )}
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={onOpenAuth}
-            className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-xs font-semibold border border-zinc-800 hover:border-zinc-700 transition-all duration-200 cursor-pointer shadow-sm active:scale-95 shrink-0"
-            title="Sign In"
-          >
-            <UserIcon className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span className="sm:hidden">Sign In</span>
-            <span className="hidden sm:inline">Login / Sign In</span>
-          </button>
-        )}
+        ) : null}
       </div>
     </header>
   );
