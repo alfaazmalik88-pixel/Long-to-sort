@@ -398,30 +398,43 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
     return idx === -1 ? 0 : idx;
   }, [subtitleWords, syncPlaybackTime]);
 
-  // 2-3 words windowing for viral shorts (TikTok/Reels dynamic Hormozi style)
+  // 1-2 words windowing for viral shorts (TikTok/Reels dynamic Hormozi style)
+  // Strictly chunks into 2 words max so it NEVER overflows sides or wraps into multi-line boxes that jump upward
   const displayWordsWindow = useMemo(() => {
-    if (!subtitleWords || subtitleWords.length === 0) return [];
-    if (subtitleWords.length <= 4) return subtitleWords;
+    if (!subtitleWords || subtitleWords.length === 0) {
+      if (!activeSubtitle?.text) return [];
+      const cleaned = (activeSubtitle.text || '')
+        .replace(/[|।/\\—–_\-·•*|]+/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      if (cleaned.length === 0) return [];
+      return cleaned.slice(0, 2).map((w, i) => ({
+        word: w.toUpperCase(),
+        start: Number(activeSubtitle.startTime || 0) + i * 0.4,
+        end: Number(activeSubtitle.startTime || 0) + (i + 1) * 0.4
+      }));
+    }
 
-    // Window of 2-3 words around active word
-    const windowSize = 3;
+    // Always 2 words window around active word: fits 100% on one line, never jumps or cuts
+    const windowSize = 2;
     const currentIdx = Math.max(0, activeWordIndex);
     const chunkStart = Math.floor(currentIdx / windowSize) * windowSize;
-    return subtitleWords.slice(chunkStart, chunkStart + windowSize);
-  }, [subtitleWords, activeWordIndex]);
+    return subtitleWords.slice(chunkStart, Math.min(subtitleWords.length, chunkStart + windowSize));
+  }, [subtitleWords, activeWordIndex, activeSubtitle]);
 
   // Caption Vertical Positioning:
-  // Strictly positioned above the "Part 1" badge ("Part 1 se uper rkho bus")
+  // Placed cleanly down low near bottom, strictly right above Part 1 badge
   const getCaptionPositionStyle = (): React.CSSProperties => {
     switch (settings.captionPosition) {
       case 'middle':
         return { top: '50%', transform: 'translateY(-50%)' };
       case 'lower':
-        return { bottom: settings.titleSticker ? '18%' : '12%' };
+        return { bottom: settings.titleSticker ? '14%' : '8%' };
       case 'bottom':
       default:
-        // Clean clearance directly above Part 1 (at bottom ~12px + badge height)
-        return { bottom: settings.titleSticker ? (settings.audioWaveform ? '54px' : '44px') : '14px' };
+        // Positioned lower down near bottom, clear right above Part 1
+        return { bottom: settings.titleSticker ? (settings.audioWaveform ? '34px' : '24px') : '10px' };
     }
   };
 
@@ -561,17 +574,17 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
           </div>
         )}
 
-        {/* Dynamic Alex Hormozi Animated Captions Overlay (Zero side clipping, natural word wrap, zero black dandi/shadow) */}
+        {/* Dynamic Alex Hormozi Animated Captions Overlay (Zero side clipping, rock-solid baseline, zero black dandi) */}
         {settings.enableCaptions && activeSubtitle && (
           <div 
             style={getCaptionPositionStyle()}
-            className="absolute left-0 right-0 flex items-center justify-center pointer-events-none z-20 px-3 sm:px-5 text-center"
+            className="absolute left-0 right-0 flex items-center justify-center pointer-events-none z-20 px-2 sm:px-4 text-center select-none"
           >
             {settings.captionStyle === 'minimal' ? (
               /* Minimal / Black Box Highlight: Solid black background box for maximum contrast & pop */
               <div 
                 key={`box-${activeSubtitle.id || activeSubtitle.startTime || activeSubtitle.text}`}
-                className="inline-flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[92%] bg-black/95 border border-white/20 px-3.5 sm:px-5 py-1.5 sm:py-2.5 rounded-2xl shadow-2xl backdrop-blur-md text-center break-words animate-in fade-in duration-100"
+                className="inline-flex flex-nowrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[88%] bg-black/95 border border-white/20 px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl shadow-2xl backdrop-blur-md text-center select-none"
               >
                 {displayWordsWindow && displayWordsWindow.length > 0 ? (
                   displayWordsWindow.map((w, idx) => {
@@ -583,11 +596,7 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                     return (
                       <span
                         key={`box-${w.start}-${cleanW}-${idx}`}
-                        className={`text-base sm:text-lg md:text-xl font-black uppercase tracking-wide transition-all duration-100 select-none inline-block ${
-                          isActive
-                            ? 'scale-105 z-10'
-                            : 'text-white opacity-90'
-                        }`}
+                        className="text-sm sm:text-base md:text-lg font-black uppercase tracking-wide select-none inline-block whitespace-nowrap"
                         style={{
                           color: isActive ? highlightColor : '#FFFFFF',
                           textShadow: isActive 
@@ -601,7 +610,7 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                   })
                 ) : (
                   <span 
-                    className="text-base sm:text-lg md:text-xl font-black uppercase text-[#FFE600] tracking-wide select-none inline-block animate-in fade-in duration-100 break-words"
+                    className="text-sm sm:text-base md:text-lg font-black uppercase text-[#FFE600] tracking-wide select-none inline-block whitespace-nowrap"
                     style={{
                       color: '#FFE600',
                       textShadow: '0 0 10px rgba(255, 230, 0, 0.8), 0 0 20px rgba(255, 230, 0, 0.35)'
@@ -610,15 +619,18 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                     {activeSubtitle.text
                       .replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '')
                       .replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '')
-                      .trim()}
+                      .trim()
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .join(' ')}
                   </span>
                 )}
               </div>
             ) : (
-              /* Hormozi: 100% Transparent, BADA Text, Zero black box, Zero black dandi/line/shadow, Zero side cut-off */
+              /* Hormozi: 100% Transparent, BADA Text, Zero black box, Zero black dandi/line/shadow, Zero side cut-off, Zero layout jump */
               <div 
                 key={`hormozi-${activeSubtitle.id || activeSubtitle.startTime || activeSubtitle.text}`}
-                className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[92%] px-2 text-center bg-transparent p-0 border-none shadow-none break-words animate-in fade-in duration-100"
+                className="flex flex-nowrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[88%] px-2 text-center bg-transparent p-0 border-none shadow-none select-none"
               >
                 {displayWordsWindow && displayWordsWindow.length > 0 ? (
                   displayWordsWindow.map((w, idx) => {
@@ -630,19 +642,15 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                     return (
                       <span
                         key={`hormozi-${w.start}-${cleanW}-${idx}`}
-                        className={`text-base sm:text-xl md:text-2xl font-black uppercase tracking-wide transition-all duration-100 select-none bg-transparent inline-block ${
-                          isActive
-                            ? 'scale-105 z-10'
-                            : 'text-white opacity-95'
-                        }`}
+                        className="text-sm sm:text-base md:text-lg lg:text-xl font-black uppercase tracking-wider select-none bg-transparent inline-block whitespace-nowrap transition-colors duration-75"
                         style={{
                           color: isActive ? highlightColor : '#FFFFFF',
                           background: 'transparent',
                           backgroundColor: 'transparent',
                           WebkitTextStroke: 'none',
                           textShadow: isActive 
-                            ? '0 0 14px rgba(255, 230, 0, 0.85), 0 0 28px rgba(255, 230, 0, 0.45)' 
-                            : 'none'
+                            ? '0 0 14px rgba(255, 230, 0, 0.9), 0 0 28px rgba(255, 230, 0, 0.45)' 
+                            : '0 2px 4px rgba(0, 0, 0, 0.75)'
                         }}
                       >
                         {cleanW}
@@ -651,19 +659,22 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
                   })
                 ) : (
                   <span 
-                    className="text-base sm:text-xl md:text-2xl font-black uppercase text-[#FFE600] tracking-wide select-none bg-transparent inline-block animate-in fade-in duration-100 break-words"
+                    className="text-sm sm:text-base md:text-lg lg:text-xl font-black uppercase text-[#FFE600] tracking-wider select-none bg-transparent inline-block whitespace-nowrap"
                     style={{
                       color: '#FFE600',
                       background: 'transparent',
                       backgroundColor: 'transparent',
                       WebkitTextStroke: 'none',
-                      textShadow: '0 0 14px rgba(255, 230, 0, 0.85), 0 0 28px rgba(255, 230, 0, 0.45)'
+                      textShadow: '0 0 14px rgba(255, 230, 0, 0.9), 0 0 28px rgba(255, 230, 0, 0.45)'
                     }}
                   >
                     {activeSubtitle.text
                       .replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '')
                       .replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '')
-                      .trim()}
+                      .trim()
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .join(' ')}
                   </span>
                 )}
               </div>

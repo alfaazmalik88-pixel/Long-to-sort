@@ -1,8 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { User as UserIcon, LogOut, ChevronDown, Zap, Sparkles, BookOpen } from 'lucide-react';
+import React from 'react';
+import { Zap, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useCountryPricing } from '../utils/countryPricing';
-import { formatMinutesAndSeconds } from '../utils/formatTime';
 import { Link, useLocation } from 'react-router-dom';
 
 interface HeaderProps {
@@ -11,22 +9,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenPricing }) => {
-  const { user, isAuthenticated, logout } = useAuth();
-  const { currency } = useCountryPricing();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
   const location = useLocation();
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handlePricingClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -37,21 +21,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenPricing }) => {
       if (el) {
         el.scrollIntoView({ behavior: 'smooth' });
       }
-    }
-  };
-
-  const handleGoogleSignInClick = async () => {
-    setIsLoggingIn(true);
-    try {
-      await loginWithGoogle();
-    } catch (err: any) {
-      console.warn('Google popup error:', err);
-      // Fallback: if popup is blocked or closed, open standard modal
-      if (err?.code !== 'auth/popup-closed-by-user') {
-        onOpenAuth();
-      }
-    } finally {
-      setIsLoggingIn(false);
     }
   };
 
@@ -119,111 +88,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenPricing }) => {
         </button>
       </div>
 
-      {/* Right Action / Auth & Credits Button */}
+      {/* Right Action: Plans & Upgrades */}
       <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0">
-        {/* Mobile "Plans" Button - compact & separated */}
         <button
           type="button"
           onClick={handlePricingClick}
-          className="sm:hidden flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-bold active:scale-95 transition-all shadow-sm cursor-pointer shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold active:scale-95 transition-all shadow-sm cursor-pointer shrink-0"
         >
-          <Zap className="w-3 h-3 fill-amber-400" />
+          <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
           <span>Plans (₹49 / $5)</span>
         </button>
-
-        {isAuthenticated && user ? (
-          <div className="relative shrink-0" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-1.5 p-1 pl-2 sm:p-1.5 sm:pl-2.5 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer shrink-0"
-            >
-              {/* Clickable Minutes Pill */}
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePricingClick(e);
-                }}
-                title="One-Time Free Trial • Click to view / buy minutes"
-                className="hidden md:flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-[11px] font-bold cursor-pointer transition-all"
-              >
-                <Sparkles className="w-3 h-3 text-indigo-400" />
-                <span>
-                  {formatMinutesAndSeconds(user.minutes)}
-                </span>
-              </div>
-
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-semibold text-zinc-200 leading-tight">{user.name}</p>
-              </div>
-
-              {user.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-zinc-700"
-                />
-              ) : (
-                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] sm:text-xs font-bold">
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
-            </button>
-
-            {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                <div className="px-4 py-3 border-b border-zinc-900 space-y-2">
-                  <p className="text-xs font-bold text-white">{user.name}</p>
-                  <p className="text-[11px] text-zinc-400 truncate">{user.email}</p>
-                  
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-zinc-400">Current Plan:</span>
-                    <span className="text-[11px] font-bold text-white px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800">
-                      {user.planName || 'Free Trial'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-zinc-400">
-                      Remaining Minutes:
-                    </span>
-                    <span className="text-xs font-extrabold text-indigo-400">
-                      {formatMinutesAndSeconds(user.minutes)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="py-1">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      setDropdownOpen(false);
-                      handlePricingClick(e);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-400 hover:bg-zinc-900 flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Zap className="w-3.5 h-3.5 fill-amber-400/20" />
-                      Upgrade / Buy Minutes
-                    </span>
-                    <span className="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-300 font-bold">
-                      ₹49 / $5
-                    </span>
-                  </button>
-
-                  <Link
-                    to="/blog"
-                    onClick={() => setDropdownOpen(false)}
-                    className="w-full px-4 py-2.5 text-left text-xs font-semibold text-zinc-300 hover:bg-zinc-900 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Viral Guides & Tutorials</span>
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : null}
       </div>
     </header>
   );

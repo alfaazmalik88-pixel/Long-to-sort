@@ -1594,10 +1594,10 @@ const handleTrim = (req: express.Request, res: express.Response) => {
     let titleBadgeStyle = 'Style: TitleBadge,Arial Black,28,&H00FFFFFF,&H00000000,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,2,10,10,35,1';
 
     // Subtitle Caption Vertical Position:
-    // Placed cleanly above Part 1 badge ("Part 1 se uper rkho bus")
-    let marginV = shouldBurnTitle ? 115 : 45;
+    // Placed cleanly down low above Part 1 badge ("Part 1 se uper rkho bus")
+    let marginV = shouldBurnTitle ? 80 : 35;
     if (captionPosition === 'middle') marginV = 960;
-    else if (captionPosition === 'lower') marginV = 280;
+    else if (captionPosition === 'lower') marginV = 220;
     else if (captionPosition === 'top') marginV = 1650;
 
     // Subtitle Style - Hormozi: Electric Yellow, 100% Transparent background, zero black box/shadow, safe lateral margins (60, 60) so text never cuts off on sides!
@@ -1677,75 +1677,33 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
           }
         }
 
-        if (captionStyle === 'hormozi') {
-          if (words.length > 0) {
-            // Output word-level animated highlights: Active word is ELECTRIC YELLOW (#FFE500 / &H00E5FF& in ASS)
-            for (let wIdx = 0; wIdx < words.length; wIdx++) {
-              const activeWord = words[wIdx];
+        const highlightColour = captionStyle === 'neon' ? '&H005EEB22&' : '&H00E5FF&';
+
+        // 2-word chunking: punchy, zero multi-line wrapping, never jumps up, never clips sides
+        const CHUNK_SIZE = 2;
+        if (words.length > 0) {
+          for (let c = 0; c < words.length; c += CHUNK_SIZE) {
+            const chunk = words.slice(c, c + CHUNK_SIZE);
+            for (let wIdx = 0; wIdx < chunk.length; wIdx++) {
+              const activeWord = chunk[wIdx];
               const wStart = toAssTime(activeWord.start);
               const wEnd = toAssTime(activeWord.end);
 
-              const formattedWords = words.map((w: any, idx: number) => {
+              const formattedChunk = chunk.map((w: any, idx: number) => {
                 if (idx === wIdx) {
-                  return `{\\c&H00E5FF&\\fscx115\\fscy115\\b1}${w.word}{\\c&HFFFFFF&\\fscx100\\fscy100\\b1}`;
+                  return `{\\c${highlightColour}\\b1}${w.word}{\\c&HFFFFFF&\\b1}`;
                 }
-                return `{\\c&HFFFFFF&\\fscx100\\fscy100\\b1}${w.word}`;
+                return `{\\c&HFFFFFF&\\b1}${w.word}`;
               }).join(' ');
 
-              assContent += `Dialogue: 1,${wStart},${wEnd},CaptionStyle,,0,0,0,,${formattedWords}\n`;
+              assContent += `Dialogue: 1,${wStart},${wEnd},CaptionStyle,,0,0,0,,${formattedChunk}\n`;
             }
-          } else {
-            // Single sentence in Hormozi style: Bold Electric Yellow
-            const start = toAssTime(segStart);
-            const end = toAssTime(segEnd);
-            const text = String(item.text || '').toUpperCase();
-            assContent += `Dialogue: 1,${start},${end},CaptionStyle,,0,0,0,,{\\c&H00E5FF&}{\\b1}${text}\n`;
-          }
-        } else if (captionStyle === 'neon') {
-          if (words.length > 0) {
-            for (let wIdx = 0; wIdx < words.length; wIdx++) {
-              const activeWord = words[wIdx];
-              const wStart = toAssTime(activeWord.start);
-              const wEnd = toAssTime(activeWord.end);
-
-              const formattedWords = words.map((w: any, idx: number) => {
-                if (idx === wIdx) {
-                  return `{\\c&H005EEB22&\\fscx115\\fscy115\\b1}${w.word}{\\c&HFFFFFF&\\fscx100\\fscy100\\b1}`;
-                }
-                return `{\\c&HFFFFFF&\\fscx100\\fscy100\\b1}${w.word}`;
-              }).join(' ');
-
-              assContent += `Dialogue: 1,${wStart},${wEnd},CaptionStyle,,0,0,0,,${formattedWords}\n`;
-            }
-          } else {
-            const start = toAssTime(segStart);
-            const end = toAssTime(segEnd);
-            const text = String(item.text || '').toUpperCase();
-            assContent += `Dialogue: 1,${start},${end},CaptionStyle,,0,0,0,,{\\c&H005EEB22&}{\\b1}${text}\n`;
           }
         } else {
-          // Minimal / Black Box Highlight: Word-level highlight with solid black box background
-          if (words.length > 0) {
-            for (let wIdx = 0; wIdx < words.length; wIdx++) {
-              const activeWord = words[wIdx];
-              const wStart = toAssTime(activeWord.start);
-              const wEnd = toAssTime(activeWord.end);
-
-              const formattedWords = words.map((w: any, idx: number) => {
-                if (idx === wIdx) {
-                  return `{\\c&H00E5FF&\\fscx110\\fscy110\\b1}${w.word}{\\c&HFFFFFF&\\fscx100\\fscy100\\b1}`;
-                }
-                return `{\\c&HFFFFFF&\\fscx100\\fscy100\\b1}${w.word}`;
-              }).join(' ');
-
-              assContent += `Dialogue: 1,${wStart},${wEnd},CaptionStyle,,0,0,0,,${formattedWords}\n`;
-            }
-          } else {
-            const start = toAssTime(segStart);
-            const end = toAssTime(segEnd);
-            const text = String(item.text || '').toUpperCase();
-            assContent += `Dialogue: 1,${start},${end},CaptionStyle,,0,0,0,,{\\c&H00E5FF&}{\\b1}${text}\n`;
-          }
+          const start = toAssTime(segStart);
+          const end = toAssTime(segEnd);
+          const text = String(item.text || '').toUpperCase().split(/\s+/).slice(0, 2).join(' ');
+          assContent += `Dialogue: 1,${start},${end},CaptionStyle,,0,0,0,,{\\c${highlightColour}}{\\b1}${text}\n`;
         }
       }
     }
