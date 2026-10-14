@@ -8,6 +8,7 @@ import { ExportQueue } from './components/ExportQueue';
 import { SeoSection } from './components/SeoSection';
 import { Header } from './components/Header';
 import { PricingModal } from './components/PricingModal';
+import { AuthModal } from './components/AuthModal';
 import { VideoState, Clip, EditorSettings, RenderJob } from './types';
 import { renderVideoClip } from './lib/renderVideo';
 import { Routes, Route } from 'react-router-dom';
@@ -51,6 +52,7 @@ export default function App() {
   const [mobileEditorTab, setMobileEditorTab] = useState<'preview' | 'controls'>('preview');
   const [renderJobs, setRenderJobs] = useState<RenderJob[]>([]);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isServerUploading, setIsServerUploading] = useState<boolean>(false);
   const [serverUploadProgress, setServerUploadProgress] = useState<number>(100);
   const [deductedJobs, setDeductedJobs] = useState<Set<string>>(new Set());
@@ -596,7 +598,7 @@ export default function App() {
       <Route path="/" element={
         
     <div className="flex flex-col h-[100dvh] w-full bg-black text-zinc-100 font-sans overflow-hidden selection:bg-indigo-500/30">
-      <Header onOpenPricing={handleOpenPricing} />
+      <Header onOpenAuth={() => setIsAuthOpen(true)} onOpenPricing={handleOpenPricing} />
       <div className="flex flex-1 overflow-hidden relative">
         <Sidebar 
           activeTab={activeTab} 
@@ -717,6 +719,10 @@ export default function App() {
       <PricingModal 
         isOpen={isPricingOpen} 
         onClose={() => setIsPricingOpen(false)} 
+      />
+      <AuthModal 
+        isOpen={isAuthOpen} 
+        onClose={() => setIsAuthOpen(false)} 
       />
     </div>
   

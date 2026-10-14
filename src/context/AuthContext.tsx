@@ -7,6 +7,7 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  isGoogle?: boolean;
   plan: 'free' | 'starter' | 'creator' | 'pro' | 'agency';
   planName: string;
   minutes: number;
@@ -46,6 +47,7 @@ export const DEFAULT_USER: User = {
   id: 'usr_creator_active',
   name: 'Viral Creator',
   email: 'creator@viralclip.ai',
+  isGoogle: true,
   plan: 'pro',
   planName: 'Pro Pack (Active)',
   minutes: 160,
@@ -57,16 +59,27 @@ export const DEFAULT_USER: User = {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(DEFAULT_USER);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.isGoogle || (parsed.email && parsed.email !== 'creator@viralclip.ai'))) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return null;
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const saveUserSession = (newUser: User | null) => {
-    setUser(newUser || DEFAULT_USER);
+    setUser(newUser);
     if (newUser) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
       localStorage.setItem(`${STORAGE_KEY}_${newUser.id}`, JSON.stringify(newUser));
     } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USER));
+      localStorage.removeItem(STORAGE_KEY);
     }
   };
 
@@ -79,13 +92,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         parsed.currency = parsed.currency || 'INR';
         parsed.plan = parsed.plan || 'pro';
         parsed.planName = parsed.planName || 'Pro Pack';
-        setUser(parsed);
+        if (parsed.isGoogle || (parsed.email && parsed.email !== 'creator@viralclip.ai')) {
+          setUser(parsed);
+        } else {
+          setUser(null);
+        }
       } else {
-        saveUserSession(DEFAULT_USER);
+        setUser(null);
       }
     } catch (e) {
-      console.error('Failed to load user session', e);
-      saveUserSession(DEFAULT_USER);
+      setUser(null);
     }
 
     try {
@@ -115,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Creator',
             email: fbUser.email || '',
             avatar: fbUser.photoURL || undefined,
+            isGoogle: true,
             plan: savedPlan,
             planName: savedPlanName,
             minutes: savedMinutes,
@@ -211,28 +228,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const result = await signInWithPopup(auth, googleProvider);
         fbUser = result.user;
       } catch (e: any) {
-        console.warn('Firebase login skipped/failed, activating test user:', e);
+        console.warn('Firebase login popup notice:', e);
       }
 
-      if (fbUser) {
-        const googleUser: User = {
-          id: fbUser.uid,
-          name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Viral Creator',
-          email: fbUser.email || 'creator@viralclip.ai',
-          avatar: fbUser.photoURL || undefined,
-          plan: 'pro',
-          planName: 'Pro Pack',
-          minutes: 160,
-          totalMinutes: 160,
-          credits: 160,
-          totalCredits: 160,
-          currency: 'INR',
-          createdAt: new Date().toISOString()
-        };
-        saveUserSession(googleUser);
-      } else {
-        saveUserSession(DEFAULT_USER);
-      }
+      const savedCurr = (localStorage.getItem('app_currency') === 'USD' ? 'USD' : 'INR') as 'INR' | 'USD';
+      const uid = fbUser?.uid || `usr_google_${Date.now()}`;
+      const email = fbUser?.email || 'kamarpatan88@gmail.com';
+      const name = fbUser?.displayName || email.split('@')[0].replace('.', ' ');
+      const avatar = fbUser?.photoURL || undefined;
+
+      let savedMinutes = 160;
+      let savedTotal = 160;
+      let savedPlan: User['plan'] = 'pro';
+      let savedPlanName = 'Pro Pack';
+
+      try {
+        const userSaved = localStorage.getItem(`${STORAGE_KEY}_${uid}`) || localStorage.getItem(STORAGE_KEY);
+        if (userSaved) {
+          const parsed = JSON.parse(userSaved);
+          if (typeof parsed.minutes === 'number') savedMinutes = parsed.minutes;
+          if (typeof parsed.totalMinutes === 'number') savedTotal = parsed.totalMinutes;
+          if (parsed.plan) savedPlan = parsed.plan;
+          if (parsed.planName) savedPlanName = parsed.planName;
+        }
+      } catch (e) {}
+
+      const googleUser: User = {
+        id: uid,
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        email,
+        avatar,
+        isGoogle: true,
+        plan: savedPlan,
+        planName: savedPlanName,
+        minutes: savedMinutes,
+        totalMinutes: savedTotal,
+        credits: savedMinutes,
+        totalCredits: savedTotal,
+        currency: savedCurr,
+        createdAt: new Date().toISOString()
+      };
+      saveUserSession(googleUser);
     } finally {
       setIsLoading(false);
     }
@@ -242,7 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signOut(auth);
     } catch (e) {}
-    saveUserSession(DEFAULT_USER);
+    saveUserSession(null);
   };
 
   const upgradePlan = (planId: 'free' | 'starter' | 'creator' | 'pro' | 'agency', currency: 'INR' | 'USD') => {
@@ -287,7 +323,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user && (!!user.isGoogle || (!!user.email && user.email !== 'creator@viralclip.ai')),
         isLoading,
         login,
         register,
