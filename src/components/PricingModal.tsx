@@ -13,12 +13,13 @@ interface PricingModalProps {
 
 export const PricingModal: React.FC<PricingModalProps> = ({
   isOpen,
-  onClose
+  onClose,
+  onOpenAuth
 }) => {
   const { currency, setCurrency, isIndia, paymentGateway } = useCountryPricing();
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, isAuthenticated, loginWithGoogle } = useAuth();
   const sideScrollIndicatorRef = useRef<HTMLDivElement>(null);
   const scrollRafRef = useRef<number | null>(null);
 
@@ -39,6 +40,14 @@ export const PricingModal: React.FC<PricingModalProps> = ({
   const tiers = currency === 'INR' ? PRICING_INR : PRICING_USD;
 
   const handleSelectPlan = (tier: PricingTier) => {
+    if (!isAuthenticated) {
+      if (onOpenAuth) {
+        onOpenAuth();
+      } else {
+        loginWithGoogle();
+      }
+      return;
+    }
     if (tier.id === 'free') {
       onClose();
       return;
@@ -222,7 +231,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleSelectPlan(tier)}
-                      className={`w-full py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer shadow-sm ${
+                      className={`w-full py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer shadow-sm ${
                         isCurrent && tier.id === 'free'
                           ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
                           : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 active:scale-[0.98]'

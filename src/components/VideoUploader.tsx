@@ -20,14 +20,23 @@ const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB = 5,368,709,120 byte
 export const VideoUploader: React.FC<VideoUploaderProps> = ({ 
   onAnalyze, 
   status, 
+  onOpenAuth,
   onOpenPricing,
   isUploading = false,
   uploadProgress = 0,
   onCancelUpload
 }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loginWithGoogle } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [resolutionWarning, setResolutionWarning] = useState<string | null>(null);
+
+  const handleRequireLogin = () => {
+    if (onOpenAuth) {
+      onOpenAuth();
+    } else {
+      loginWithGoogle();
+    }
+  };
   const [success4KBadge, setSuccess4KBadge] = useState<string | null>(null);
   const [isCheckingVideo, setIsCheckingVideo] = useState(false);
   const [isGeneratingDemo, setIsGeneratingDemo] = useState(false);
@@ -84,6 +93,11 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   };
 
   const processFile = async (file: File) => {
+    if (!isAuthenticated) {
+      handleRequireLogin();
+      return;
+    }
+
     if (!file.type.startsWith('video/') && !file.name.match(/\.(mp4|mov|webm|avi|mkv|m4v|3gp|flv|wmv)$/i)) {
       setResolutionWarning("Please upload a valid video file (e.g. .mp4, .mov, .webm).");
       return;
@@ -154,6 +168,10 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   };
 
   const handleTryDemo = () => {
+    if (!isAuthenticated) {
+      handleRequireLogin();
+      return;
+    }
     try {
       setIsGeneratingDemo(true);
       const cacheBustUrl = `/official-demo.mp4?v=${Date.now()}`;
@@ -167,6 +185,10 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   };
 
   const handleUploadClick = () => {
+    if (!isAuthenticated) {
+      handleRequireLogin();
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -336,7 +358,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                   </p>
                 </div>
               ) : !isCheckingVideo && (
-                /* Main Drag & Drop Zone with Glowing Ring */
+                /* Main Drag & Drop Zone */
                 <div 
                   onClick={handleUploadClick}
                   onDragOver={(e) => {
@@ -350,6 +372,10 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                   onDrop={(e) => {
                     e.preventDefault();
                     e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-950/20');
+                    if (!isAuthenticated) {
+                      handleRequireLogin();
+                      return;
+                    }
                     const file = e.dataTransfer.files?.[0];
                     if (file) processFile(file);
                   }}
@@ -369,7 +395,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                     </p>
                   </div>
 
-                  {/* Drag & Drop small limits pill */}
+                  {/* Limits pills - Clean, no mail/email name */}
                   <div className="flex flex-wrap items-center justify-center gap-2">
                     <span className="text-[11px] text-zinc-400 bg-zinc-900/90 border border-zinc-800 px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
                       <span>Max 5 GB • 60 Min</span>

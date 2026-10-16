@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Clip, EditorSettings } from '../types';
-import { Smartphone, Eye, EyeOff, ChevronRight, ChevronLeft, Crop, Maximize2, Play, Pause, Sparkles } from 'lucide-react';
+import { Smartphone, Eye, EyeOff, ChevronRight, ChevronLeft, Crop, Maximize2, Play, Pause, Sparkles, Globe } from 'lucide-react';
 import { DEMO_PRELOADED_SUBTITLES } from '../data/demoSubtitles';
+import { translateSubtitlesInstant } from '../utils/instantTranslation';
 
 interface ShortsEditorProps {
   clip: Clip | null;
@@ -68,7 +69,7 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
 
     // 1. For demo video: Instant 0ms switch to authentic preloaded subtitles in the selected language
     if (isDemoSample) {
-      const demoSubs = DEMO_PRELOADED_SUBTITLES[currentLang] || DEMO_PRELOADED_SUBTITLES.hi;
+      const demoSubs = DEMO_PRELOADED_SUBTITLES[currentLang] || (currentLang === 'ar' ? DEMO_PRELOADED_SUBTITLES.ar : DEMO_PRELOADED_SUBTITLES.hi);
       if (onUpdateClipSubtitles) {
         onUpdateClipSubtitles(clip.id, demoSubs, currentLang);
       } else {
@@ -79,8 +80,18 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
     }
 
     // 2. For user-uploaded video:
-    // If clip already has subtitles and user switched language: FAST TRANSLATION via /api/translate-subtitles
+    // If clip already has subtitles and user switched language: Instant 0ms shift + background AI translation
     if (clip.subtitles && clip.subtitles.length > 0 && isLangChanged) {
+      // Step A: TURANT (0ms) instant shift so subtitle view updates immediately without latency
+      const instantSubs = translateSubtitlesInstant(clip.subtitles, currentLang);
+      if (onUpdateClipSubtitles) {
+        onUpdateClipSubtitles(clip.id, instantSubs, currentLang);
+      } else {
+        clip.subtitles = instantSubs;
+        clip.subtitleLanguage = currentLang;
+      }
+
+      // Step B: In parallel, fetch AI refinement
       setIsTranslating(true);
       fetch('/api/translate-subtitles', {
         method: 'POST',
@@ -287,17 +298,21 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
   const effectiveSubtitles = useMemo(() => {
     // 1. Demo video: Instant authentic preloaded subtitles in the user's selected language
     if (isDemoSample) {
-      return DEMO_PRELOADED_SUBTITLES[selectedLang] || DEMO_PRELOADED_SUBTITLES.hi;
+      return DEMO_PRELOADED_SUBTITLES[selectedLang] || (selectedLang === 'ar' ? DEMO_PRELOADED_SUBTITLES.ar : DEMO_PRELOADED_SUBTITLES.hi);
     }
 
     // 2. User-uploaded video: Real transcribed speech attached to the clip
     if (clip?.subtitles && clip.subtitles.length > 0) {
+      const currentClipLang = (clip.subtitleLanguage || 'hi').toLowerCase();
+      if (selectedLang !== 'auto' && currentClipLang !== selectedLang) {
+        return translateSubtitlesInstant(clip.subtitles, selectedLang);
+      }
       return clip.subtitles;
     }
 
     // 3. User video without speech or while transcribing: clean empty array (zero fake dummy phrases)
     return [];
-  }, [clip?.subtitles, isDemoSample, selectedLang]);
+  }, [clip?.subtitles, clip?.subtitleLanguage, isDemoSample, selectedLang]);
 
   // Determine whether subtitle timestamps are absolute to video start or relative to clip start
   const isSubtitleAbsolute = useMemo(() => {
@@ -333,7 +348,7 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
         return s;
       }
     }
-    return effectiveSubtitles[0];
+    return null;
   }, [effectiveSubtitles, syncPlaybackTime]);
 
   // Parse words array with sanitized boundaries
@@ -443,11 +458,39 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
     return 'text-white bg-transparent font-black px-2 py-0.5 border-none shadow-none';
   };
 
+  // Instant language switch handler for 0ms live language switching
+  const handleQuickLanguageSwitch = (targetLang: string) => {
+    if (setSettings) {
+      setSettings({
+        ...settings,
+        subtitleLanguage: targetLang
+      });
+    }
+    const currentLang = targetLang.toLowerCase();
+    if (isDemoSample) {
+      const demoSubs = DEMO_PRELOADED_SUBTITLES[currentLang] || (currentLang === 'ar' ? DEMO_PRELOADED_SUBTITLES.ar : DEMO_PRELOADED_SUBTITLES.hi);
+      if (onUpdateClipSubtitles && clip) {
+        onUpdateClipSubtitles(clip.id, demoSubs, currentLang);
+      } else if (clip) {
+        clip.subtitles = demoSubs;
+        clip.subtitleLanguage = currentLang;
+      }
+    } else if (clip?.subtitles && clip.subtitles.length > 0) {
+      const instantSubs = translateSubtitlesInstant(clip.subtitles, currentLang);
+      if (onUpdateClipSubtitles) {
+        onUpdateClipSubtitles(clip.id, instantSubs, currentLang);
+      } else {
+        clip.subtitles = instantSubs;
+        clip.subtitleLanguage = currentLang;
+      }
+    }
+  };
+
   return (
     <div className="flex-1 bg-black p-2 sm:p-4 lg:p-6 flex flex-col items-center justify-center relative overflow-hidden w-full">
       
       {/* Top Studio Toolbar */}
-      <div className="w-full max-w-sm mb-2.5 flex items-center justify-between px-1">
+      <div className="w-full max-w-sm mb-2 flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5 sm:gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-[11px] sm:text-xs font-bold text-white tracking-wide">
@@ -575,112 +618,134 @@ export const ShortsEditor: React.FC<ShortsEditorProps> = ({
         )}
 
         {/* Dynamic Alex Hormozi Animated Captions Overlay (Zero side clipping, rock-solid baseline, zero black dandi) */}
-        {settings.enableCaptions && activeSubtitle && (
-          <div 
-            style={getCaptionPositionStyle()}
-            className="absolute left-0 right-0 flex items-center justify-center pointer-events-none z-20 px-2 sm:px-4 text-center select-none"
-          >
-            {settings.captionStyle === 'minimal' ? (
-              /* Minimal / Black Box Highlight: Solid black background box for maximum contrast & pop */
-              <div 
-                key={`box-${activeSubtitle.id || activeSubtitle.startTime || activeSubtitle.text}`}
-                className="inline-flex flex-nowrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[88%] bg-black/95 border border-white/20 px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl shadow-2xl backdrop-blur-md text-center select-none"
-              >
-                {displayWordsWindow && displayWordsWindow.length > 0 ? (
-                  displayWordsWindow.map((w, idx) => {
-                    const activeWordObj = subtitleWords[activeWordIndex];
-                    const isActive = activeWordObj ? (w.word === activeWordObj.word && w.start === activeWordObj.start) : (idx === 0);
-                    const highlightColor = '#FFE600';
-                    const cleanW = w.word.replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '').replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '');
-                    
-                    return (
-                      <span
-                        key={`box-${w.start}-${cleanW}-${idx}`}
-                        className="text-sm sm:text-base md:text-lg font-black uppercase tracking-wide select-none inline-block whitespace-nowrap"
-                        style={{
-                          color: isActive ? highlightColor : '#FFFFFF',
-                          textShadow: isActive 
-                            ? '0 0 10px rgba(255, 230, 0, 0.8), 0 0 20px rgba(255, 230, 0, 0.35)' 
-                            : 'none'
-                        }}
-                      >
-                        {cleanW}
-                      </span>
-                    );
-                  })
-                ) : (
-                  <span 
-                    className="text-sm sm:text-base md:text-lg font-black uppercase text-[#FFE600] tracking-wide select-none inline-block whitespace-nowrap"
-                    style={{
-                      color: '#FFE600',
-                      textShadow: '0 0 10px rgba(255, 230, 0, 0.8), 0 0 20px rgba(255, 230, 0, 0.35)'
-                    }}
-                  >
-                    {activeSubtitle.text
-                      .replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '')
-                      .replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '')
-                      .trim()
-                      .split(/\s+/)
-                      .slice(0, 2)
-                      .join(' ')}
-                  </span>
-                )}
-              </div>
-            ) : (
-              /* Hormozi: 100% Transparent, BADA Text, Zero black box, Zero black dandi/line/shadow, Zero side cut-off, Zero layout jump */
-              <div 
-                key={`hormozi-${activeSubtitle.id || activeSubtitle.startTime || activeSubtitle.text}`}
-                className="flex flex-nowrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[88%] px-2 text-center bg-transparent p-0 border-none shadow-none select-none"
-              >
-                {displayWordsWindow && displayWordsWindow.length > 0 ? (
-                  displayWordsWindow.map((w, idx) => {
-                    const activeWordObj = subtitleWords[activeWordIndex];
-                    const isActive = activeWordObj ? (w.word === activeWordObj.word && w.start === activeWordObj.start) : (idx === 0);
-                    const highlightColor = '#FFE600';
-                    const cleanW = w.word.replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '').replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '');
-                    
-                    return (
-                      <span
-                        key={`hormozi-${w.start}-${cleanW}-${idx}`}
-                        className="text-sm sm:text-base md:text-lg lg:text-xl font-black uppercase tracking-wider select-none bg-transparent inline-block whitespace-nowrap transition-colors duration-75"
-                        style={{
-                          color: isActive ? highlightColor : '#FFFFFF',
-                          background: 'transparent',
-                          backgroundColor: 'transparent',
-                          WebkitTextStroke: 'none',
-                          textShadow: isActive 
-                            ? '0 0 14px rgba(255, 230, 0, 0.9), 0 0 28px rgba(255, 230, 0, 0.45)' 
-                            : '0 2px 4px rgba(0, 0, 0, 0.75)'
-                        }}
-                      >
-                        {cleanW}
-                      </span>
-                    );
-                  })
-                ) : (
-                  <span 
-                    className="text-sm sm:text-base md:text-lg lg:text-xl font-black uppercase text-[#FFE600] tracking-wider select-none bg-transparent inline-block whitespace-nowrap"
-                    style={{
-                      color: '#FFE600',
-                      background: 'transparent',
-                      backgroundColor: 'transparent',
-                      WebkitTextStroke: 'none',
-                      textShadow: '0 0 14px rgba(255, 230, 0, 0.9), 0 0 28px rgba(255, 230, 0, 0.45)'
-                    }}
-                  >
-                    {activeSubtitle.text
-                      .replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '')
-                      .replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '')
-                      .trim()
-                      .split(/\s+/)
-                      .slice(0, 2)
-                      .join(' ')}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        {settings.enableCaptions && activeSubtitle && (() => {
+          const isArabic = (settings.subtitleLanguage || '').toLowerCase() === 'ar' || /[\u0600-\u06FF]/.test(activeSubtitle.text);
+
+          return (
+            <div 
+              style={getCaptionPositionStyle()}
+              className="absolute left-0 right-0 flex items-center justify-center pointer-events-none z-20 px-2 sm:px-4 text-center select-none"
+            >
+              {settings.captionStyle === 'minimal' ? (
+                /* Minimal / Black Box Highlight: Solid black background box for maximum contrast & pop */
+                <div 
+                  key={`box-${activeSubtitle.id || activeSubtitle.startTime || activeSubtitle.text}`}
+                  dir={isArabic ? 'rtl' : 'ltr'}
+                  className="inline-flex flex-nowrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[88%] bg-black/95 border border-white/20 px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl shadow-2xl backdrop-blur-md text-center select-none"
+                >
+                  {displayWordsWindow && displayWordsWindow.length > 0 ? (
+                    displayWordsWindow.map((w, idx) => {
+                      const activeWordObj = subtitleWords[activeWordIndex];
+                      const isActive = activeWordObj ? (w.word === activeWordObj.word && w.start === activeWordObj.start) : (idx === 0);
+                      const highlightColor = '#FFE600';
+                      const cleanW = isArabic
+                        ? w.word.trim()
+                        : w.word.replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '').replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '');
+                      
+                      return (
+                        <span
+                          key={`box-${w.start}-${cleanW}-${idx}`}
+                          className={`text-sm sm:text-base md:text-lg font-black select-none inline-block whitespace-nowrap ${isArabic ? 'font-sans' : 'uppercase tracking-wide'}`}
+                          style={{
+                            color: isActive ? highlightColor : '#FFFFFF',
+                            fontFamily: isArabic ? "'Noto Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif" : undefined,
+                            letterSpacing: isArabic ? 'normal' : undefined,
+                            textShadow: isActive 
+                              ? '0 0 10px rgba(255, 230, 0, 0.8), 0 0 20px rgba(255, 230, 0, 0.35)' 
+                              : 'none'
+                          }}
+                        >
+                          {cleanW}
+                        </span>
+                      );
+                    })
+                  ) : (
+                    <span 
+                      className={`text-sm sm:text-base md:text-lg font-black select-none inline-block whitespace-nowrap ${isArabic ? 'font-sans' : 'uppercase tracking-wide'}`}
+                      style={{
+                        color: '#FFE600',
+                        fontFamily: isArabic ? "'Noto Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif" : undefined,
+                        letterSpacing: isArabic ? 'normal' : undefined,
+                        textShadow: '0 0 10px rgba(255, 230, 0, 0.8), 0 0 20px rgba(255, 230, 0, 0.35)'
+                      }}
+                    >
+                      {isArabic
+                        ? activeSubtitle.text.trim()
+                        : activeSubtitle.text
+                            .replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '')
+                            .replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '')
+                            .trim()
+                            .split(/\s+/)
+                            .slice(0, 2)
+                            .join(' ')}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                /* Hormozi: 100% Transparent, BADA Text, Zero black box, Zero black dandi/line/shadow, Zero side cut-off, Zero layout jump */
+                <div 
+                  key={`hormozi-${activeSubtitle.id || activeSubtitle.startTime || activeSubtitle.text}`}
+                  dir={isArabic ? 'rtl' : 'ltr'}
+                  className="flex flex-nowrap items-center justify-center gap-1.5 sm:gap-2.5 max-w-[88%] px-2 text-center bg-transparent p-0 border-none shadow-none select-none"
+                >
+                  {displayWordsWindow && displayWordsWindow.length > 0 ? (
+                    displayWordsWindow.map((w, idx) => {
+                      const activeWordObj = subtitleWords[activeWordIndex];
+                      const isActive = activeWordObj ? (w.word === activeWordObj.word && w.start === activeWordObj.start) : (idx === 0);
+                      const highlightColor = '#FFE600';
+                      const cleanW = isArabic
+                        ? w.word.trim()
+                        : w.word.replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '').replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '');
+                      
+                      return (
+                        <span
+                          key={`hormozi-${w.start}-${cleanW}-${idx}`}
+                          className={`text-sm sm:text-base md:text-lg lg:text-xl font-black select-none bg-transparent inline-block whitespace-nowrap transition-colors duration-75 ${isArabic ? 'font-sans' : 'uppercase tracking-wider'}`}
+                          style={{
+                            color: isActive ? highlightColor : '#FFFFFF',
+                            background: 'transparent',
+                            backgroundColor: 'transparent',
+                            WebkitTextStroke: 'none',
+                            fontFamily: isArabic ? "'Noto Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif" : undefined,
+                            letterSpacing: isArabic ? 'normal' : undefined,
+                            textShadow: isActive 
+                              ? '0 0 14px rgba(255, 230, 0, 0.9), 0 0 28px rgba(255, 230, 0, 0.45)' 
+                              : '0 2px 4px rgba(0, 0, 0, 0.75)'
+                          }}
+                        >
+                          {cleanW}
+                        </span>
+                      );
+                    })
+                  ) : (
+                    <span 
+                      className={`text-sm sm:text-base md:text-lg lg:text-xl font-black select-none bg-transparent inline-block whitespace-nowrap ${isArabic ? 'font-sans' : 'uppercase tracking-wider'}`}
+                      style={{
+                        color: '#FFE600',
+                        background: 'transparent',
+                        backgroundColor: 'transparent',
+                        WebkitTextStroke: 'none',
+                        fontFamily: isArabic ? "'Noto Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif" : undefined,
+                        letterSpacing: isArabic ? 'normal' : undefined,
+                        textShadow: '0 0 14px rgba(255, 230, 0, 0.9), 0 0 28px rgba(255, 230, 0, 0.45)'
+                      }}
+                    >
+                      {isArabic
+                        ? activeSubtitle.text.trim()
+                        : activeSubtitle.text
+                            .replace(/^[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+/g, '')
+                            .replace(/[|।\-_/\\:;.,~`'"!?#@*()\[\]{}<>\s]+$/g, '')
+                            .trim()
+                            .split(/\s+/)
+                            .slice(0, 2)
+                            .join(' ')}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Part 1 / Series Tag Badge (Bottom Center, Zero black shadow) */}
         {settings.titleSticker && displayTitle !== '' && (

@@ -1,4 +1,5 @@
 import { Clip, EditorSettings } from '../types';
+import { translateSubtitlesInstant } from '../utils/instantTranslation';
 
 export const renderVideoClip = async (
   clip: Clip,
@@ -14,16 +15,36 @@ export const renderVideoClip = async (
       let currentProgress = 6;
       onProgress(currentProgress); 
 
+      const clipDur = clip.duration || (clip.endTime && clip.startTime ? clip.endTime - clip.startTime : 30) || 30;
+      // Realistic render time estimate based on clip duration (ultrafast encoder renders ~1.5x-3x realtime)
+      const estSeconds = Math.max(8, Math.min(65, clipDur * 0.65));
+      const startTimeMs = Date.now();
+
       const progressTimer = setInterval(() => {
-        if (currentProgress < 95) {
-          const step = Math.floor(Math.random() * 4) + 3;
-          currentProgress = Math.min(95, currentProgress + step);
-          onProgress(currentProgress);
+        const elapsedSec = (Date.now() - startTimeMs) / 1000;
+        const progressRatio = Math.min(1, elapsedSec / estSeconds);
+
+        if (progressRatio < 1) {
+          // Smooth progressive curve reaching ~92%
+          const target = 6 + 86 * Math.sin(progressRatio * (Math.PI / 2));
+          currentProgress = Math.max(currentProgress, Math.min(92, Math.round(target)));
+        } else {
+          // If server takes longer than expected, NEVER FREEZE OR STALL AT 95%!
+          // Smoothly advance toward 99%: 93, 94, 95, 96, 97, 98, 98.5...
+          if (currentProgress < 99) {
+            currentProgress += (99.2 - currentProgress) * 0.05;
+            currentProgress = Math.min(99, Math.round(currentProgress * 10) / 10);
+          }
         }
-      }, 500);
+        onProgress(Math.floor(currentProgress));
+      }, 350);
 
       // Ensure subtitles are populated with word timings if empty
       let effectiveSubtitles = clip.subtitles && clip.subtitles.length > 0 ? clip.subtitles : [];
+      const targetLang = (settings.subtitleLanguage || 'auto').toLowerCase();
+      if (effectiveSubtitles.length > 0 && targetLang !== 'auto' && clip.subtitleLanguage !== targetLang) {
+        effectiveSubtitles = translateSubtitlesInstant(effectiveSubtitles, targetLang);
+      }
       if (effectiveSubtitles.length === 0 && settings.enableCaptions) {
         const langKey = (settings.subtitleLanguage || 'auto').toLowerCase();
         const multiPhrases: Record<string, Array<{ text: string; words: string[] }>> = {
@@ -74,7 +95,6 @@ export const renderVideoClip = async (
           ]
         };
         const phrases = multiPhrases[langKey] || multiPhrases.hi;
-        const clipDur = clip.duration || 10;
         effectiveSubtitles = [];
         let curTime = 0;
         let idx = 0;
@@ -120,6 +140,15 @@ export const renderVideoClip = async (
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.timeout = 180000; 
 
+      // Download progress tracking: smoothly transitions 94% -> 99%
+      xhr.onprogress = (e) => {
+        if (e.lengthComputable && e.total > 0) {
+          const dlPercent = e.loaded / e.total;
+          currentProgress = Math.max(currentProgress, 94 + Math.round(dlPercent * 5));
+          onProgress(Math.min(99, Math.floor(currentProgress)));
+        }
+      };
+
       xhr.onload = () => {
         clearInterval(progressTimer);
         if (xhr.status === 200) {
@@ -127,32 +156,33 @@ export const renderVideoClip = async (
           const finalUrl = URL.createObjectURL(xhr.response);
           resolve(finalUrl);
         } else {
-          // If blob is a JSON error, try to parse it (requires FileReader)
-          if (xhr.response.type === 'application/json') {
-             const reader = new FileReader();
-             reader.onload = () => {
-                 try {
-                     const errData = JSON.parse(reader.result as string);
-                     reject(new Error(errData.error || `Server Error: ${xhr.statusText}`));
-                 } catch(e) {
-                     reject(new Error(`Server Error: ${xhr.statusText}`));
-                 }
-             };
-             reader.readAsText(xhr.response);
+          // If response is a JSON error, parse it safely
+          if (xhr.response && xhr.response.type && xhr.response.type.includes('application/json')) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              try {
+                const errData = JSON.parse(reader.result as string);
+                reject(new Error(errData.error || `Server Error: ${xhr.statusText || 'Render failed'}`));
+              } catch(e) {
+                reject(new Error(`Server Error: ${xhr.statusText || 'Render failed'}`));
+              }
+            };
+            reader.onerror = () => reject(new Error(`Server Error: ${xhr.statusText || 'Render failed'}`));
+            reader.readAsText(xhr.response);
           } else {
-             reject(new Error(`Server Error: ${xhr.statusText}`));
+            reject(new Error(`Server Error: ${xhr.statusText || 'Render failed'}`));
           }
         }
       };
 
       xhr.onerror = () => {
         clearInterval(progressTimer);
-        reject(new Error('Network error during processing'));
+        reject(new Error('Network error during video render. Please check connection.'));
       };
       
       xhr.ontimeout = () => {
         clearInterval(progressTimer);
-        reject(new Error('Server processing timed out.'));
+        reject(new Error('Render request timed out. Please try again.'));
       };
 
       xhr.send(JSON.stringify(payload));

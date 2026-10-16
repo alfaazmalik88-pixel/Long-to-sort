@@ -24,6 +24,7 @@ import { PricingSection } from './components/PricingSection';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAuth } from './context/AuthContext';
 import { DEMO_PRELOADED_SUBTITLES } from './data/demoSubtitles';
+import { translateSubtitlesInstant } from './utils/instantTranslation';
 
 export default function App() {
   const { user, useMinutes } = useAuth();
@@ -56,6 +57,7 @@ export default function App() {
   const [isServerUploading, setIsServerUploading] = useState<boolean>(false);
   const [serverUploadProgress, setServerUploadProgress] = useState<number>(100);
   const [deductedJobs, setDeductedJobs] = useState<Set<string>>(new Set());
+  const deductedJobsRef = useRef<Set<string>>(new Set());
   const sideScrollIndicatorRef = useRef<HTMLDivElement>(null);
   const scrollRafRef = useRef<number | null>(null);
 
@@ -71,26 +73,18 @@ export default function App() {
     });
   };
 
-  const handleDeductMinute = (id: string, durationInSeconds?: number, is4KJob?: boolean) => {
-    if (deductedJobs.has(id)) return;
-    setDeductedJobs(prev => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
+  const handleDeductMinute = (id: string, durationInSeconds?: number) => {
+    if (deductedJobsRef.current.has(id)) return;
+    deductedJobsRef.current.add(id);
+    setDeductedJobs(new Set(deductedJobsRef.current));
 
-    // Exact minutes based on downloaded video duration (e.g. 15s = 0.25m, 30s = 0.5m, 45s = 0.75m, 60s = 1.0m)
-    // 100% precision down to the second - zero extra deductions
-    const exactSeconds = durationInSeconds && durationInSeconds > 0 ? durationInSeconds : 60;
-    const baseMinutes = exactSeconds / 60;
-
-    // ₹199 Plan rule:
-    // If using 4K: 50 minutes quota
-    // If using 1080p: 160 minutes quota
-    // Ratio: 160 / 50 = 3.2x credit deduction for 4K video rendering
-    const is4K = is4KJob !== undefined ? is4KJob : (videoState.is4K || false);
-    const rateMultiplier = is4K ? (160 / 50) : 1.0;
-    const minutesToDeduct = (baseMinutes * rateMultiplier);
+    // Jitne minutes ki video download hui hai, theek utne minutes minus karo:
+    // 30 second clip -> 30/60 = 0.5 minute minus
+    // 60 second clip -> 60/60 = 1.0 minute minus
+    // 90 second clip -> 90/60 = 1.5 minutes minus
+    // jitne bhi second ya minute ki video download ho, theek utne minutes minus honge
+    const exactSeconds = durationInSeconds && durationInSeconds > 0 ? durationInSeconds : (editorSettings.clipDuration || 60);
+    const minutesToDeduct = Math.round((exactSeconds / 60) * 100) / 100;
     useMinutes(minutesToDeduct);
   };
 
@@ -442,11 +436,11 @@ export default function App() {
 
   useEffect(() => {
     if (videoState.url && videoState.clips.length > 0) {
-      const video = document.createElement('video');
-      video.src = videoState.url;
-      video.onloadedmetadata = () => {
-        const newClips = generateClips(video.duration, editorSettings.clipDuration);
-        // Preserve subtitles if existing clips had them
+      const currentTotalDuration = Math.max(...videoState.clips.map(c => c.endTime || c.duration || 0), 10);
+      
+      const updateClipsWithDuration = (dur: number) => {
+        const totalDur = dur && dur > 0 ? dur : currentTotalDuration;
+        const newClips = generateClips(totalDur, editorSettings.clipDuration);
         const existingSubs = videoState.clips.flatMap(c => c.subtitles || []);
         const mergedClips = existingSubs.length > 0 ? assignSubtitlesToClips(newClips, existingSubs) : newClips;
         setVideoState(prev => ({ ...prev, clips: mergedClips }));
@@ -454,8 +448,54 @@ export default function App() {
           setSelectedClipId(mergedClips[0]?.id || null);
         }
       };
+
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.src = videoState.url;
+      video.onloadedmetadata = () => {
+        updateClipsWithDuration(video.duration);
+      };
+      setTimeout(() => {
+        if (!video.duration || isNaN(video.duration)) {
+          updateClipsWithDuration(currentTotalDuration);
+        }
+      }, 200);
     }
   }, [editorSettings.clipDuration]);
+
+  // Live instant language shift across all clips when user changes Subtitle Language (Hinglish -> Arabic / English / etc.)
+  useEffect(() => {
+    const targetLang = (editorSettings.subtitleLanguage || 'auto').toLowerCase();
+    if (!videoState.clips || videoState.clips.length === 0) return;
+
+    setVideoState(prev => {
+      const isDemo = !prev.serverPath || prev.serverPath.includes('demo') || (prev.url ? prev.url.includes('demo') : false);
+      const updatedClips = prev.clips.map(clip => {
+        if (isDemo) {
+          const demoSubs = DEMO_PRELOADED_SUBTITLES[targetLang] || (targetLang === 'ar' ? DEMO_PRELOADED_SUBTITLES.ar : DEMO_PRELOADED_SUBTITLES.hi);
+          return {
+            ...clip,
+            subtitles: demoSubs,
+            subtitleLanguage: targetLang
+          };
+        }
+
+        if (clip.subtitles && clip.subtitles.length > 0) {
+          const currentClipLang = (clip.subtitleLanguage || 'hi').toLowerCase();
+          if (targetLang !== 'auto' && currentClipLang !== targetLang) {
+            const translated = translateSubtitlesInstant(clip.subtitles, targetLang);
+            return {
+              ...clip,
+              subtitles: translated,
+              subtitleLanguage: targetLang
+            };
+          }
+        }
+        return clip;
+      });
+      return { ...prev, clips: updatedClips };
+    });
+  }, [editorSettings.subtitleLanguage]);
 
   const processRenderJob = async (clip: Clip) => {
     let currentServerPath = videoState.serverPath;
@@ -513,7 +553,7 @@ export default function App() {
         jobId
       );
       
-      setRenderJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'ready', blobUrl: url } : j));
+      setRenderJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'ready', blobUrl: url, progress: 100 } : j));
       return url;
     } catch (e) {
       console.error(e);
@@ -617,6 +657,7 @@ export default function App() {
                 <VideoUploader 
                   onAnalyze={handleAnalyze} 
                   status={videoState.status} 
+                  onOpenAuth={() => setIsAuthOpen(true)}
                   onOpenPricing={handleOpenPricing}
                   isUploading={isServerUploading}
                   uploadProgress={serverUploadProgress}
@@ -625,7 +666,7 @@ export default function App() {
                     setServerUploadProgress(0);
                   }}
                 />
-                <PricingSection />
+                <PricingSection onOpenAuth={() => setIsAuthOpen(true)} />
                 <SeoSection onLoadDemo={() => handleAnalyze('/official-demo.mp4?v=clean_hd', 'public/official-demo.mp4')} />
               </div>
             </div>
@@ -719,6 +760,7 @@ export default function App() {
       <PricingModal 
         isOpen={isPricingOpen} 
         onClose={() => setIsPricingOpen(false)} 
+        onOpenAuth={() => setIsAuthOpen(true)}
       />
       <AuthModal 
         isOpen={isAuthOpen} 

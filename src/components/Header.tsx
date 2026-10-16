@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Zap, BookOpen, ChevronDown, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
+import { formatMinutesAndSeconds } from '../utils/formatTime';
 
 interface HeaderProps {
   onOpenAuth?: () => void;
@@ -193,7 +194,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onOpenPricing }) => 
                   </div>
                   <div className="flex items-center justify-between text-xs mt-1.5">
                     <span className="text-zinc-300 font-medium">Credits Quota:</span>
-                    <span className="text-amber-300 font-extrabold">{user.minutes} mins</span>
+                    <span className="text-amber-300 font-extrabold">
+                      {typeof user.minutes === 'number'
+                        ? (user.minutes % 1 === 0 ? `${user.minutes} mins` : `${user.minutes} mins (${formatMinutesAndSeconds(user.minutes)})`)
+                        : '0 mins'}
+                    </span>
                   </div>
                 </div>
 

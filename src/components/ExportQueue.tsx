@@ -30,7 +30,7 @@ export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs, onDownloadJob })
         a.click();
         document.body.removeChild(a);
         if (onDownloadJob) {
-          onDownloadJob(job.id, job.duration);
+          onDownloadJob(job.clipId || job.id, job.duration);
         }
         await new Promise(r => setTimeout(r, 800));
       }
@@ -94,8 +94,13 @@ export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs, onDownloadJob })
                     </h3>
                     
                     {job.status === 'processing' ? (
-                      <p className="text-xs text-indigo-400 font-semibold mt-0.5">
-                        Rendering: {Math.round(job.progress || 6)}%
+                      <p className="text-xs text-indigo-400 font-semibold mt-0.5 flex items-center gap-1.5">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+                        <span>
+                          {job.progress && job.progress >= 93 
+                            ? `Finalizing 1080p Video: ${Math.round(job.progress)}%` 
+                            : `Rendering: ${Math.round(job.progress || 6)}%`}
+                        </span>
                       </p>
                     ) : job.status === 'ready' ? (
                       <p className="text-xs text-emerald-400 font-semibold mt-0.5 flex items-center gap-1">
@@ -111,7 +116,7 @@ export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs, onDownloadJob })
                 {job.status === 'processing' && (
                   <div className="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden border border-zinc-800/60">
                     <div 
-                      className="bg-indigo-600 h-full rounded-full transition-all duration-300 ease-out" 
+                      className="bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 h-full rounded-full transition-all duration-300 ease-out animate-pulse" 
                       style={{ width: `${Math.max(5, Math.min(100, job.progress || 6))}%` }}
                     />
                   </div>
@@ -149,7 +154,7 @@ export const ExportQueue: React.FC<ExportQueueProps> = ({ jobs, onDownloadJob })
             fileName={`${(downloadJob.title || 'video').toLowerCase().replace(/\s+/g, '-')}.mp4`}
             onDownloadSuccess={() => {
               if (onDownloadJob && downloadJob) {
-                onDownloadJob(downloadJob.id, downloadJob.duration);
+                onDownloadJob(downloadJob.clipId || downloadJob.id, downloadJob.duration);
               }
             }}
           />

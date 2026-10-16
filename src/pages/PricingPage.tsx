@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PricingSection } from '../components/PricingSection';
 import { CallToActionBanner } from '../components/CallToActionBanner';
+import { AuthModal } from '../components/AuthModal';
 
 export const PricingPage: React.FC = () => {
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+
   return (
     <div className="min-h-[100dvh] bg-black text-zinc-100 overflow-y-auto">
       <div className="max-w-6xl mx-auto p-6 md:p-10">
@@ -15,7 +18,7 @@ export const PricingPage: React.FC = () => {
           <ArrowLeft className="w-4 h-4" /> Back to Generator
         </Link>
       </div>
-      <PricingSection />
+      <PricingSection onOpenAuth={() => setIsAuthOpen(true)} />
       <div className="max-w-4xl mx-auto px-4 pb-16">
         <CallToActionBanner 
           title="Ready to Create Your First Viral Clip?"
@@ -24,6 +27,7 @@ export const PricingPage: React.FC = () => {
           showPricingLink={false}
         />
       </div>
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </div>
   );
 };

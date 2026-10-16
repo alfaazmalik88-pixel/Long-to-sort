@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { auth, googleProvider } from '../firebase';
 import { signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
@@ -73,7 +73,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  const userRef = useRef<User | null>(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   const saveUserSession = (newUser: User | null) => {
+    userRef.current = newUser;
     setUser(newUser);
     if (newUser) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
@@ -282,32 +288,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const upgradePlan = (planId: 'free' | 'starter' | 'creator' | 'pro' | 'agency', currency: 'INR' | 'USD') => {
-    if (!user) return;
+    let currentUser = userRef.current || user;
+    if (!currentUser) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) currentUser = JSON.parse(saved);
+      } catch (e) {}
+    }
+    if (!currentUser) return;
     const meta = PLAN_MINUTES[planId] || { minutes: 30, name: 'Starter Pack' };
 
     const updatedUser: User = {
-      ...user,
+      ...currentUser,
       plan: planId,
       planName: meta.name,
-      minutes: (user.minutes || 0) + meta.minutes,
-      totalMinutes: (user.totalMinutes || 0) + meta.minutes,
-      credits: (user.minutes || 0) + meta.minutes,
-      totalCredits: (user.totalMinutes || 0) + meta.minutes,
+      minutes: (currentUser.minutes || 0) + meta.minutes,
+      totalMinutes: (currentUser.totalMinutes || 0) + meta.minutes,
+      credits: (currentUser.minutes || 0) + meta.minutes,
+      totalCredits: (currentUser.totalMinutes || 0) + meta.minutes,
       currency
     };
     saveUserSession(updatedUser);
   };
 
   const useMinutes = (count = 1): boolean => {
-    if (!user) return true; // guest preview allowed
-    if ((user.minutes || 0) <= 0) return false;
-    const toDeduct = Math.min(user.minutes || 0, count);
-    const rawRemaining = Math.max(0, (user.minutes || 0) - toDeduct);
-    // Keep exact precision down to the exact second (4 decimal places = ~0.006s)
-    const remaining = Math.max(0, Math.round(rawRemaining * 10000) / 10000);
+    // Read fresh user instance from userRef / storage to guarantee zero stale closure loss across multiple clip renders
+    let currentUser = userRef.current || user;
+    if (!currentUser) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) currentUser = JSON.parse(saved);
+      } catch (e) {}
+    }
+    if (!currentUser) return true; // guest preview allowed
+    if ((currentUser.minutes || 0) <= 0) return false;
+    const toDeduct = Math.min(currentUser.minutes || 0, count);
+    const rawRemaining = Math.max(0, (currentUser.minutes || 0) - toDeduct);
+    // Keep exact precision down to 2 decimal places (or 4 decimal places)
+    const remaining = Math.max(0, Math.round(rawRemaining * 100) / 100);
 
     const updatedUser: User = {
-      ...user,
+      ...currentUser,
       minutes: remaining,
       credits: remaining
     };

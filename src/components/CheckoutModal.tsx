@@ -18,7 +18,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onClose,
   onSuccess
 }) => {
-  const { user, upgradePlan } = useAuth();
+  const { user, isAuthenticated, loginWithGoogle, upgradePlan } = useAuth();
   const [processing, setProcessing] = useState(false);
   const [completed, setCompleted] = useState(false);
 
@@ -31,6 +31,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      await loginWithGoogle();
+      return;
+    }
     setProcessing(true);
 
     // Global Checkout via Whop (whop.com)
@@ -210,7 +214,37 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </div>
         </div>
 
-        {completed ? (
+        {!isAuthenticated ? (
+          <div className="p-8 text-center space-y-4">
+            <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+              <svg className="w-7 h-7" viewBox="0 0 24 24">
+                <path fill="#EA4335" d="M12 5c1.5 0 2.8.5 3.8 1.4l2.8-2.8C16.8 2 14.6 1.2 12 1.2 7.7 1.2 4 3.7 2.2 7.3l3.4 2.6C6.5 7.1 9 5 12 5z"/>
+                <path fill="#4285F4" d="M22.8 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.1c-.3 1.4-1.1 2.6-2.3 3.4l3.5 2.7c2-1.9 3.2-4.7 3.2-8.3z"/>
+                <path fill="#FBBC05" d="M5.6 14.1c-.2-.7-.4-1.4-.4-2.1s.2-1.4.4-2.1L2.2 7.3C1.5 8.7 1 10.3 1 12s.5 3.3 1.2 4.7l3.4-2.6z"/>
+                <path fill="#34A853" d="M12 22.8c3.2 0 6-1.1 8-3l-3.5-2.7c-1.1.7-2.5 1.2-4.5 1.2-3 0-5.5-2.1-6.4-4.9L2.2 16c1.8 3.6 5.5 6.8 9.8 6.8z"/>
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-lg font-bold text-white">Sign In Required</h4>
+              <p className="text-zinc-400 text-xs mt-1">Please sign in with Google to continue to payment.</p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                await loginWithGoogle();
+              }}
+              className="w-full bg-white hover:bg-zinc-100 text-zinc-950 font-bold text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2.5 shadow-xl transition-all cursor-pointer active:scale-95"
+            >
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <path fill="#EA4335" d="M12 5c1.5 0 2.8.5 3.8 1.4l2.8-2.8C16.8 2 14.6 1.2 12 1.2 7.7 1.2 4 3.7 2.2 7.3l3.4 2.6C6.5 7.1 9 5 12 5z"/>
+                <path fill="#4285F4" d="M22.8 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.1c-.3 1.4-1.1 2.6-2.3 3.4l3.5 2.7c2-1.9 3.2-4.7 3.2-8.3z"/>
+                <path fill="#FBBC05" d="M5.6 14.1c-.2-.7-.4-1.4-.4-2.1s.2-1.4.4-2.1L2.2 7.3C1.5 8.7 1 10.3 1 12s.5 3.3 1.2 4.7l3.4-2.6z"/>
+                <path fill="#34A853" d="M12 22.8c3.2 0 6-1.1 8-3l-3.5-2.7c-1.1.7-2.5 1.2-4.5 1.2-3 0-5.5-2.1-6.4-4.9L2.2 16c1.8 3.6 5.5 6.8 9.8 6.8z"/>
+              </svg>
+              <span>Continue with Google</span>
+            </button>
+          </div>
+        ) : completed ? (
           <div className="p-8 text-center space-y-4">
             <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto animate-bounce">
               <CheckCircle2 className="w-10 h-10" />
