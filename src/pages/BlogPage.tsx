@@ -314,107 +314,92 @@ export const BlogPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredArticles.map((article) => (
-              <article
-                key={article.id}
-                className="bg-zinc-950/90 border border-zinc-800/90 hover:border-indigo-500/50 rounded-2xl overflow-hidden flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/10 group"
-              >
-                {/* Visual Thumbnail Card Mockup */}
-                <div className={`relative h-44 bg-gradient-to-br ${article.gradient} p-4 border-b border-zinc-800/80 flex flex-col justify-between overflow-hidden`}>
-                  {/* Subtle Grid Pattern Overlay */}
-                  <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
+            {filteredArticles.map((article) => {
+              const articleUrl = article.category === 'AI Tool Alternatives' ? `/${article.slug}` : `/blog/${article.slug}`;
+              return (
+                <article
+                  key={article.id}
+                  className="bg-zinc-950/90 border border-zinc-800/90 hover:border-indigo-500/50 rounded-2xl overflow-hidden flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/10 group"
+                >
+                  {/* Visual Thumbnail Card Mockup */}
+                  <Link 
+                    to={articleUrl}
+                    className={`block relative h-44 bg-gradient-to-br ${article.gradient} p-4 border-b border-zinc-800/80 flex flex-col justify-between overflow-hidden cursor-pointer`}
+                  >
+                    {/* Subtle Grid Pattern Overlay */}
+                    <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
 
-                  {/* Top Badge Row */}
-                  <div className="relative z-10 flex items-center justify-between gap-2">
-                    <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-lg border ${article.badgeColor}`}>
-                      {article.category}
-                    </span>
-                    <span className="text-[10px] text-zinc-400 flex items-center gap-1 font-medium bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5">
-                      <Clock className="w-3 h-3 text-zinc-400" />
-                      {article.readTime}
-                    </span>
-                  </div>
-
-                  {/* Mockup Preview Visual: 9:16 Video Canvas with Glowing Captions */}
-                  <div className="relative z-10 my-auto bg-black/75 backdrop-blur-md border border-zinc-700/60 rounded-xl p-3 shadow-lg flex items-center gap-3 group-hover:scale-[1.02] transition-transform">
-                    <div className="w-10 h-10 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-indigo-400">
-                      <Play className="w-4 h-4 fill-indigo-400" />
+                    {/* Top Badge Row */}
+                    <div className="relative z-10 flex items-center justify-between gap-2">
+                      <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-lg border ${article.badgeColor}`}>
+                        {article.category}
+                      </span>
+                      <span className="text-[10px] text-zinc-400 flex items-center gap-1 font-medium bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5">
+                        <Clock className="w-3 h-3 text-zinc-400" />
+                        {article.readTime}
+                      </span>
                     </div>
-                    <div className="min-w-0">
-                      <div className="text-[9px] font-mono text-zinc-400 tracking-wider">PREVIEW EFFECT</div>
-                      <div className="text-xs font-black text-white tracking-wide truncate">
-                        {article.previewSnippet}
+
+                    {/* Mockup Preview Visual: 9:16 Video Canvas with Glowing Captions */}
+                    <div className="relative z-10 my-auto bg-black/75 backdrop-blur-md border border-zinc-700/60 rounded-xl p-3 shadow-lg flex items-center gap-3 group-hover:scale-[1.02] transition-transform">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-indigo-400">
+                        <Play className="w-4 h-4 fill-indigo-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[9px] font-mono text-zinc-400 tracking-wider">PREVIEW EFFECT</div>
+                        <div className="text-xs font-black text-white tracking-wide truncate">
+                          {article.previewSnippet}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Waveform accent line */}
-                  <div className="relative z-10 flex items-center gap-1 opacity-70">
-                    <span className="w-1.5 h-3 bg-indigo-400 rounded-full animate-pulse" />
-                    <span className="w-1.5 h-5 bg-purple-400 rounded-full animate-pulse delay-75" />
-                    <span className="w-1.5 h-2 bg-amber-400 rounded-full animate-pulse delay-150" />
-                    <span className="w-1.5 h-4 bg-emerald-400 rounded-full animate-pulse delay-100" />
-                    <span className="text-[9px] text-zinc-400 font-bold ml-1">KINETIC ENGINE</span>
-                  </div>
-                </div>
+                    {/* Waveform accent line */}
+                    <div className="relative z-10 flex items-center gap-1 opacity-70">
+                      <span className="w-1.5 h-3 bg-indigo-400 rounded-full animate-pulse" />
+                      <span className="w-1.5 h-5 bg-purple-400 rounded-full animate-pulse delay-75" />
+                      <span className="w-1.5 h-2 bg-amber-400 rounded-full animate-pulse delay-150" />
+                      <span className="w-1.5 h-4 bg-emerald-400 rounded-full animate-pulse delay-100" />
+                      <span className="text-[9px] text-zinc-400 font-bold ml-1">KINETIC ENGINE</span>
+                    </div>
+                  </Link>
 
-                {/* Content Details */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-2">
-                    {article.category === 'AI Tool Alternatives' ? (
+                  {/* Content Details */}
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
                       <Link 
-                        to={`/${article.slug}`}
+                        to={articleUrl}
                         className="block text-base sm:text-lg font-bold text-white leading-snug hover:text-indigo-300 transition-colors"
                       >
                         {article.title}
                       </Link>
-                    ) : (
-                      <h3 
-                        onClick={() => setActiveArticle(article)}
-                        className="text-base sm:text-lg font-bold text-white leading-snug group-hover:text-indigo-300 transition-colors cursor-pointer"
-                      >
-                        {article.title}
-                      </h3>
-                    )}
-                    <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
-                      {article.summary}
-                    </p>
-                  </div>
+                      <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                        {article.summary}
+                      </p>
+                    </div>
 
-                  {/* Action Buttons with Separate Links */}
-                  <div className="pt-2 border-t border-zinc-900 flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-zinc-500 font-medium">{article.date}</span>
-                    <div className="flex items-center gap-2">
-                      {article.category === 'AI Tool Alternatives' ? (
-                        <>
-                          <button
-                            onClick={() => setActiveArticle(article)}
-                            className="text-[11px] font-bold text-zinc-400 hover:text-white px-2 py-1 rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer"
-                          >
-                            Quick View
-                          </button>
-                          <Link
-                            to={`/${article.slug}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 group-hover:translate-x-0.5 transition-all"
-                          >
-                            <span>Open Page</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </Link>
-                        </>
-                      ) : (
+                    {/* Action Buttons with Separate Links */}
+                    <div className="pt-2 border-t border-zinc-900 flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-zinc-500 font-medium">{article.date}</span>
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => setActiveArticle(article)}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-400 group-hover:text-indigo-300 group-hover:translate-x-0.5 transition-all cursor-pointer"
+                          className="text-[11px] font-bold text-zinc-400 hover:text-white px-2 py-1 rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer"
                         >
-                          <span>Read Guide</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          Quick View
                         </button>
-                      )}
+                        <Link
+                          to={articleUrl}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 group-hover:translate-x-0.5 transition-all"
+                        >
+                          <span>Open Page</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
@@ -523,13 +508,22 @@ export const BlogPage: React.FC = () => {
                   {activeArticle.readTime}
                 </span>
               </div>
-              <button
-                onClick={() => setActiveArticle(null)}
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer shrink-0"
-                aria-label="Close Guide"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  to={activeArticle.category === 'AI Tool Alternatives' ? `/${activeArticle.slug}` : `/blog/${activeArticle.slug}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+                >
+                  <span>Open Full Page</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+                <button
+                  onClick={() => setActiveArticle(null)}
+                  className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer shrink-0"
+                  aria-label="Close Guide"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Body Content (Scrollable) */}
@@ -565,7 +559,7 @@ export const BlogPage: React.FC = () => {
                       <span>{activeArticle.competitorComparison.competitorName} vs ViralClip AI</span>
                     </h3>
                     <Link
-                      to={`/${activeArticle.slug}`}
+                      to={activeArticle.category === 'AI Tool Alternatives' ? `/${activeArticle.slug}` : `/blog/${activeArticle.slug}`}
                       className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
                     >
                       <span>Full Dedicated Page</span>

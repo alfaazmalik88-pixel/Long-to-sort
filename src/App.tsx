@@ -18,6 +18,7 @@ import { Contact } from './pages/Contact';
 import { RefundPolicy } from './pages/RefundPolicy';
 import { PricingPage } from './pages/PricingPage';
 import { BlogPage } from './pages/BlogPage';
+import { BlogArticlePage } from './pages/BlogArticlePage';
 import { AboutUs } from './pages/AboutUs';
 import { AlternativePage } from './pages/AlternativePage';
 import { PricingSection } from './components/PricingSection';
@@ -777,6 +778,16 @@ export default function App() {
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/blog" element={<BlogPage />} />
       <Route path="/guides" element={<BlogPage />} />
+      <Route path="/blog/:slug" element={<BlogArticlePage />} />
+      <Route path="/guides/:slug" element={<BlogArticlePage />} />
+      
+      {/* Individual dedicated pages for all remaining blog articles */}
+      <Route path="/how-to-add-alex-hormozi-captions-in-60-seconds" element={<BlogArticlePage slug="how-to-add-alex-hormozi-captions-in-60-seconds" />} />
+      <Route path="/viral-hooks-formula-retain-85-percent-watch-time" element={<BlogArticlePage slug="viral-hooks-formula-retain-85-percent-watch-time" />} />
+      <Route path="/shorts-seo-secrets-rank-number-1-youtube-explore" element={<BlogArticlePage slug="shorts-seo-secrets-rank-number-1-youtube-explore" />} />
+      <Route path="/kinetic-subtitles-dynamic-word-highlighting-secret" element={<BlogArticlePage slug="kinetic-subtitles-dynamic-word-highlighting-secret" />} />
+      <Route path="/opus-clip-alternative-convert-long-videos-to-shorts" element={<BlogArticlePage slug="opus-clip-alternative-convert-long-videos-to-shorts" />} />
+
       <Route path="/about" element={<AboutUs />} />
       <Route path="/about-us" element={<AboutUs />} />
       <Route path="/opus-clip-alternative" element={<AlternativePage tool="opus" />} />
